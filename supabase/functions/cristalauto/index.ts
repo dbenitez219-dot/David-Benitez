@@ -7,7 +7,9 @@
 // Configuración (Supabase → Edge Functions → Secrets):  RESEND_API_KEY (obligatoria)
 //   opcionales: NOTIFY_TO (correos separados por coma), MAIL_FROM
 import { createClient } from "npm:@supabase/supabase-js@2";
-import webpush from "npm:web-push@3.6.7";
+// web-push se carga recién cuando hace falta: si fallara, la función igual arranca y lo informa
+let _wp: any = null;
+async function wp() { if (!_wp) { const m: any = await import("npm:web-push@3.6.7"); _wp = m.default || m; } return _wp; }
 
 // <<PURE-START>> (lógica sin dependencias: se prueba por separado)
 const TZ = "America/Asuncion";
@@ -110,20 +112,32 @@ function morningMsg(d, date) {
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
-const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+function serviceKey() {
+  const k = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"); if (k) return k;
+  try { const o = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}"); return o.default || Object.values(o)[0] || null; } catch (_) { return null; }
+}
+let _admin: any = null;
+function db() {
+  if (!_admin) {
+    const key = serviceKey();
+    if (!key) throw new Error("La función no encontró la clave de servicio de Supabase");
+    _admin = createClient(Deno.env.get("SUPABASE_URL")!, key, { auth: { persistSession: false } });
+  }
+  return _admin;
+}
 const RESEND = Deno.env.get("RESEND_API_KEY");
 const TO = (Deno.env.get("NOTIFY_TO") || "cristalauto95@gmail.com").split(",").map((x) => x.trim()).filter(Boolean);
 const FROM = Deno.env.get("MAIL_FROM") || "CristalAuto <onboarding@resend.dev>";
 
 async function secret(key: string) {
-  const { data } = await admin.from("app_secrets").select("value").eq("key", key).maybeSingle();
+  const { data } = await db().from("app_secrets").select("value").eq("key", key).maybeSingle();
   return data ? data.value : null;
 }
 async function loadCols(cols: string[]) {
   const out: Record<string, any[]> = {};
   for (const c of cols) out[c] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await admin.from("records").select("collection,data").in("collection", cols).range(from, from + 999);
+    const { data, error } = await db().from("records").select("collection,data").in("collection", cols).range(from, from + 999);
     if (error) throw error;
     for (const r of data) out[r.collection].push(r.data);
     if (data.length < 1000) break;
@@ -133,8 +147,8 @@ async function loadCols(cols: string[]) {
 async function vapidKeys() {
   let pub = await secret("vapid_public"), priv = await secret("vapid_private");
   if (!pub || !priv) {
-    const k = webpush.generateVAPIDKeys(); pub = k.publicKey; priv = k.privateKey;
-    await admin.from("app_secrets").upsert([{ key: "vapid_public", value: pub }, { key: "vapid_private", value: priv }]);
+    const k = (await wp()).generateVAPIDKeys(); pub = k.publicKey; priv = k.privateKey;
+    await db().from("app_secrets").upsert([{ key: "vapid_public", value: pub }, { key: "vapid_private", value: priv }]);
   }
   return { pub, priv };
 }
@@ -144,26 +158,27 @@ async function sendMail(subject: string, html: string) {
   if (!r.ok) throw new Error("Resend " + r.status + ": " + (await r.text()));
 }
 async function sendPush(payload: unknown) {
-  const { data } = await admin.from("records").select("data").eq("collection", "push_subs");
+  const { data } = await db().from("records").select("data").eq("collection", "push_subs");
   const subs = (data || []).map((r: any) => r.data).filter((s: any) => s && s.endpoint);
   if (!subs.length) return { sent: 0, total: 0 };
   const { pub, priv } = await vapidKeys();
+  const webpush = await wp();
   webpush.setVapidDetails("mailto:" + TO[0], pub, priv);
   let sent = 0;
   for (const s of subs) {
     try { await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify(payload)); sent++; }
-    catch (e: any) { if (e && (e.statusCode === 404 || e.statusCode === 410)) await admin.from("records").delete().eq("collection", "push_subs").eq("data->>endpoint", s.endpoint); }
+    catch (e: any) { if (e && (e.statusCode === 404 || e.statusCode === 410)) await db().from("records").delete().eq("collection", "push_subs").eq("data->>endpoint", s.endpoint); }
   }
   return { sent, total: subs.length };
 }
 // Reserva la clave antes de enviar: así un aviso nunca sale dos veces aunque dos ejecuciones se pisen.
 async function claim(key: string) {
-  const { error } = await admin.from("notif_log").insert({ key });
+  const { error } = await db().from("notif_log").insert({ key });
   if (!error) return true;
   if ((error as any).code === "23505") return false;
   throw error;
 }
-async function release(key: string) { await admin.from("notif_log").delete().eq("key", key); }
+async function release(key: string) { await db().from("notif_log").delete().eq("key", key); }
 async function deliver(msg: any) {
   const res: any = { mail: null, push: null };
   try { await sendMail(msg.subject, msg.html); res.mail = "ok"; } catch (e: any) { res.mail = String(e.message || e); }
@@ -187,13 +202,14 @@ async function isCron(req: Request) {
 async function requireUser(req: Request) {
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
   if (!token) throw Object.assign(new Error("Falta iniciar sesión"), { status: 401 });
-  const { data, error } = await admin.auth.getUser(token);
+  const { data, error } = await db().auth.getUser(token);
   if (error || !data.user) throw Object.assign(new Error("Sesión inválida"), { status: 401 });
   return data.user;
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method === "GET") return json({ ok: true, funcion: "cristalauto", tiene_url: !!Deno.env.get("SUPABASE_URL"), tiene_clave_de_servicio: !!serviceKey(), tiene_clave_resend: !!RESEND });
   try {
     const body = await req.json().catch(() => ({}));
     const cron = await isCron(req);
@@ -209,7 +225,7 @@ Deno.serve(async (req: Request) => {
     if (!cron) await requireUser(req);
     if (body.action === "vapid") return json({ key: (await vapidKeys()).pub });
     if (body.action === "sale") {
-      const { data, error } = await admin.from("records").select("data").eq("collection", "sales").eq("id", String(body.id)).maybeSingle();
+      const { data, error } = await db().from("records").select("data").eq("collection", "sales").eq("id", String(body.id)).maybeSingle();
       if (error) throw error; if (!data) return json({ error: "Venta no encontrada" }, 404);
       return json(await once("sale-" + body.id, () => saleMsg(data.data)));
     }
