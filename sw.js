@@ -1,5 +1,5 @@
-const CACHE = 'stock-v1';
-const FILES = ['./', './index.html', './style.css', './app.js', './manifest.webmanifest',
+const CACHE = 'cristalauto-v2';
+const FILES = ['./', './index.html', './style.css', './app.js', './manifest.webmanifest', './xlsx.min.js',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
