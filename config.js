@@ -2,4 +2,5 @@
 window.SB_CONFIG = {
   url: 'https://nmvlnyxgfhveleeewklg.supabase.co',
   key: 'sb_publishable_malo3Q2XwfqBH1GCGOc9uw_XIWStLQa',
+  fn: 'CRISTALAUTO', // nombre exacto de la función de avisos en Supabase (importan las mayúsculas)
 };

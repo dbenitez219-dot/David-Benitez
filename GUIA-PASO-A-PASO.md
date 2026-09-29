@@ -16,7 +16,7 @@ Todo se hace con el correo `cristalauto95@gmail.com`. Cada paso termina con algo
 
 ## Paso C · Publicar la función que envía los avisos
 1. Menú izquierdo: **Edge Functions** → **Deploy a new function** → **Via Editor**.
-2. Nombre: `cristalauto` (exactamente así, en minúscula).
+2. Nombre: `cristalauto` (en minúscula). Si tu función quedó con otro nombre, ese nombre exacto va en `config.js` (campo `fn`) y en `supabase/02-avisos.sql`.
 3. Borrá el código de ejemplo, abrí `supabase/functions/cristalauto/index.ts`, copiá **todo** y pegalo.
 4. Tocá **Deploy function**.
 5. **Importante:** en la configuración de la función apagá **Verify JWT** / **Enforce JWT Verification** (la función hace su propia verificación). Guardá.

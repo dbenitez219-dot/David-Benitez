@@ -23,7 +23,7 @@ select cron.schedule(
   '*/5 * * * *',
   $job$
     select net.http_post(
-      url := 'https://nmvlnyxgfhveleeewklg.supabase.co/functions/v1/cristalauto',
+      url := 'https://nmvlnyxgfhveleeewklg.supabase.co/functions/v1/CRISTALAUTO',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
         'x-cron-secret', (select value from public.app_secrets where key = 'cron_secret')
