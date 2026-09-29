@@ -1,7 +1,6 @@
 'use strict';
-/* CristalAuto Parabrisas — ventas, stock, caja, clientes y consultas.
-   Los datos se guardan en este dispositivo (localStorage). Respaldo en Ajustes. */
-const KEY = 'cristalauto.v1';
+/* CristalAuto Parabrisas — ventas, agenda, stock, caja, clientes, consultas y campañas.
+   Los datos se sincronizan con Supabase (ver sync.js) y también quedan guardados en este dispositivo. */
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
@@ -21,64 +20,47 @@ function numGs(v) {
   const n = parseFloat(s); return isFinite(n) ? n : 0;
 }
 
-/* ---------- Datos iniciales ---------- */
-// Cargados desde la foto del 4to contenedor: [código, descripción, stock, mayorista, compra]. Verificar e importar el Excel real.
-const DEMO = [
-  ['GOL-08-CP LFW/X', 'VOLKSWAGEN GOL G5 3D/5D HATCHBACK/4D SEDAN 2008-', 31, 300000, 160776],
-  ['NCP10 LFW/X', 'TOYOTA RACTIS 5D HBK 2005-10', 107, 280000, 129822],
-  ['SC10W LFW/X', 'TOYOTA IST NCP61/SCION XA HBK 2001-07', 166, 250000, 122496],
-  ['LK10 LFW/X', 'TOYOTA YARIS/VITZ XP10 HBK/SED 1999-05', 141, 250000, 114906],
-  ['LK20 LFW/X', 'TOYOTA YARIS/VITZ HBK 2005-10 /VOLEEX C20R', 107, 260000, 127512],
-  ['HYU-HB20-20-CP LFW/X', 'HYUNDAI HB20X 5D HATCHBACK/HB20S 4D SEDAN 2020-', 23, 350000, 193116],
-  ['CP10-1 LFW/X', 'TOYOTA FUNCARGO/ECHO CARGO/YARIS VERSO NP20 5D WAGON 2000-', 108, 250000, 121836],
-  ['GOL-95 LFW/X', 'VW GOL G2 HBK 1994-99', 40, 250000, 116490],
-  ['NCP81 LFW/X', 'TOYOTA SIENTA 5D WAGON 2003-', 34, 280000, 140976],
-  ['ZN10 LFW/X', 'TOYOTA HILUX 1997-04 /TACOMA/4RUNNER RZN180', 51, 250000, 110154],
-  ['NE30-VCP LFW/X', 'TOYOTA AURIS HBK 2007-12', 53, 300000, 160314],
-  ['KE120W-V LFW/X', 'TOYOTA COROLLA 2000-07 /BYD F3', 162, 250000, 127446],
-  ['NZT260-R-CP LFW/X', 'TOYOTA PREMIO/ALLION SEDAN 2007-', 103, 280000, 155100],
-  ['ZZT240-R-CP LFW/X', 'TOYOTA ALLION/PREMIO SEDAN 2001-07', 132, 270000, 137016],
-  ['TY-KE110-V LFW/X', 'TOYOTA COROLLA SEDAN/WAGON 1995-00', 53, 270000, 133914],
-  ['NI-D23-VCP LFW/X', 'NISSAN NAVARA D23 PICKUP 2016- /NP300/FRONTIER', 21, 330000, 153384],
-  ['B15 LFW/X', 'NISSAN SENTRA/SUNNY B15 4D SEDAN 1998-06', 109, 280000, 134574],
-  ['AL51 LFW/X', 'TOYOTA TERCEL/CORSA 2D COUPE/3D HATCHBACK/4D SEDAN 1995-', 42, 270000, 134772],
-  ['DMAX-12-VCP-SMB LFW/X', 'ISUZU D-MAX 2D/4D PICK-UP 2012-17/CHEVROLET D-MAX 4D PICK-UP 2014-18', 41, 350000, 143352],
-  ['SPORTAGE-10-VCP LFW/X', 'KIA SPORTAGE 5D SUV 2010-', 34, 350000, 161040],
-  ['ZN215-VCP LFW/X', 'TOYOTA HILUX 2004- PICKUP/FORTUNER SUV', 41, 270000, 132726],
-];
+/* ---------- Constantes ---------- */
 const SERVICIOS = [
   ['Reinstalación de parabrisas (auto)', 250000], ['Reinstalación de parabrisas (camioneta)', 300000],
   ['Pulida de vidrio automotriz', 300000], ['Pulida de faros', 0],
   ['Polarizado nanocarbón – parabrisas delantero', 250000], ['Polarizado nanocerámico – parabrisas delantero', 300000],
   ['Polarizado – laterales y luneta', 0],
 ];
-const CFG0 = () => ({ empresa: { nombre: 'CristalAuto Parabrisas', ruc: '', direccion: '', tel: '', timbrado: '', vigencia: '' },
-  staff: ['Jefe', 'Colocador 2', 'Colocador 3', 'Colocador 4'], pin: '', nextSale: 1, minDefault: 50 });
+const COLS = ['products', 'moves', 'services', 'clients', 'sales', 'expenses', 'leads', 'appts', 'suppliers', 'campaigns', 'cashdays', 'quotes'];
 const FUENTES = ['WhatsApp', 'Instagram', 'Facebook', 'TikTok', 'Llamada', 'Recomendación', 'Llegó al local', 'Otro'];
 const ESTADOS = { nuevo: 'Nuevo', cotizado: 'Cotizado', agendado: 'Agendado', ganado: 'Ganado ✔', perdido: 'Perdido' };
-const GASTOS = ['Sueldos', 'Herramientas', 'Publicidad', 'Alquiler y servicios', 'Insumos', 'Combustible', 'Otros'];
-const MOV = { in: 'Entrada', out: 'Salida', adj: 'Ajuste' };
+const GASTOS = ['Publicidad', 'Sueldos', 'Herramientas', 'Compra a proveedor', 'Alquiler y servicios', 'Insumos', 'Combustible', 'Otros'];
+const METODOS = ['Efectivo', 'Transferencia', 'Tarjeta', 'Cheque'];
+const VIAS = ['Efectivo', 'Itaú'];
+const PLATAFORMAS = ['Meta (Facebook/Instagram)', 'TikTok', 'Google', 'Otro'];
+const CFG0 = () => ({ empresa: { nombre: 'CristalAuto Parabrisas', ruc: '', direccion: '', tel: '', timbrado: '', vigencia: '' },
+  staff: ['Jefe', 'Colocador 2', 'Colocador 3', 'Colocador 4'], pin: '', minDefault: 50, capMin: 4, capMax: 12, seeded: false });
+const normalizarCfg = c => { const b = CFG0(); return { ...b, ...(c || {}), empresa: { ...b.empresa, ...((c || {}).empresa || {}) } }; };
 
-let db = cargar();
-function cargar() {
-  try {
-    const d = JSON.parse(localStorage.getItem(KEY));
-    if (d && d.products) return normalizar(d);
-  } catch (e) { }
-  const c = CFG0();
-  const products = DEMO.map(([code, name, stock, may, compra]) => ({ id: uid(), code, name, stock, min: c.minDefault, compra, mayorista: may, colocado: 0, contenedor: '4to contenedor', demo: true }));
-  return normalizar({ products, moves: products.map(p => ({ id: uid(), date: hoyISO(), ts: Date.now(), pid: p.id, type: 'in', qty: p.stock, note: 'Stock inicial' })),
-    services: SERVICIOS.map(([name, price]) => ({ id: uid(), name, price })) });
-}
+/* ---------- Datos ---------- */
+let db = normalizar(Sync.loadLocal() || {});
 function normalizar(d) {
-  const c = CFG0();
-  d.cfg = { ...c, ...(d.cfg || {}), empresa: { ...c.empresa, ...((d.cfg || {}).empresa || {}) } };
-  for (const k of ['products', 'moves', 'services', 'clients', 'sales', 'expenses', 'leads']) if (!Array.isArray(d[k])) d[k] = [];
+  d.cfg = normalizarCfg(d.cfg);
+  for (const k of COLS) if (!Array.isArray(d[k])) d[k] = [];
   return d;
 }
-function guardar() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { toast('⚠️ No se pudo guardar en este navegador'); } }
+/* El stock siempre se calcula desde los movimientos */
+function recalc() {
+  const m = {};
+  for (const v of db.moves) m[v.pid] = (m[v.pid] || 0) + (v.type === 'out' ? -v.qty : v.qty);
+  for (const p of db.products) p.stock = Math.round((m[p.id] || 0) * 1000) / 1000;
+}
+function guardar() { recalc(); Sync.save(); }
+recalc();
 const prod = id => db.products.find(p => p.id === id);
 const cli = id => db.clients.find(c => c.id === id);
+const sup = id => db.suppliers.find(s => s.id === id);
+const camp = id => db.campaigns.find(c => c.id === id);
+function seedSiHaceFalta() {
+  if (db.cfg.seeded || db.services.length) return;
+  db.services = SERVICIOS.map(([name, price]) => ({ id: uid(), name, price })); db.cfg.seeded = true; guardar();
+}
 
 /* ---------- Jefe / PIN ---------- */
 let bossOk = false;
@@ -88,28 +70,36 @@ function needBoss(fn) {
   const p = prompt('PIN del jefe:');
   if (p === db.cfg.pin) { bossOk = true; fn(); } else if (p !== null) toast('PIN incorrecto');
 }
-function lockUI() {
-  const b = $('#lock'); b.hidden = !db.cfg.pin;
-  b.textContent = bossOk ? '🔓 Jefe' : '🔒 Bloqueado';
-}
+function lockUI() { const b = $('#lock'); b.hidden = !db.cfg.pin; b.textContent = bossOk ? '🔓 Jefe' : '🔒 Bloqueado'; }
 $('#lock').onclick = () => { if (bossOk) { bossOk = false; render(); } else needBoss(() => render()); };
 
 /* ---------- UI ---------- */
 let tab = 'resumen';
 const view = $('#view');
-function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3000); }
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3200); }
 function modal(html) { $('#modalBody').innerHTML = html; $('#modal').hidden = false; }
 function cerrar() { $('#modal').hidden = true; }
 $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') cerrar(); });
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; tab = b.dataset.tab; render(); });
 $('#hoy').textContent = new Date().toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
-const VIEWS = { resumen: vResumen, ventas: vVentas, stock: vStock, clientes: vClientes, caja: vCaja, consultas: vConsultas, ajustes: vAjustes };
-function render() {
+const VIEWS = { resumen: () => vResumen(), ventas: () => vVentas(), agenda: () => vAgenda(), stock: () => vStock(), clientes: () => vClientes(), caja: () => vCaja(), consultas: () => vConsultas(), ajustes: () => vAjustes() };
+function render(keepScroll) {
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-  lockUI(); VIEWS[tab](); window.scrollTo(0, 0);
+  const y = window.scrollY; lockUI(); VIEWS[tab](); window.scrollTo(0, keepScroll ? y : 0);
+}
+/* Actualiza la pantalla cuando llegan cambios del otro dispositivo, sin molestar si estás escribiendo */
+let refT;
+function refreshUI() {
+  clearTimeout(refT); refT = setTimeout(() => {
+    if (!$('#modal').hidden) return;
+    const a = document.activeElement;
+    if (a && view.contains(a) && /INPUT|SELECT|TEXTAREA/.test(a.tagName)) { if (tab === 'ventas') listaVentas(); return; }
+    render(true);
+  }, 300);
 }
 const tabla = (cols, rows, numCols = []) => `<div class="tablewrap"><table><thead><tr>${cols.map((c, i) => `<th class="${numCols.includes(i) ? 'n' : ''}${c[0] === '~' ? ' hm' : ''}">${c.replace(/^~/, '')}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
 const opts = (arr, sel) => arr.map(a => `<option ${a === sel ? 'selected' : ''}>${esc(a)}</option>`).join('');
+const optsKV = (list, sel, empty) => (empty ? `<option value="">${esc(empty)}</option>` : '') + list.map(([v, l]) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(l)}</option>`).join('');
 
 /* Buscador de vidrios por código o por modelo (todas las palabras deben aparecer) */
 function buscar(q, limit = 8) {
@@ -122,7 +112,8 @@ function picker(inp, res, onPick) {
   };
   res.onclick = e => { const b = e.target.closest('[data-id]'); if (!b) return; res.innerHTML = ''; inp.value = ''; onPick(prod(b.dataset.id)); };
 }
-const waLink = t => { let d = String(t || '').replace(/\D/g, ''); if (!d) return ''; if (d.startsWith('0')) d = '595' + d.slice(1); return 'https://wa.me/' + d; };
+const waNum = t => { let d = String(t || '').replace(/\D/g, ''); if (!d) return ''; if (d.startsWith('0')) d = '595' + d.slice(1); return d; };
+const waLink = (t, text) => { const n = waNum(t); return n ? 'https://wa.me/' + n + (text ? '?text=' + encodeURIComponent(text) : '') : ''; };
 
 /* ---------- Stock (movimientos) ---------- */
 function mover(pid, type, qty, note, date, ref) {
@@ -133,8 +124,9 @@ function mover(pid, type, qty, note, date, ref) {
 const stockDot = p => `<span class="dot ${p.stock <= 0 ? 'r' : p.stock <= p.min ? 'o' : 'g'}"></span>`;
 
 /* ---------- Ventas: cálculo ---------- */
+const costOf = i => (i.type === 'prod' || i.type === 'ext') ? i.qty * (i.cost || 0) : 0;
 const saleTotals = s => { const sub = s.items.reduce((a, i) => a + i.qty * i.unit, 0); const d = Math.round(sub * (s.pct || 0) / 100);
-  return { sub, d, total: sub - d, cost: s.items.reduce((a, i) => a + (i.type === 'prod' ? i.qty * i.cost : 0), 0) }; };
+  return { sub, d, total: sub - d, cost: s.items.reduce((a, i) => a + costOf(i), 0) }; };
 const paidOf = s => s.pays.reduce((a, p) => a + p.amount, 0);
 const saldoOf = s => s.total - paidOf(s);
 const hoyVencida = s => saldoOf(s) > 0 && s.due && s.due < hoyISO();
@@ -147,23 +139,27 @@ function vResumen() {
   const gastosHoy = db.expenses.filter(g => g.date === hoy).reduce((a, g) => a + g.amount, 0);
   const pend = S.filter(s => saldoOf(s) > 0);
   const porCobrar = pend.reduce((a, s) => a + saldoOf(s), 0), vencido = pend.filter(hoyVencida).reduce((a, s) => a + saldoOf(s), 0);
+  const prox = pend.filter(s => s.due && s.due <= addDays(hoy, 5)).sort((a, b) => a.due.localeCompare(b.due));
   const bajos = db.products.filter(p => p.stock <= p.min).sort((a, b) => a.stock - b.stock);
   const seguir = db.leads.filter(l => !['ganado', 'perdido'].includes(l.status) && l.follow && l.follow <= hoy);
+  const citasHoy = agendaDe(hoy), citasMan = agendaDe(addDays(hoy, 1)), cd = db.cashdays.find(c => c.date === hoy);
   const totMes = ventasMes.reduce((a, s) => a + s.total, 0), gananciaMes = ventasMes.reduce((a, s) => a + s.total - s.cost, 0);
-  const gastosMes = db.expenses.filter(g => g.date.startsWith(mes)).reduce((a, g) => a + g.amount, 0);
+  const gastosMes = db.expenses.filter(g => g.date.startsWith(mes) && !g.inCost).reduce((a, g) => a + g.amount, 0);
   const dias = [...Array(7)].map((_, i) => addDays(hoy, i - 6));
   const serie = dias.map(d => ({ d, v: S.filter(s => s.date === d).reduce((a, s) => a + s.total, 0) }));
   const max = Math.max(1, ...serie.map(x => x.v));
   view.innerHTML = `
-  ${db.products.some(p => p.demo) ? '<div class="banner">Los productos cargados son de la foto del 4to contenedor (solo una parte). Andá a <b>Ajustes → Importar Excel</b> para cargar tu inventario completo.</div>' : ''}
+  ${!db.products.length ? '<div class="banner">Todavía no cargaste tu inventario. Andá a <b>Ajustes → Importar Excel</b> y subí tu planilla de stock.</div>' : ''}
+  ${!cd || cd.closed ? `<div class="banner">${!cd ? '💵 La caja de hoy todavía no está abierta.' : '💵 La caja de hoy ya está cerrada.'} <a href="#" id="go_caja">Ir a Caja</a></div>` : ''}
   <div class="grid">
     <div class="kpi"><b>${gs(ventasHoy.reduce((a, s) => a + s.total, 0))}</b><span>Ventas de hoy (${ventasHoy.length})</span></div>
     <div class="kpi ok"><b>${gs(cobrosHoy)}</b><span>Cobrado hoy</span></div>
     <div class="kpi"><b>${gs(gastosHoy)}</b><span>Gastos de hoy</span></div>
+    <div class="kpi"><b>${citasHoy.length}</b><span>Colocaciones hoy · mañana ${citasMan.length}</span></div>
     <div class="kpi ${vencido ? 'bad' : ''}"><b>${gs(porCobrar)}</b><span>Por cobrar${vencido ? ' · vencido ' + gs(vencido) : ''}</span></div>
     <div class="kpi ${bajos.length ? 'bad' : ''}"><b>${bajos.length}</b><span>Stock bajo</span></div>
-    <div class="kpi ${seguir.length ? 'bad' : ''}"><b>${seguir.length}</b><span>Consultas para seguir hoy</span></div>
   </div>
+  <div class="card"><h2>📅 Agenda de hoy</h2>${citasHoy.length ? tabla(['Hora', 'Cliente', 'Vehículo', 'Colocador'], citasHoy.map(a => `<tr class="click" data-ag="${a.id}"><td><b>${esc(a.time)}</b></td><td>${esc(a.clientName)}${a.domicilio ? ' 🚗' : ''}</td><td class="wrap">${esc(a.vehicle)}</td><td>${esc(a.tech)}</td></tr>`).join('')) : '<p class="mut">No hay colocaciones agendadas para hoy.</p>'}</div>
   <div class="card"><h2>Este mes</h2><div class="grid" style="margin:0">
     <div class="kpi"><b>${gs(totMes)}</b><span>Ventas (${ventasMes.length})</span></div>
     ${boss() ? `<div class="kpi"><b>${gs(gananciaMes)}</b><span>Ganancia bruta</span></div>
@@ -173,72 +169,92 @@ function vResumen() {
   <div class="card"><h2>Ventas de los últimos 7 días</h2>
     <svg viewBox="0 0 350 120" width="100%" role="img" aria-label="Ventas por día">${serie.map((x, i) => { const h = x.v / max * 80, bx = 12 + i * 47;
     return `<rect x="${bx}" y="${90 - h}" width="30" height="${h}" rx="4" fill="#2b6cb0"/><text x="${bx + 15}" y="106" font-size="10" text-anchor="middle" fill="currentColor" opacity=".7">${x.d.slice(8)}/${x.d.slice(5, 7)}</text>`; }).join('')}</svg></div>
-  <div class="card"><h2>⏰ Seguimiento de consultas de hoy</h2>${seguir.length ? tabla(['Cliente', 'Interés', 'Origen', ''], seguir.map(l => `<tr><td>${esc(l.name)}</td><td>${esc(l.interest)}</td><td>${esc(l.source)}</td><td>${waLink(l.phone) ? `<a class="btn sm" href="${waLink(l.phone)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</td></tr>`).join('')) : '<p class="mut">Nada pendiente 👌</p>'}</div>
-  <div class="card"><h2>💳 Cobros vencidos</h2>${pend.filter(hoyVencida).length ? tabla(['Cliente', 'Vencía', 'Saldo'], pend.filter(hoyVencida).map(s => `<tr class="click" data-v="${s.id}"><td>${esc(s.clientName)}</td><td>${dmy(s.due)}</td><td class="n">${gs(saldoOf(s))}</td></tr>`).join(''), [2]) : '<p class="mut">Sin cobros vencidos.</p>'}</div>
+  <div class="card"><h2>💳 Créditos por vencer (5 días) o vencidos</h2>${prox.length ? tabla(['Cliente', 'Vence', 'Saldo', ''], prox.map(s => `<tr class="click" data-v="${s.id}"><td>${esc(s.clientName)}</td><td>${hoyVencida(s) ? '<span class="tag bad">' + dmy(s.due) + '</span>' : dmy(s.due)}</td><td class="n">${gs(saldoOf(s))}</td><td>${waLink((cli(s.clientId) || {}).phone) ? `<a class="btn sm" href="${waLink((cli(s.clientId) || {}).phone, `Hola ${s.clientName}, te escribimos de CristalAuto Parabrisas. Te recordamos que tu cuenta de ${gs(saldoOf(s))} vence el ${dmy(s.due)}. ¡Gracias!`)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</td></tr>`).join(''), [2]) : '<p class="mut">Sin créditos por vencer.</p>'}</div>
+  <div class="card"><h2>⏰ Seguimiento de consultas de hoy</h2>${seguir.length ? tabla(['Cliente', 'Interés', 'Origen', ''], seguir.map(l => `<tr><td>${esc(l.name)}</td><td class="wrap">${esc(l.interest)}</td><td>${esc(l.source)}</td><td>${waLink(l.phone) ? `<a class="btn sm" href="${waLink(l.phone)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</td></tr>`).join('')) : '<p class="mut">Nada pendiente 👌</p>'}</div>
   <div class="card"><h2>⚠️ Stock para reponer</h2>${bajos.length ? tabla(['Código', 'Descripción', 'Stock'], bajos.slice(0, 15).map(p => `<tr><td>${esc(p.code)}</td><td class="wrap">${esc(p.name)}</td><td class="n">${stockDot(p)}${fmt(p.stock)}</td></tr>`).join(''), [2]) + (bajos.length > 15 ? `<p class="mut">…y ${bajos.length - 15} más en Stock.</p>` : '') : '<p class="mut">Todo con stock suficiente.</p>'}</div>`;
-  document.querySelectorAll('[data-v]').forEach(r => r.onclick = () => verVenta(r.dataset.v));
+  document.querySelectorAll('#view [data-v]').forEach(r => r.onclick = () => verVenta(r.dataset.v));
+  document.querySelectorAll('#view [data-ag]').forEach(r => r.onclick = () => { tab = 'agenda'; ag.date = hoy; render(); });
+  const gc = $('#go_caja'); if (gc) gc.onclick = e => { e.preventDefault(); tab = 'caja'; cj.date = hoy; render(); };
 }
 
-/* ================= VENTAS ================= */
+/* ================= VENTAS y COTIZACIONES ================= */
 let cart = nuevoCart();
-function nuevoCart() { return { kind: 'colocado', clientName: '', ctype: 'particular', vehicle: '', tech: '', items: [], pct: 0, date: hoyISO(), pay: 'contado', method: 'Efectivo', abono: 0, due: addDays(hoyISO(), 30), invType: '', invNo: '', note: '' }; }
+function nuevoCart() { return { mode: 'venta', kind: 'colocado', clientName: '', phone: '', ctype: 'particular', vehicle: '', tech: '', items: [], pct: 0, date: hoyISO(), pay: 'contado', method: 'Efectivo', abono: 0, due: addDays(hoyISO(), 30), invType: '', invNo: '', note: '', apptId: '', leadId: '' }; }
 let vf = { from: hoyISO(), to: hoyISO() };
 function vVentas() {
+  const cot = cart.mode === 'cotiz';
+  const abiertas = db.leads.filter(l => !['ganado', 'perdido'].includes(l.status));
   view.innerHTML = `
-  <div class="card"><h2>Nueva venta</h2>
+  <div class="card"><h2>${cot ? 'Nueva cotización' : 'Nueva venta'}</h2>
+    <div class="seg" id="m_seg"><button data-m="venta">🧾 Venta</button><button data-m="cotiz">📝 Cotización (enviar por WhatsApp)</button></div>
+    ${cart.apptId ? '<div class="banner">Viene de una cita de la agenda: completá los precios y registrá el cobro.</div>' : ''}
     <div class="seg" id="k_seg">${[['colocado', '🔧 Cambio / colocado'], ['mayorista', '📦 Mayorista'], ['servicio', '✨ Servicio']].map(([k, l]) => `<button data-k="${k}">${l}</button>`).join('')}</div>
     <div class="row"><div><label>Cliente</label><input id="v_cli" list="clis" placeholder="Cliente ocasional" autocomplete="off" value="${esc(cart.clientName)}"></div>
-      <div><label>Tipo (si es cliente nuevo)</label><select id="v_ctype">${[['particular', 'Particular'], ['taller', 'Taller'], ['empresa', 'Empresa / flota']].map(([k, l]) => `<option value="${k}" ${k === cart.ctype ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
+      <div><label>Teléfono / WhatsApp</label><input id="v_tel" inputmode="tel" value="${esc(cart.phone)}"></div></div>
     <datalist id="clis">${db.clients.map(c => `<option value="${esc(c.name)}">`).join('')}</datalist>
-    <div class="row"><div><label>Vehículo / chapa</label><input id="v_veh" placeholder="Toyota Vitz 2008 · ABC123" value="${esc(cart.vehicle)}"></div>
+    <div class="row"><div><label>Tipo (si es cliente nuevo)</label><select id="v_ctype">${optsKV([['particular', 'Particular'], ['taller', 'Taller'], ['empresa', 'Empresa / flota']], cart.ctype)}</select></div>
       <div><label>Colocador</label><select id="v_tech"><option value="">—</option>${opts(db.cfg.staff, cart.tech)}</select></div></div>
-    <label>Buscar vidrio (código o modelo del vehículo)</label><input id="v_q" placeholder="Ej: vitz 2005  ·  hilux  ·  NCP10" autocomplete="off"><div id="v_res" class="sugs"></div>
-    <label>Agregar servicio</label><select id="v_srv"><option value="">— elegir servicio —</option>${db.services.map(s => `<option value="${s.id}">${esc(s.name)}${s.price ? ' · ' + gs(s.price) : ''}</option>`).join('')}</select>
+    <label>Vehículo / chapa</label><input id="v_veh" placeholder="Toyota Vitz 2008 · ABC123" value="${esc(cart.vehicle)}">
+    <label>Buscar vidrio en stock (código o modelo del vehículo)</label><input id="v_q" placeholder="Ej: vitz 2005  ·  hilux  ·  NCP10" autocomplete="off"><div id="v_res" class="sugs"></div>
+    <div class="row"><div><label>Agregar servicio</label><select id="v_srv"><option value="">— elegir servicio —</option>${db.services.map(s => `<option value="${s.id}">${esc(s.name)}${s.price ? ' · ' + gs(s.price) : ''}</option>`).join('')}</select></div>
+      <div><label>&nbsp;</label><button class="btn sec" id="v_ext" style="width:100%">＋ Vidrio de proveedor (no está en stock)</button></div></div>
     <div id="v_items"></div>
     <div class="row"><div><label>Descuento %</label><input id="v_pct" inputmode="decimal" value="${cart.pct || ''}" placeholder="0"></div>
       <div><label>Fecha</label><input type="date" id="v_date" value="${cart.date}"></div></div>
     <div id="v_tot"></div>
-    <label>Pago</label>
+    ${cot ? '' : `<label>Pago</label>
     <div class="seg" id="p_seg"><button data-p="contado">Contado</button><button data-p="credito">A crédito</button></div>
-    <div class="row"><div><label>Forma de pago</label><select id="v_method">${opts(['Efectivo', 'Transferencia', 'Tarjeta', 'Cheque'], cart.method)}</select></div>
+    <div class="row"><div><label>Forma de pago</label><select id="v_method">${opts(METODOS, cart.method)}</select></div>
       <div id="v_cred" class="row" style="flex:2 1 280px"><div><label>Abona ahora</label><input id="v_abono" inputmode="numeric" value="${cart.abono || ''}" placeholder="0"></div>
       <div><label>Vence (máx. 1 mes)</label><input type="date" id="v_due" value="${cart.due}"></div></div></div>
     <div class="row"><div><label>Factura</label><select id="v_inv"><option value="">Aún sin factura</option><option value="fisica" ${cart.invType === 'fisica' ? 'selected' : ''}>Física (talonario)</option><option value="electronica" ${cart.invType === 'electronica' ? 'selected' : ''}>Electrónica</option></select></div>
       <div><label>N° de factura</label><input id="v_invno" placeholder="001-001-0000000" value="${esc(cart.invNo)}"></div></div>
+    <label>¿Viene de una consulta? (para medir la publicidad)</label><select id="v_lead"><option value="">— no / no sé —</option>${abiertas.map(l => `<option value="${l.id}" ${l.id === cart.leadId ? 'selected' : ''}>${esc(l.name)} · ${esc(l.interest)} · ${esc(l.source)}</option>`).join('')}</select>`}
     <label>Nota</label><input id="v_note" value="${esc(cart.note)}">
-    <button class="btn block ok" id="v_save">Registrar venta</button>
+    <button class="btn block ${cot ? '' : 'ok'}" id="v_save">${cot ? 'Guardar y enviar por WhatsApp' : 'Registrar venta'}</button>
   </div>
   <div class="card"><h2>Ventas registradas</h2>
     <div class="row"><div><label>Desde</label><input type="date" id="f_from" value="${vf.from}"></div><div><label>Hasta</label><input type="date" id="f_to" value="${vf.to}"></div>
       <div><button class="btn sec" id="f_mes">Este mes</button></div></div>
-    <div id="v_list"></div></div>`;
-  const seg = () => { document.querySelectorAll('#k_seg button').forEach(b => b.classList.toggle('on', b.dataset.k === cart.kind));
-    document.querySelectorAll('#p_seg button').forEach(b => b.classList.toggle('on', b.dataset.p === cart.pay)); $('#v_cred').style.display = cart.pay === 'credito' ? '' : 'none'; };
+    <div id="v_list"></div></div>
+  <div class="card"><h2>Cotizaciones recientes</h2><div id="q_list"></div></div>`;
+  const seg = () => { document.querySelectorAll('#m_seg button').forEach(b => b.classList.toggle('on', b.dataset.m === cart.mode));
+    document.querySelectorAll('#k_seg button').forEach(b => b.classList.toggle('on', b.dataset.k === cart.kind));
+    if (!cot) { document.querySelectorAll('#p_seg button').forEach(b => b.classList.toggle('on', b.dataset.p === cart.pay)); $('#v_cred').style.display = cart.pay === 'credito' ? '' : 'none'; } };
+  $('#m_seg').onclick = e => { const b = e.target.closest('button'); if (b && b.dataset.m !== cart.mode) { cart.mode = b.dataset.m; vVentas(); } };
   $('#k_seg').onclick = e => { const b = e.target.closest('button'); if (b) { cart.kind = b.dataset.k; seg(); } };
-  $('#p_seg').onclick = e => { const b = e.target.closest('button'); if (b) { cart.pay = b.dataset.p; seg(); } };
-  const bind = (id, key, conv = v => v) => $(id).oninput = e => { cart[key] = conv(e.target.value); if (key === 'pct') totales(); };
-  bind('#v_cli', 'clientName'); bind('#v_ctype', 'ctype'); bind('#v_veh', 'vehicle'); bind('#v_tech', 'tech'); bind('#v_pct', 'pct', numGs); bind('#v_date', 'date');
-  bind('#v_method', 'method'); bind('#v_abono', 'abono', numGs); bind('#v_due', 'due'); bind('#v_inv', 'invType'); bind('#v_invno', 'invNo'); bind('#v_note', 'note');
+  if (!cot) $('#p_seg').onclick = e => { const b = e.target.closest('button'); if (b) { cart.pay = b.dataset.p; seg(); } };
+  const bind = (id, key, conv = v => v) => { const el = $(id); if (el) el.oninput = e => { cart[key] = conv(e.target.value); if (key === 'pct') totales(); }; };
+  bind('#v_cli', 'clientName'); bind('#v_tel', 'phone'); bind('#v_ctype', 'ctype'); bind('#v_veh', 'vehicle'); bind('#v_tech', 'tech'); bind('#v_pct', 'pct', numGs); bind('#v_date', 'date');
+  bind('#v_method', 'method'); bind('#v_abono', 'abono', numGs); bind('#v_due', 'due'); bind('#v_inv', 'invType'); bind('#v_invno', 'invNo'); bind('#v_note', 'note'); bind('#v_lead', 'leadId');
+  $('#v_cli').onchange = e => { const c = db.clients.find(x => norm(x.name) === norm(e.target.value)); if (c) { if (c.phone && !cart.phone) { cart.phone = c.phone; $('#v_tel').value = c.phone; } cart.ctype = c.type; $('#v_ctype').value = c.type; } };
   picker($('#v_q'), $('#v_res'), p => {
     const price = cart.kind === 'mayorista' ? p.mayorista : (p.colocado || 0);
     cart.items.push({ type: 'prod', id: p.id, name: p.code + ' — ' + p.name, qty: 1, unit: price, cost: p.compra || 0 }); items();
   });
   $('#v_srv').onchange = e => { const s = db.services.find(x => x.id === e.target.value); if (s) { cart.items.push({ type: 'srv', id: s.id, name: s.name, qty: 1, unit: s.price, cost: 0 }); items(); } e.target.value = ''; };
-  $('#v_save').onclick = guardarVenta;
+  $('#v_ext').onclick = () => { cart.items.push({ type: 'ext', name: '', qty: 1, unit: 0, cost: 0, supplierId: '', via: 'Efectivo' }); items(); };
+  $('#v_save').onclick = cot ? guardarCotizacion : guardarVenta;
   const lista = () => { vf.from = $('#f_from').value; vf.to = $('#f_to').value; listaVentas(); };
   $('#f_from').onchange = lista; $('#f_to').onchange = lista;
   $('#f_mes').onclick = () => { vf = { from: hoyISO().slice(0, 8) + '01', to: hoyISO() }; vVentas(); };
-  seg(); items(); listaVentas();
+  seg(); items(); listaVentas(); listaCotiz();
 }
 function items() {
   const c = cart;
   $('#v_items').innerHTML = c.items.length ? `<div class="tablewrap"><table><thead><tr><th>Detalle</th><th class="n">Cant.</th><th class="n">Precio unit.</th><th></th></tr></thead><tbody>${c.items.map((i, k) => `<tr>
-    <td class="wrap">${esc(i.name)}${i.unit ? '' : '<br><span class="mut">⚠ cargá el precio</span>'}</td>
+    <td class="wrap">${i.type === 'ext' ? `<input data-n="${k}" value="${esc(i.name)}" placeholder="Ej: Parabrisas Mercedes Sprinter 2015">
+      <div class="row" style="margin-top:6px"><select data-sup="${k}"><option value="">Proveedor…</option>${db.suppliers.map(s => `<option value="${s.id}" ${s.id === i.supplierId ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>
+      <input data-cost="${k}" inputmode="numeric" placeholder="Costo unit." value="${i.cost || ''}"><select data-via="${k}">${opts(VIAS, i.via)}</select></div><span class="mut">Lo que pagaste al proveedor y desde dónde</span>` : esc(i.name)}
+      ${i.unit ? '' : '<br><span class="mut">⚠ cargá el precio</span>'}</td>
     <td class="n"><input class="qty" data-q="${k}" inputmode="decimal" value="${i.qty}"></td>
     <td class="n"><input class="unit ${i.unit ? '' : 'miss'}" data-u="${k}" inputmode="numeric" value="${i.unit || ''}" placeholder="0"></td>
-    <td><button class="btn sec sm" data-x="${k}">✕</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="mut">Buscá un vidrio o agregá un servicio.</p>';
-  document.querySelectorAll('[data-q]').forEach(i => i.oninput = () => { c.items[i.dataset.q].qty = numGs(i.value); totales(); });
-  document.querySelectorAll('[data-u]').forEach(i => i.oninput = () => { c.items[i.dataset.u].unit = numGs(i.value); i.classList.toggle('miss', !c.items[i.dataset.u].unit); totales(); });
+    <td><button class="btn sec sm" data-x="${k}">✕</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="mut">Buscá un vidrio, agregá un servicio o un vidrio de proveedor.</p>';
+  const on = (sel, key, fn) => document.querySelectorAll(sel).forEach(el => el.oninput = () => { fn(c.items[el.dataset[key]], el); totales(); });
+  on('[data-q]', 'q', (i, el) => i.qty = numGs(el.value));
+  on('[data-u]', 'u', (i, el) => { i.unit = numGs(el.value); el.classList.toggle('miss', !i.unit); });
+  on('[data-n]', 'n', (i, el) => i.name = el.value); on('[data-cost]', 'cost', (i, el) => i.cost = numGs(el.value));
+  on('[data-sup]', 'sup', (i, el) => i.supplierId = el.value); on('[data-via]', 'via', (i, el) => i.via = el.value);
   document.querySelectorAll('[data-x]').forEach(b => b.onclick = () => { c.items.splice(b.dataset.x, 1); items(); });
   totales();
 }
@@ -248,28 +264,68 @@ function totales() {
     <div class="big"><span>TOTAL</span><span>${gs(t.total)}</span></div><div class="mut"><span>IVA 10% incluido</span><span>${gs(t.total / 11)}</span></div>
     ${boss() && t.cost ? `<div class="mut"><span>Costo de vidrios</span><span>${gs(t.cost)}</span></div><div class="mut"><span>Ganancia bruta</span><span>${gs(g)} (${t.total ? Math.round(g / t.total * 100) : 0}%)</span></div>` : ''}</div>` : '';
 }
+function validarCart() {
+  const c = cart; if (!c.items.length) { toast('Agregá al menos un producto o servicio'); return false; }
+  if (c.items.some(i => !i.unit || !i.qty)) { toast('Hay líneas sin precio o cantidad'); return false; }
+  if (c.items.some(i => i.type === 'ext' && !i.name.trim())) { toast('Poné el nombre del vidrio de proveedor'); return false; }
+  return true;
+}
+function clienteDe(c) {
+  const name = c.clientName.trim(); let client = name ? db.clients.find(x => norm(x.name) === norm(name)) : null;
+  if (name && !client) { client = { id: uid(), name, type: c.ctype, ruc: '', phone: c.phone.trim(), note: '' }; db.clients.push(client); }
+  else if (client && c.phone.trim() && !client.phone) client.phone = c.phone.trim();
+  return client;
+}
 function guardarVenta() {
-  const c = cart; if (!c.items.length) return toast('Agregá al menos un producto o servicio');
-  if (c.items.some(i => !i.unit || !i.qty)) return toast('Hay líneas sin precio o cantidad');
+  const c = cart; if (!validarCart()) return;
   const t = saleTotals(c), name = c.clientName.trim();
   if (c.pay === 'credito' && !name) return toast('Para vender a crédito indicá el cliente');
   if (c.pay === 'credito' && c.abono > t.total) return toast('El abono no puede superar el total');
   for (const i of c.items.filter(i => i.type === 'prod')) { const p = prod(i.id);
     if (p && i.qty > p.stock && !confirm(`Solo hay ${fmt(p.stock)} de ${p.code}. ¿Vender ${fmt(i.qty)} igualmente?`)) return; }
-  let client = name ? db.clients.find(x => norm(x.name) === norm(name)) : null;
-  if (name && !client) { client = { id: uid(), name, type: c.ctype, ruc: '', phone: '', note: '' }; db.clients.push(client); }
-  const n = db.cfg.nextSale++;
+  const client = clienteDe(c);
+  const n = Math.max(0, ...db.sales.map(x => x.n || 0)) + 1;
   const s = { id: uid(), n, date: c.date || hoyISO(), ts: Date.now(), kind: c.kind, clientId: client ? client.id : '', clientName: name || 'Cliente ocasional', vehicle: c.vehicle.trim(), tech: c.tech,
-    items: c.items.map(i => ({ ...i })), pct: c.pct || 0, total: t.total, cost: t.cost, pay: c.pay, due: c.pay === 'credito' ? c.due : '', pays: [],
-    inv: { type: c.invType, no: c.invNo.trim(), cdc: '' }, note: c.note.trim() };
+    items: c.items.map(i => ({ ...i, name: i.name.trim() })), pct: c.pct || 0, total: t.total, cost: t.cost, pay: c.pay, due: c.pay === 'credito' ? c.due : '', pays: [],
+    inv: { type: c.invType, no: c.invNo.trim(), cdc: '' }, note: c.note.trim(), apptId: c.apptId, leadId: c.leadId };
   const inicial = c.pay === 'credito' ? c.abono : t.total;
   if (inicial > 0) s.pays.push({ id: uid(), date: s.date, amount: inicial, method: c.method });
-  for (const i of s.items) if (i.type === 'prod') {
-    mover(i.id, 'out', i.qty, `Venta #${n} · ${s.clientName}`, s.date, s.id);
-    const p = prod(i.id); if (p && c.kind === 'colocado' && i.unit) p.colocado = i.unit; // recuerda el último precio colocado
+  for (const i of s.items) {
+    if (i.type === 'prod') { mover(i.id, 'out', i.qty, `Venta #${n} · ${s.clientName}`, s.date, s.id);
+      const p = prod(i.id); if (p && c.kind === 'colocado' && i.unit) p.colocado = i.unit; } // recuerda el último precio colocado
+    if (i.type === 'ext' && i.cost > 0) db.expenses.push({ id: uid(), date: s.date, cat: 'Compra a proveedor', desc: `${i.name} · venta #${n}`, amount: i.qty * i.cost, via: i.via || 'Efectivo', supplierId: i.supplierId || '', saleId: s.id, inCost: true });
   }
-  db.sales.push(s); guardar(); cart = nuevoCart(); vf = { from: s.date, to: s.date };
+  if (c.apptId) { const a = db.appts.find(x => x.id === c.apptId); if (a) { a.status = 'hecho'; a.saleId = s.id; } }
+  if (c.leadId) { const l = db.leads.find(x => x.id === c.leadId); if (l) { l.status = 'ganado'; l.saleId = s.id; l.follow = ''; } }
+  db.sales.push(s); guardar(); Sync.notifySale(s.id);
+  cart = nuevoCart(); vf = { from: s.date, to: s.date };
   toast(`Venta #${n} registrada · ${gs(s.total)}`); vVentas(); verVenta(s.id);
+}
+function cotizTexto(q) {
+  const e = db.cfg.empresa;
+  return `Hola${q.clientName ? ' ' + q.clientName : ''}! Te paso la cotización de ${e.nombre}:\n${q.vehicle ? 'Vehículo: ' + q.vehicle + '\n' : ''}\n` +
+    q.items.map(i => `• ${i.name}${i.qty !== 1 ? ' x' + fmt(i.qty) : ''}: ${gs(i.qty * i.unit)}`).join('\n') +
+    `${q.pct ? `\nDescuento ${q.pct}%` : ''}\n*TOTAL: ${gs(q.total)}* (IVA incluido)\nVálida por 3 días. ¿Querés que te agendemos la colocación?`;
+}
+function guardarCotizacion() {
+  const c = cart; if (!validarCart()) return; const t = saleTotals(c), client = clienteDe(c);
+  const n = Math.max(0, ...db.quotes.map(x => x.n || 0)) + 1;
+  const q = { id: uid(), n, date: c.date || hoyISO(), ts: Date.now(), kind: c.kind, clientId: client ? client.id : '', clientName: c.clientName.trim(), phone: c.phone.trim(), vehicle: c.vehicle.trim(),
+    items: c.items.map(i => ({ ...i, name: i.name.trim() })), pct: c.pct || 0, total: t.total, cost: t.cost, status: 'enviada', note: c.note.trim() };
+  db.quotes.push(q); guardar();
+  const link = waLink(q.phone, cotizTexto(q));
+  cart = nuevoCart(); vVentas();
+  if (link) { window.open(link, '_blank'); toast(`Cotización #${n} guardada`); } else toast(`Cotización #${n} guardada (sin teléfono para WhatsApp)`);
+}
+function listaCotiz() {
+  const L = db.quotes.slice().sort((a, b) => b.ts - a.ts).slice(0, 15);
+  $('#q_list').innerHTML = L.length ? tabla(['N°', 'Cliente', 'Total', 'Estado', ''], L.map(q => `<tr><td>#${q.n}<br><span class="mut">${dmy(q.date)}</span></td><td class="wrap">${esc(q.clientName || 'Sin nombre')}<br><span class="mut">${esc(q.vehicle)}</span></td><td class="n">${gs(q.total)}</td>
+    <td><select data-qs="${q.id}" style="min-height:34px">${optsKV([['enviada', 'Enviada'], ['aceptada', 'Aceptada'], ['rechazada', 'Rechazada']], q.status)}</select></td>
+    <td>${waLink(q.phone) ? `<a class="btn sm" href="${waLink(q.phone, cotizTexto(q))}" target="_blank" rel="noopener">WhatsApp</a> ` : ''}<button class="btn sec sm" data-qc="${q.id}">→ Venta</button> <button class="btn sec sm" data-qd="${q.id}">✕</button></td></tr>`).join(''), [2]) : '<p class="mut">Todavía no hiciste cotizaciones.</p>';
+  document.querySelectorAll('[data-qs]').forEach(s => s.onchange = () => { db.quotes.find(q => q.id === s.dataset.qs).status = s.value; guardar(); });
+  document.querySelectorAll('[data-qd]').forEach(b => b.onclick = () => { if (confirm('¿Borrar cotización?')) { db.quotes = db.quotes.filter(q => q.id !== b.dataset.qd); guardar(); listaCotiz(); } });
+  document.querySelectorAll('[data-qc]').forEach(b => b.onclick = () => { const q = db.quotes.find(x => x.id === b.dataset.qc);
+    cart = { ...nuevoCart(), kind: q.kind || 'colocado', clientName: q.clientName, phone: q.phone, vehicle: q.vehicle, items: q.items.map(i => ({ ...i })), pct: q.pct }; q.status = 'aceptada'; guardar(); vVentas(); window.scrollTo(0, 0); });
 }
 function listaVentas() {
   const L = db.sales.filter(s => (!vf.from || s.date >= vf.from) && (!vf.to || s.date <= vf.to)).sort((a, b) => b.date.localeCompare(a.date) || b.ts - a.ts);
@@ -284,7 +340,7 @@ function verVenta(id) {
   const s = db.sales.find(x => x.id === id); if (!s) return; const t = saleTotals(s), saldo = saldoOf(s);
   modal(`<h2>Venta #${s.n} · ${dmy(s.date)}</h2>
     <p><b>${esc(s.clientName)}</b>${s.vehicle ? ' · ' + esc(s.vehicle) : ''}${s.tech ? '<br><span class="mut">Colocó: ' + esc(s.tech) + '</span>' : ''}</p>
-    ${tabla(['Detalle', 'Cant.', 'Total'], s.items.map(i => `<tr><td class="wrap">${esc(i.name)}</td><td class="n">${fmt(i.qty)}</td><td class="n">${gs(i.qty * i.unit)}</td></tr>`).join(''), [1, 2])}
+    ${tabla(['Detalle', 'Cant.', 'Total'], s.items.map(i => `<tr><td class="wrap">${esc(i.name)}${i.type === 'ext' ? ' <span class="tag">proveedor</span>' : ''}</td><td class="n">${fmt(i.qty)}</td><td class="n">${gs(i.qty * i.unit)}</td></tr>`).join(''), [1, 2])}
     <div class="totbox">${s.pct ? `<div><span>Descuento ${s.pct}%</span><span>−${gs(t.d)}</span></div>` : ''}<div class="big"><span>TOTAL</span><span>${gs(s.total)}</span></div>
       <div class="mut"><span>Cobrado</span><span>${gs(paidOf(s))}</span></div>${saldo > 0 ? `<div class="mut"><span>Saldo${s.due ? ' (vence ' + dmy(s.due) + ')' : ''}</span><span><b>${gs(saldo)}</b></span></div>` : ''}
       ${boss() && s.cost ? `<div class="mut"><span>Ganancia bruta</span><span>${gs(s.total - s.cost)}</span></div>` : ''}</div>
@@ -295,13 +351,14 @@ function verVenta(id) {
   $('#m_close').onclick = cerrar; $('#m_print').onclick = () => imprimir(s);
   $('#m_fac').onclick = () => formFactura(s); if (saldo > 0) $('#m_cobrar').onclick = () => formCobro(s);
   $('#m_del').onclick = () => needBoss(() => {
-    if (!confirm(`¿Anular la venta #${s.n}? Se devuelve el stock y se borran sus cobros.`)) return;
-    for (const i of s.items) if (i.type === 'prod') { const p = prod(i.id); if (p) p.stock = Math.round((p.stock + i.qty) * 1000) / 1000; }
-    db.moves = db.moves.filter(m => m.ref !== s.id); db.sales = db.sales.filter(x => x.id !== s.id); guardar(); cerrar(); render(); toast('Venta anulada'); });
+    if (!confirm(`¿Anular la venta #${s.n}? Se devuelve el stock y se borran sus cobros y compras a proveedor.`)) return;
+    db.moves = db.moves.filter(m => m.ref !== s.id); db.expenses = db.expenses.filter(g => g.saleId !== s.id); db.sales = db.sales.filter(x => x.id !== s.id);
+    const a = db.appts.find(x => x.saleId === s.id); if (a) { a.status = 'agendado'; a.saleId = ''; }
+    guardar(); cerrar(); render(); toast('Venta anulada'); });
 }
 function formCobro(s) {
   modal(`<h2>Cobrar · ${esc(s.clientName)}</h2><p class="mut">Venta #${s.n} · saldo ${gs(saldoOf(s))}</p>
-    <label>Monto</label><input id="c_m" inputmode="numeric" value="${saldoOf(s)}"><label>Forma de pago</label><select id="c_f">${opts(['Efectivo', 'Transferencia', 'Tarjeta', 'Cheque'])}</select>
+    <label>Monto</label><input id="c_m" inputmode="numeric" value="${saldoOf(s)}"><label>Forma de pago</label><select id="c_f">${opts(METODOS)}</select>
     <label>Fecha</label><input type="date" id="c_d" value="${hoyISO()}">
     <div class="row" style="margin-top:12px"><button class="btn ok" id="c_ok">Registrar cobro</button><button class="btn sec" id="c_no">Cancelar</button></div>`);
   $('#c_no').onclick = () => verVenta(s.id);
@@ -313,7 +370,7 @@ function formFactura(s) {
     <label>Tipo</label><select id="i_t"><option value="">Sin factura</option><option value="fisica" ${s.inv.type === 'fisica' ? 'selected' : ''}>Física (talonario)</option><option value="electronica" ${s.inv.type === 'electronica' ? 'selected' : ''}>Electrónica</option></select>
     <label>Número de factura</label><input id="i_n" value="${esc(s.inv.no)}" placeholder="001-001-0000000">
     <label>CDC (solo factura electrónica)</label><input id="i_c" value="${esc(s.inv.cdc)}">
-    <div class="banner" style="margin-top:12px">La app <b>todavía no envía facturas a la DNIT (SIFEN)</b>. Podés registrar el número y el CDC emitidos desde tu facturador, e imprimir el comprobante. Para emitir desde acá hace falta conectar un facturador autorizado (RUC, timbrado y certificado digital).</div>
+    <div class="banner" style="margin-top:12px">La app <b>todavía no envía facturas a la DNIT (SIFEN)</b>. Podés registrar el número y el CDC emitidos, e imprimir el comprobante. Para emitir desde acá hace falta habilitarse como facturador electrónico y conectar un facturador autorizado.</div>
     <div class="row"><button class="btn" id="i_ok">Guardar</button><button class="btn sec" id="i_json">Descargar datos (JSON)</button><button class="btn sec" id="i_no">Volver</button></div>`);
   $('#i_no').onclick = () => verVenta(s.id);
   $('#i_ok').onclick = () => { s.inv = { type: $('#i_t').value, no: $('#i_n').value.trim(), cdc: $('#i_c').value.trim() }; guardar(); toast('Factura guardada'); verVenta(s.id); };
@@ -372,7 +429,7 @@ function formProducto(id) {
     if (code && db.products.some(x => norm(x.code) === norm(code) && x.id !== id)) return toast('Ya existe ese código');
     const d = { code, name, min: numGs($('#f_min').value), contenedor: $('#f_cont').value.trim(), mayorista: numGs($('#f_may').value), colocado: numGs($('#f_col').value) };
     if (B) d.compra = numGs($('#f_compra').value);
-    if (id) Object.assign(p, d, { demo: false });
+    if (id) Object.assign(p, d);
     else { const np = { id: uid(), stock: 0, compra: 0, ...d }; db.products.push(np); const s = numGs($('#f_stock').value); if (s) mover(np.id, 'in', s, 'Stock inicial'); }
     guardar(); cerrar(); render(); toast('Guardado');
   };
@@ -420,7 +477,7 @@ function vClientes() {
 function formCliente(id) {
   const c = id ? cli(id) : { name: '', type: 'particular', ruc: '', phone: '', note: '' };
   modal(`<h2>${id ? 'Cliente' : 'Nuevo cliente'}</h2><label>Nombre / razón social</label><input id="k_n" value="${esc(c.name)}">
-    <div class="row"><div><label>Tipo</label><select id="k_t">${[['particular', 'Particular'], ['taller', 'Taller'], ['empresa', 'Empresa / flota']].map(([k, l]) => `<option value="${k}" ${k === c.type ? 'selected' : ''}>${l}</option>`).join('')}</select></div><div><label>RUC / C.I.</label><input id="k_r" value="${esc(c.ruc)}"></div></div>
+    <div class="row"><div><label>Tipo</label><select id="k_t">${optsKV([['particular', 'Particular'], ['taller', 'Taller'], ['empresa', 'Empresa / flota']], c.type)}</select></div><div><label>RUC / C.I.</label><input id="k_r" value="${esc(c.ruc)}"></div></div>
     <label>Teléfono / WhatsApp</label><input id="k_p" value="${esc(c.phone)}"><label>Nota</label><input id="k_o" value="${esc(c.note)}">
     ${id ? `<h3>Historial</h3>${db.sales.filter(s => s.clientId === id).slice(-8).reverse().map(s => `<div class="mut">#${s.n} · ${dmy(s.date)} · ${gs(s.total)}${saldoOf(s) > 0 ? ' · debe ' + gs(saldoOf(s)) : ''}</div>`).join('') || '<div class="mut">Sin compras.</div>'}` : ''}
     <div class="row" style="margin-top:12px"><button class="btn" id="ok">Guardar</button>${waLink(c.phone) ? `<a class="btn sec" href="${waLink(c.phone)}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">WhatsApp</a>` : ''}<button class="btn sec" id="no">Cancelar</button>${id ? '<button class="btn bad" id="del">Eliminar</button>' : ''}</div>`);
@@ -434,27 +491,47 @@ function formCliente(id) {
 
 /* ================= CAJA ================= */
 let cj = { date: hoyISO(), month: hoyISO().slice(0, 7) };
+const horaDe = ts => new Date(ts).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
 function vCaja() {
   const cobros = db.sales.flatMap(s => s.pays.map(p => ({ ...p, s }))).filter(p => p.date === cj.date);
   const gastos = db.expenses.filter(g => g.date === cj.date);
-  const ing = cobros.reduce((a, p) => a + p.amount, 0), egr = gastos.reduce((a, g) => a + g.amount, 0);
-  const porMetodo = {}; cobros.forEach(p => porMetodo[p.method] = (porMetodo[p.method] || 0) + p.amount);
+  const cd = db.cashdays.find(c => c.date === cj.date);
+  const ef = cobros.filter(p => p.method === 'Efectivo').reduce((a, p) => a + p.amount, 0), tr = cobros.filter(p => p.method === 'Transferencia').reduce((a, p) => a + p.amount, 0);
+  const otros = cobros.reduce((a, p) => a + p.amount, 0) - ef - tr;
+  const gEf = gastos.filter(g => g.via !== 'Itaú').reduce((a, g) => a + g.amount, 0), gIt = gastos.filter(g => g.via === 'Itaú').reduce((a, g) => a + g.amount, 0);
+  const esperado = (cd ? cd.open : 0) + ef - gEf;
+  const kpis = `<div class="grid" style="margin-top:10px"><div class="kpi ok"><b>${gs(ef)}</b><span>Cobrado en efectivo</span></div><div class="kpi ok"><b>${gs(tr)}</b><span>Transferencias (Itaú)</span></div>${otros ? `<div class="kpi"><b>${gs(otros)}</b><span>Tarjeta / cheque</span></div>` : ''}
+    <div class="kpi"><b>${gs(gEf)}</b><span>Gastos en efectivo</span></div><div class="kpi"><b>${gs(gIt)}</b><span>Gastos pagados con Itaú</span></div><div class="kpi"><b>${gs(esperado)}</b><span>Efectivo que debería haber en caja</span></div></div>`;
   view.innerHTML = `<div class="card"><div class="row"><div><label>Día</label><input type="date" id="j_d" value="${cj.date}"></div></div>
-    <div class="grid" style="margin-top:10px"><div class="kpi ok"><b>${gs(ing)}</b><span>Ingresos (cobrado)</span></div><div class="kpi"><b>${gs(egr)}</b><span>Gastos</span></div><div class="kpi"><b>${gs(ing - egr)}</b><span>Saldo del día</span></div></div>
-    <p class="mut">${Object.entries(porMetodo).map(([m, v]) => `${esc(m)}: ${gs(v)}`).join(' · ') || 'Sin cobros este día.'}</p>
+    ${!cd ? `<h3>Caja sin abrir</h3><div class="row"><div><label>Efectivo con el que empieza el día</label><input id="j_open" inputmode="numeric" placeholder="0"></div><div><button class="btn ok" id="j_abrir" style="width:100%">Abrir caja</button></div></div>${kpis}`
+    : !cd.closed ? `<h3>🟢 Caja abierta desde las ${horaDe(cd.openedAt)} · inicio ${gs(cd.open)}</h3>${kpis}
+      <h3>Cerrar caja</h3><div class="row"><div><label>Efectivo contado ahora</label><input id="j_cnt" inputmode="numeric"></div><div><label>Nota (opcional)</label><input id="j_note"></div></div><button class="btn block" id="j_cerrar">Cerrar caja</button>`
+    : `<h3>🔒 Caja cerrada a las ${horaDe(cd.closedAt)}</h3>${kpis}<div class="totbox"><div><span>Esperado en efectivo</span><span>${gs(cd.expected)}</span></div><div><span>Contado</span><span>${gs(cd.counted)}</span></div>
+      <div class="big"><span>Diferencia</span><span>${cd.counted - cd.expected === 0 ? '✔ ' : ''}${gs(cd.counted - cd.expected)}</span></div>${cd.note ? `<div class="mut">${esc(cd.note)}</div>` : ''}</div>
+      <p class="mut">Las transferencias (${gs(tr)}) compará con el extracto del Itaú.</p><button class="btn sec" id="j_reabrir" style="margin-top:8px">Reabrir caja</button>`}
     <h3>Cobros</h3>${cobros.length ? tabla(['Venta', 'Cliente', 'Forma', 'Monto'], cobros.map(p => `<tr class="click" data-v="${p.s.id}"><td>#${p.s.n}</td><td>${esc(p.s.clientName)}</td><td>${esc(p.method)}</td><td class="n">${gs(p.amount)}</td></tr>`).join(''), [3]) : '<p class="mut">—</p>'}
-    <h3>Gastos</h3>${gastos.length ? tabla(['Categoría', 'Detalle', 'Monto', ''], gastos.map(g => `<tr><td>${esc(g.cat)}</td><td class="wrap">${esc(g.desc)}</td><td class="n">${gs(g.amount)}</td><td><button class="btn sec sm" data-g="${g.id}">✕</button></td></tr>`).join(''), [2]) : '<p class="mut">—</p>'}</div>
-  <div class="card"><h2>Registrar gasto</h2><div class="row"><div><label>Categoría</label><select id="g_c">${opts(GASTOS)}</select></div><div><label>Monto</label><input id="g_m" inputmode="numeric"></div></div>
-    <label>Detalle</label><input id="g_d" placeholder="Ej: sueldo Juan, adelanto, pistola de silicona…"><button class="btn block" id="g_add">Agregar gasto</button></div>
+    <h3>Gastos</h3>${gastos.length ? tabla(['Categoría', 'Detalle', 'Desde', 'Monto', ''], gastos.map(g => `<tr><td>${esc(g.cat)}</td><td class="wrap">${esc(g.desc)}${g.supplierId && sup(g.supplierId) ? ' · ' + esc(sup(g.supplierId).name) : ''}${g.campaignId && camp(g.campaignId) ? ' · ' + esc(camp(g.campaignId).name) : ''}</td><td>${esc(g.via || 'Efectivo')}</td><td class="n">${gs(g.amount)}</td><td>${g.saleId ? '' : `<button class="btn sec sm" data-g="${g.id}">✕</button>`}</td></tr>`).join(''), [3]) : '<p class="mut">—</p>'}</div>
+  <div class="card"><h2>Registrar gasto</h2><div class="row"><div><label>Categoría</label><select id="g_c">${opts(GASTOS)}</select></div><div><label>Monto</label><input id="g_m" inputmode="numeric"></div><div><label>Pagado desde</label><select id="g_v">${opts(VIAS)}</select></div></div>
+    <div class="row"><div id="g_sw" hidden><label>Proveedor</label><select id="g_s"><option value="">—</option>${db.suppliers.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></div>
+      <div id="g_cw"><label>Campaña de publicidad</label><select id="g_cp"><option value="">—</option>${db.campaigns.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></div></div>
+    <label>Detalle</label><input id="g_d" placeholder="Ej: pauta Meta septiembre, sueldo Juan, vidrio Mercedes…"><button class="btn block" id="g_add">Agregar gasto</button></div>
   <div id="j_mes"></div>`;
   $('#j_d').onchange = e => { cj.date = e.target.value || hoyISO(); vCaja(); };
-  $('#g_add').onclick = () => { const m = numGs($('#g_m').value); if (m <= 0) return toast('Ingresá el monto'); db.expenses.push({ id: uid(), date: cj.date, cat: $('#g_c').value, desc: $('#g_d').value.trim(), amount: m }); guardar(); vCaja(); toast('Gasto registrado'); };
+  if ($('#j_abrir')) $('#j_abrir').onclick = () => { db.cashdays.push({ id: 'cd-' + cj.date, date: cj.date, open: numGs($('#j_open').value), openedAt: Date.now(), closed: false }); guardar(); vCaja(); toast('Caja abierta'); };
+  if ($('#j_cerrar')) $('#j_cerrar').onclick = () => { const raw = $('#j_cnt').value.trim(); if (raw === '') return toast('Ingresá el efectivo contado');
+    Object.assign(cd, { closed: true, closedAt: Date.now(), counted: numGs(raw), expected: esperado, note: $('#j_note').value.trim() }); guardar(); vCaja(); toast('Caja cerrada'); };
+  if ($('#j_reabrir')) $('#j_reabrir').onclick = () => needBoss(() => { cd.closed = false; guardar(); vCaja(); });
+  const cat = () => { const c = $('#g_c').value; $('#g_sw').hidden = c !== 'Compra a proveedor'; $('#g_cw').hidden = c !== 'Publicidad'; $('#g_v').value = c === 'Publicidad' ? 'Itaú' : 'Efectivo'; };
+  $('#g_c').onchange = cat; cat();
+  $('#g_add').onclick = () => { const m = numGs($('#g_m').value); if (m <= 0) return toast('Ingresá el monto'); const c = $('#g_c').value;
+    db.expenses.push({ id: uid(), date: cj.date, cat: c, desc: $('#g_d').value.trim(), amount: m, via: $('#g_v').value, supplierId: c === 'Compra a proveedor' ? $('#g_s').value : '', campaignId: c === 'Publicidad' ? $('#g_cp').value : '' });
+    guardar(); vCaja(); toast('Gasto registrado'); };
   document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { if (confirm('¿Borrar este gasto?')) { db.expenses = db.expenses.filter(g => g.id !== b.dataset.g); guardar(); vCaja(); } });
   document.querySelectorAll('#view [data-v]').forEach(r => r.onclick = () => verVenta(r.dataset.v));
   resumenMes();
 }
 function resumenMes() {
-  const m = cj.month, V = db.sales.filter(s => s.date.startsWith(m)), G = db.expenses.filter(g => g.date.startsWith(m));
+  const m = cj.month, V = db.sales.filter(s => s.date.startsWith(m)), G = db.expenses.filter(g => g.date.startsWith(m) && !g.inCost);
   const tv = V.reduce((a, s) => a + s.total, 0), gan = V.reduce((a, s) => a + s.total - s.cost, 0), tg = G.reduce((a, g) => a + g.amount, 0);
   const cobrado = db.sales.flatMap(s => s.pays).filter(p => p.date.startsWith(m)).reduce((a, p) => a + p.amount, 0);
   const cat = {}; G.forEach(g => cat[g.cat] = (cat[g.cat] || 0) + g.amount);
@@ -464,31 +541,61 @@ function resumenMes() {
     ${boss() ? `<div class="kpi"><b>${gs(gan)}</b><span>Ganancia bruta</span></div><div class="kpi ${gan - tg < 0 ? 'bad' : 'ok'}"><b>${gs(gan - tg)}</b><span>Resultado (ganancia − gastos)</span></div>` : ''}</div>
     ${Object.keys(cat).length ? `<h3>Gastos por categoría</h3>${Object.entries(cat).map(([k, v]) => `<div class="mut">${esc(k)}: ${gs(v)}</div>`).join('')}` : ''}
     <h3>Trabajos por colocador</h3>${Object.entries(tec).map(([k, v]) => `<div class="mut">${esc(k)}: ${v}</div>`).join('') || '<div class="mut">—</div>'}
-    <p class="mut">Ganancia bruta = precio de venta − precio de compra de los vidrios (los servicios cuentan completos).</p></div>`;
+    <p class="mut">Ganancia bruta = precio de venta − costo de los vidrios (de stock o de proveedor). Las compras a proveedor ligadas a una venta ya están en ese costo, por eso no se suman otra vez a los gastos.</p></div>`;
   $('#j_m').onchange = e => { cj.month = e.target.value || hoyISO().slice(0, 7); resumenMes(); };
 }
 
-/* ================= CONSULTAS ================= */
+/* ================= CONSULTAS y CAMPAÑAS ================= */
 let lf = { estado: 'abiertas' };
 function vConsultas() {
   const hoy = hoyISO(), mes = hoy.slice(0, 7);
   const porFuente = FUENTES.map(f => { const L = db.leads.filter(l => l.source === f && l.date.startsWith(mes)); return { f, n: L.length, g: L.filter(l => l.status === 'ganado').length }; }).filter(x => x.n);
   view.innerHTML = `<div class="card"><h2>Nueva consulta</h2>
     <div class="row"><div><label>Nombre</label><input id="l_n"></div><div><label>Teléfono / WhatsApp</label><input id="l_p" inputmode="tel"></div></div>
-    <div class="row"><div><label>¿Por dónde llegó?</label><select id="l_s">${opts(FUENTES)}</select></div><div><label>Seguimiento el</label><input type="date" id="l_f" value="${addDays(hoy, 1)}"></div></div>
+    <div class="row"><div><label>¿Por dónde llegó?</label><select id="l_s">${opts(FUENTES)}</select></div><div><label>Campaña (si vino de publicidad)</label><select id="l_c"><option value="">—</option>${db.campaigns.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></div></div>
+    <div class="row"><div><label>Seguimiento el</label><input type="date" id="l_f" value="${addDays(hoy, 1)}"></div></div>
     <label>Qué necesita (vehículo / servicio)</label><input id="l_i" placeholder="Parabrisas Vitz 2008, polarizado…"><button class="btn block" id="l_add">Guardar consulta</button></div>
+  <div class="card"><h2>📣 Campañas de publicidad</h2><div id="cp_list"></div><button class="btn sec" id="cp_new" style="margin-top:8px">+ Nueva campaña</button>
+    <p class="mut">Cargá cada pauta de Meta o TikTok como campaña, registrá su gasto en Caja (categoría Publicidad) y marcá de qué campaña viene cada consulta. Al vender, elegí la consulta de origen y la app calcula cuánto ganaste con cada campaña.</p></div>
   <div class="card"><h2>Este mes por origen</h2>${porFuente.length ? tabla(['Origen', 'Consultas', 'Ganadas', 'Conversión'], porFuente.map(x => `<tr><td>${esc(x.f)}</td><td class="n">${x.n}</td><td class="n">${x.g}</td><td class="n">${Math.round(x.g / x.n * 100)}%</td></tr>`).join(''), [1, 2, 3]) : '<p class="mut">Aún no hay consultas este mes.</p>'}</div>
   <div class="card"><div class="row"><h2 style="flex:2">Consultas</h2><select id="l_e"><option value="abiertas" ${lf.estado === 'abiertas' ? 'selected' : ''}>Abiertas</option><option value="todas" ${lf.estado === 'todas' ? 'selected' : ''}>Todas</option></select></div><div id="l_list"></div></div>`;
   $('#l_add').onclick = () => { const name = $('#l_n').value.trim(), i = $('#l_i').value.trim(); if (!name && !i) return toast('Poné un nombre o lo que necesita');
-    db.leads.push({ id: uid(), date: hoy, ts: Date.now(), name: name || 'Sin nombre', phone: $('#l_p').value.trim(), source: $('#l_s').value, interest: i, status: 'nuevo', follow: $('#l_f').value, note: '' }); guardar(); vConsultas(); toast('Consulta guardada'); };
-  $('#l_e').onchange = e => { lf.estado = e.target.value; listaLeads(); }; listaLeads();
+    db.leads.push({ id: uid(), date: hoy, ts: Date.now(), name: name || 'Sin nombre', phone: $('#l_p').value.trim(), source: $('#l_s').value, campaignId: $('#l_c').value, interest: i, status: 'nuevo', follow: $('#l_f').value, note: '' }); guardar(); vConsultas(); toast('Consulta guardada'); };
+  $('#l_e').onchange = e => { lf.estado = e.target.value; listaLeads(); };
+  $('#cp_new').onclick = () => formCampana();
+  listaLeads(); listaCampanas();
+}
+function campStats(c) {
+  const gasto = db.expenses.filter(g => g.campaignId === c.id).reduce((a, g) => a + g.amount, 0);
+  const L = db.leads.filter(l => l.campaignId === c.id), G = L.filter(l => l.status === 'ganado');
+  const V = G.map(l => db.sales.find(s => s.id === l.saleId)).filter(Boolean);
+  const ventas = V.reduce((a, s) => a + s.total, 0), gan = V.reduce((a, s) => a + s.total - s.cost, 0);
+  return { gasto, n: L.length, g: G.length, ventas, gan, neto: gan - gasto, cpl: L.length ? gasto / L.length : 0 };
+}
+function listaCampanas() {
+  const C = db.campaigns.slice().sort((a, b) => (b.start || '').localeCompare(a.start || ''));
+  $('#cp_list').innerHTML = C.length ? tabla(['Campaña', 'Gasto', 'Consultas', 'Ganadas', 'Ventas', 'Ganancia − gasto', ''], C.map(c => { const s = campStats(c);
+    return `<tr><td class="wrap"><b>${esc(c.name)}</b><br><span class="mut">${esc(c.platform)}</span></td><td class="n">${gs(s.gasto)}</td><td class="n">${s.n}${s.n && s.gasto ? `<br><span class="mut">${gs(s.cpl)} c/u</span>` : ''}</td><td class="n">${s.g}</td><td class="n">${gs(s.ventas)}</td>
+    <td class="n"><b style="color:var(${s.neto >= 0 ? '--ok' : '--bad'})">${gs(s.neto)}</b></td><td><button class="btn sec sm" data-cp="${c.id}">Editar</button></td></tr>`; }).join(''), [1, 2, 3, 4, 5]) : '<p class="mut">Todavía no creaste campañas.</p>';
+  document.querySelectorAll('[data-cp]').forEach(b => b.onclick = () => formCampana(b.dataset.cp));
+}
+function formCampana(id) {
+  const c = id ? camp(id) : { name: '', platform: PLATAFORMAS[0], start: hoyISO(), note: '' };
+  modal(`<h2>${id ? 'Editar' : 'Nueva'} campaña</h2><label>Nombre</label><input id="cp_n" value="${esc(c.name)}" placeholder="Ej: Parabrisas Toyota septiembre">
+    <div class="row"><div><label>Plataforma</label><select id="cp_p">${opts(PLATAFORMAS, c.platform)}</select></div><div><label>Inicio</label><input type="date" id="cp_s" value="${c.start || ''}"></div></div>
+    <label>Nota</label><input id="cp_o" value="${esc(c.note)}">
+    <div class="row" style="margin-top:12px"><button class="btn" id="ok">Guardar</button><button class="btn sec" id="no">Cancelar</button>${id ? '<button class="btn bad" id="del">Eliminar</button>' : ''}</div>`);
+  $('#no').onclick = cerrar;
+  $('#ok').onclick = () => { const name = $('#cp_n').value.trim(); if (!name) return toast('Falta el nombre'); const d = { name, platform: $('#cp_p').value, start: $('#cp_s').value, note: $('#cp_o').value.trim() };
+    if (id) Object.assign(c, d); else db.campaigns.push({ id: uid(), ...d }); guardar(); cerrar(); render(); };
+  if (id) $('#del').onclick = () => { if (confirm('¿Eliminar campaña? Sus gastos y consultas quedan sin campaña.')) { db.expenses.forEach(g => { if (g.campaignId === id) g.campaignId = ''; }); db.leads.forEach(l => { if (l.campaignId === id) l.campaignId = ''; }); db.campaigns = db.campaigns.filter(x => x.id !== id); guardar(); cerrar(); render(); } };
 }
 function listaLeads() {
   const L = db.leads.filter(l => lf.estado === 'todas' || !['ganado', 'perdido'].includes(l.status)).sort((a, b) => (a.follow || '9').localeCompare(b.follow || '9'));
-  $('#l_list').innerHTML = L.length ? tabla(['Cliente', 'Necesita', 'Origen', 'Seguir', 'Estado', ''], L.slice(0, 200).map(l => `<tr><td>${esc(l.name)}</td><td class="wrap">${esc(l.interest)}</td><td>${esc(l.source)}</td>
+  $('#l_list').innerHTML = L.length ? tabla(['Cliente', 'Necesita', 'Origen', 'Seguir', 'Estado', ''], L.slice(0, 200).map(l => `<tr><td>${esc(l.name)}</td><td class="wrap">${esc(l.interest)}</td><td>${esc(l.source)}${l.campaignId && camp(l.campaignId) ? `<br><span class="mut">${esc(camp(l.campaignId).name)}</span>` : ''}</td>
     <td>${l.follow && l.follow <= hoyISO() && !['ganado', 'perdido'].includes(l.status) ? '<span class="tag bad">' + dmy(l.follow) + '</span>' : dmy(l.follow)}</td>
-    <td><select data-s="${l.id}" style="min-height:34px">${Object.entries(ESTADOS).map(([k, v]) => `<option value="${k}" ${k === l.status ? 'selected' : ''}>${v}</option>`).join('')}</select></td>
-    <td>${waLink(l.phone) ? `<a class="btn sm" href="${waLink(l.phone)}" target="_blank" rel="noopener">WhatsApp</a>` : ''} <button class="btn sec sm" data-d="${l.id}">✕</button></td></tr>`).join('')) : '<p class="mut">Sin consultas abiertas.</p>';
+    <td><select data-s="${l.id}" style="min-height:34px">${optsKV(Object.entries(ESTADOS), l.status)}</select></td>
+    <td>${waLink(l.phone) ? `<a class="btn sm" href="${waLink(l.phone)}" target="_blank" rel="noopener">WhatsApp</a> ` : ''}<button class="btn sec sm" data-d="${l.id}">✕</button></td></tr>`).join('')) : '<p class="mut">Sin consultas abiertas.</p>';
   document.querySelectorAll('[data-s]').forEach(s => s.onchange = () => { const l = db.leads.find(x => x.id === s.dataset.s); l.status = s.value; if (['ganado', 'perdido'].includes(l.status)) l.follow = ''; guardar(); vConsultas(); });
   document.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { if (confirm('¿Borrar consulta?')) { db.leads = db.leads.filter(l => l.id !== b.dataset.d); guardar(); vConsultas(); } });
 }
@@ -497,35 +604,45 @@ function listaLeads() {
 function vAjustes() {
   const e = db.cfg.empresa;
   view.innerHTML = `
+  <div class="card"><h2>☁️ Cuenta y sincronización</h2><p class="mut">${Sync.enabled ? `Sesión: <b>${esc(Sync.email)}</b> · estado: <b id="sy_st"></b>` : 'Modo sin conexión a la nube.'}</p>
+    <div class="row"><button class="btn sec" id="sy_now">Sincronizar ahora</button><button class="btn sec" id="sy_out">Cerrar sesión</button></div></div>
+  <div class="card"><h2>🔔 Avisos</h2><p class="mut">Correos a cristalauto95@gmail.com: por cada venta, resumen a las 20:00, y a las 07:30 créditos que vencen en 5 días y stock bajo. Además, aviso 1 hora antes de cada colocación agendada.<br><b>Notificaciones en este dispositivo:</b> <span id="pu_st">…</span></p>
+    <div class="row"><button class="btn" id="pu_on">Activar avisos en este dispositivo</button><button class="btn sec" id="pu_test">Enviar aviso de prueba</button></div>
+    <p class="mut">En iPhone: primero tocá Compartir → “Agregar a pantalla de inicio”, abrí la app desde ese ícono y recién ahí activá los avisos.</p></div>
   <div class="card"><h2>🏢 Empresa (para el comprobante)</h2>
     <label>Nombre</label><input id="e_n" value="${esc(e.nombre)}"><div class="row"><div><label>RUC</label><input id="e_r" value="${esc(e.ruc)}"></div><div><label>Teléfono</label><input id="e_t" value="${esc(e.tel)}"></div></div>
     <label>Dirección</label><input id="e_d" value="${esc(e.direccion)}"><div class="row"><div><label>N° de timbrado</label><input id="e_ti" value="${esc(e.timbrado)}"></div><div><label>Vigencia</label><input id="e_v" value="${esc(e.vigencia)}" placeholder="dd/mm/aaaa"></div></div>
     <label>Colocadores (uno por línea)</label><textarea id="e_s" rows="4">${esc(db.cfg.staff.join('\n'))}</textarea>
-    <label>Stock mínimo por defecto (para modelos nuevos)</label><input id="e_m" inputmode="numeric" value="${db.cfg.minDefault}">
+    <div class="row"><div><label>Stock mínimo por defecto</label><input id="e_m" inputmode="numeric" value="${db.cfg.minDefault}"></div><div><label>Colocaciones por día: mínimo</label><input id="e_cmin" inputmode="numeric" value="${db.cfg.capMin}"></div><div><label>máximo</label><input id="e_cmax" inputmode="numeric" value="${db.cfg.capMax}"></div></div>
     <button class="btn block" id="e_ok">Guardar</button></div>
+  <div class="card"><h2>🏭 Proveedores de vidrio</h2>${db.suppliers.length ? db.suppliers.map(s => `<div class="row" style="margin-bottom:6px"><div style="flex:3 1 160px">${esc(s.name)} <span class="mut">${esc(s.phone)}</span></div><div style="flex:0 0 90px"><button class="btn sec sm" data-sp="${s.id}">Editar</button></div></div>`).join('') : '<p class="mut">Sin proveedores todavía.</p>'}
+    <button class="btn sec" id="sp_new">+ Agregar proveedor</button></div>
   <div class="card"><h2>✨ Servicios y precios</h2><p class="mut">Editá el precio de cada servicio. En la venta siempre podés cambiarlo.</p>
-    ${db.services.map(s => `<div class="row" style="margin-bottom:6px"><div style="flex:3 1 200px"><input data-sn="${s.id}" value="${esc(s.name)}"></div><div><input data-sp="${s.id}" inputmode="numeric" value="${s.price || ''}" placeholder="Precio"></div><div style="flex:0 0 50px"><button class="btn sec sm" data-sd="${s.id}">✕</button></div></div>`).join('')}
+    ${db.services.map(s => `<div class="row" style="margin-bottom:6px"><div style="flex:3 1 200px"><input data-sn="${s.id}" value="${esc(s.name)}"></div><div><input data-spr="${s.id}" inputmode="numeric" value="${s.price || ''}" placeholder="Precio"></div><div style="flex:0 0 50px"><button class="btn sec sm" data-sd="${s.id}">✕</button></div></div>`).join('')}
     <button class="btn sec" id="sv_add">+ Agregar servicio</button></div>
   <div class="card"><h2>📥 Importar inventario (Excel o CSV)</h2>
     <p class="mut">Sube tu planilla (.xlsx). Toma <b>CODIGO</b>, <b>DESCRIPCION</b>, el stock (<b>STOCK ACTUAL</b> o ENTRADAS − SALIDAS), <b>PRECIO COSTO</b> (compra) y <b>COSTO UNITARIO</b> (mayorista). Podés elegir qué hojas importar. Si un código ya existe, se actualiza.</p>
-    <button class="btn" id="imp">Elegir archivo</button><input type="file" id="file" accept=".xlsx,.xls,.csv,text/csv" hidden>
-    ${db.products.some(p => p.demo) ? '<button class="btn bad" id="bej" style="margin-top:8px">Borrar los productos de la foto/ejemplo</button>' : ''}</div>
-  <div class="card"><h2>🔐 PIN del jefe</h2><p class="mut">Con PIN, las ganancias, costos y acciones sensibles (anular ventas, borrar) quedan bloqueadas para el resto. ${db.cfg.pin ? 'PIN activo.' : 'Sin PIN: todos ven todo.'}</p>
+    <button class="btn" id="imp">Elegir archivo</button><input type="file" id="file" accept=".xlsx,.xls,.csv,text/csv" hidden></div>
+  <div class="card"><h2>🔐 PIN del jefe</h2><p class="mut">Con PIN, las ganancias, costos y acciones sensibles (anular ventas, borrar) quedan bloqueadas hasta ingresarlo. ${db.cfg.pin ? 'PIN activo.' : 'Sin PIN: todos ven todo.'}</p>
     <div class="row"><input id="pin" type="password" inputmode="numeric" placeholder="Nuevo PIN (vacío = sin PIN)" autocomplete="off"><button class="btn" id="pin_ok">Guardar PIN</button></div></div>
   <div class="card"><h2>📤 Exportar</h2><div class="row"><button class="btn sec" id="x_inv">Inventario (CSV)</button><button class="btn sec" id="x_ven">Ventas (CSV)</button><button class="btn sec" id="x_cli">Clientes (CSV)</button></div></div>
-  <div class="card"><h2>💾 Respaldo y pasar datos entre dispositivos</h2>
-    <p class="mut">Por ahora los datos viven en cada dispositivo. Para pasarlos de la computadora al iPhone: <b>Descargar respaldo</b> → enviate el archivo → <b>Restaurar</b> en el otro. Hacelo seguido como copia de seguridad.</p>
-    <div class="row"><button class="btn" id="bk">Descargar respaldo</button><button class="btn sec" id="rs">Restaurar respaldo</button></div><input type="file" id="rfile" accept=".json,application/json" hidden></div>
-  <div class="card"><h2>🗑 Empezar de cero</h2><button class="btn bad" id="reset">Borrar todo</button></div>`;
+  <div class="card"><h2>💾 Copia de seguridad</h2>
+    <p class="mut">Los datos ya se guardan en la nube. Igual podés bajar una copia por las dudas.</p>
+    <div class="row"><button class="btn" id="bk">Descargar respaldo</button><button class="btn sec" id="rs">Restaurar respaldo</button></div><input type="file" id="rfile" accept=".json,application/json" hidden></div>`;
+  const stTxt = { ok: '✅ al día', sync: '🔄 sincronizando…', pend: '⏳ cambios por subir', err: '⚠️ sin conexión / error', local: 'sin nube' };
+  const pintar = () => { const el = $('#sy_st'); if (el) el.textContent = (stTxt[Sync.status] || Sync.status) + (Sync.detail && Sync.status === 'err' ? ' (' + Sync.detail + ')' : ''); }; pintar();
+  if ($('#sy_now')) { $('#sy_now').onclick = async () => { await Sync.pull(); await Sync.push(); pintar(); render(true); toast('Sincronizado'); }; $('#sy_out').onclick = () => { if (confirm('¿Cerrar sesión en este dispositivo?')) Sync.signOut(); }; }
+  Sync.pushActive().then(a => { const el = $('#pu_st'); if (el) el.textContent = a ? '✅ activadas' : 'no activadas'; });
+  $('#pu_on').onclick = async () => { try { await Sync.enablePush(); toast('Avisos activados'); vAjustes(); } catch (er) { toast(er.message || 'No se pudo activar'); } };
+  $('#pu_test').onclick = async () => { try { await Sync.call('test'); toast('Aviso de prueba enviado (revisá el correo y el teléfono)'); } catch (er) { toast('No se pudo: ' + er.message); } };
   $('#e_ok').onclick = () => { Object.assign(db.cfg.empresa, { nombre: $('#e_n').value.trim(), ruc: $('#e_r').value.trim(), tel: $('#e_t').value.trim(), direccion: $('#e_d').value.trim(), timbrado: $('#e_ti').value.trim(), vigencia: $('#e_v').value.trim() });
-    db.cfg.staff = $('#e_s').value.split('\n').map(x => x.trim()).filter(Boolean); db.cfg.minDefault = numGs($('#e_m').value) || 50; guardar(); toast('Guardado'); };
+    db.cfg.staff = $('#e_s').value.split('\n').map(x => x.trim()).filter(Boolean); db.cfg.minDefault = numGs($('#e_m').value) || 50; db.cfg.capMin = numGs($('#e_cmin').value) || 4; db.cfg.capMax = numGs($('#e_cmax').value) || 12; guardar(); toast('Guardado'); };
+  document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => formProveedor(b.dataset.sp)); $('#sp_new').onclick = () => formProveedor();
   document.querySelectorAll('[data-sn]').forEach(i => i.onchange = () => { db.services.find(s => s.id === i.dataset.sn).name = i.value.trim(); guardar(); });
-  document.querySelectorAll('[data-sp]').forEach(i => i.onchange = () => { db.services.find(s => s.id === i.dataset.sp).price = numGs(i.value); guardar(); toast('Precio guardado'); });
+  document.querySelectorAll('[data-spr]').forEach(i => i.onchange = () => { db.services.find(s => s.id === i.dataset.spr).price = numGs(i.value); guardar(); toast('Precio guardado'); });
   document.querySelectorAll('[data-sd]').forEach(b => b.onclick = () => { if (confirm('¿Quitar servicio?')) { db.services = db.services.filter(s => s.id !== b.dataset.sd); guardar(); vAjustes(); } });
   $('#sv_add').onclick = () => { db.services.push({ id: uid(), name: 'Nuevo servicio', price: 0 }); guardar(); vAjustes(); };
   $('#imp').onclick = () => $('#file').click(); $('#file').onchange = async ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) importarArchivo(f); };
-  if ($('#bej')) $('#bej').onclick = () => { if (!confirm('¿Borrar los productos cargados de ejemplo?')) return; const ids = new Set(db.products.filter(p => p.demo).map(p => p.id));
-    db.products = db.products.filter(p => !ids.has(p.id)); db.moves = db.moves.filter(m => !ids.has(m.pid)); guardar(); render(); };
   $('#pin_ok').onclick = () => { const v = $('#pin').value.trim(); if (db.cfg.pin && !bossOk) return toast('Desbloqueá primero con el PIN actual'); db.cfg.pin = v; bossOk = !!v; guardar(); render(); toast(v ? 'PIN guardado' : 'PIN quitado'); };
   const CS = 'codigo,descripcion,contenedor,stock,minimo,compra,mayorista,colocado';
   $('#x_inv').onclick = () => needBoss(() => bajar(`inventario-${hoyISO()}.csv`, csv([CS.split(','), ...db.products.map(p => [p.code, p.name, p.contenedor, p.stock, p.min, p.compra, p.mayorista, p.colocado])]), 'text/csv'));
@@ -535,9 +652,17 @@ function vAjustes() {
   $('#rs').onclick = () => $('#rfile').click();
   $('#rfile').onchange = async ev => { const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
     try { const d = JSON.parse(await f.text()); if (!Array.isArray(d.products) || !Array.isArray(d.moves)) throw 0;
-      if (!confirm(`Esto reemplaza TODOS los datos actuales por el respaldo (${d.products.length} productos, ${(d.sales || []).length} ventas). ¿Continuar?`)) return;
-      db = normalizar(d); guardar(); render(); toast('Respaldo restaurado'); } catch (err) { toast('Archivo de respaldo inválido'); } };
-  $('#reset').onclick = () => needBoss(() => { if (confirm('¿Borrar TODOS los datos? No se puede deshacer.') && confirm('Última confirmación: ¿seguro?')) { db = normalizar({ products: [], moves: [], services: SERVICIOS.map(([name, price]) => ({ id: uid(), name, price })) }); guardar(); render(); } });
+      if (!confirm(`Esto reemplaza TODOS los datos actuales (también en la nube) por el respaldo (${d.products.length} productos, ${(d.sales || []).length} ventas). ¿Continuar?`)) return;
+      needBoss(() => { db = normalizar(d); guardar(); render(); toast('Respaldo restaurado'); }); } catch (err) { toast('Archivo de respaldo inválido'); } };
+}
+function formProveedor(id) {
+  const s = id ? sup(id) : { name: '', phone: '', note: '' };
+  modal(`<h2>${id ? 'Editar' : 'Nuevo'} proveedor</h2><label>Nombre</label><input id="p_n" value="${esc(s.name)}"><label>Teléfono</label><input id="p_t" value="${esc(s.phone)}"><label>Nota</label><input id="p_o" value="${esc(s.note)}">
+    <div class="row" style="margin-top:12px"><button class="btn" id="ok">Guardar</button><button class="btn sec" id="no">Cancelar</button>${id ? '<button class="btn bad" id="del">Eliminar</button>' : ''}</div>`);
+  $('#no').onclick = cerrar;
+  $('#ok').onclick = () => { const name = $('#p_n').value.trim(); if (!name) return toast('Falta el nombre'); const d = { name, phone: $('#p_t').value.trim(), note: $('#p_o').value.trim() };
+    if (id) Object.assign(s, d); else db.suppliers.push({ id: uid(), ...d }); guardar(); cerrar(); render(true); };
+  if (id) $('#del').onclick = () => { if (confirm('¿Eliminar proveedor?')) { db.suppliers = db.suppliers.filter(x => x.id !== id); guardar(); cerrar(); render(true); } };
 }
 function csv(rows) { return '﻿' + rows.map(r => r.map(c => { c = String(c ?? ''); return /[",;\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(',')).join('\r\n'); }
 function bajar(nombre, txt, tipo) {
@@ -592,8 +717,6 @@ async function importarArchivo(file) {
   }
 }
 function aplicarImport(items) {
-  const demo = db.products.filter(p => p.demo);
-  if (demo.length && confirm('¿Quitar los productos de ejemplo/foto antes de importar? (recomendado)')) { const ids = new Set(demo.map(p => p.id)); db.products = db.products.filter(p => !ids.has(p.id)); db.moves = db.moves.filter(m => !ids.has(m.pid)); }
   let nuevos = 0, act = 0;
   for (const it of items) {
     let p = db.products.find(x => norm(x.code) === norm(it.code));
@@ -604,7 +727,3 @@ function aplicarImport(items) {
   }
   guardar(); tab = 'stock'; render(); toast(`Importado: ${nuevos} nuevos, ${act} actualizados`);
 }
-
-/* ---------- Inicio ---------- */
-if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => { });
-render();

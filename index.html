@@ -16,12 +16,13 @@
 <body>
 <header>
   <h1>🚗 CristalAuto <small>Parabrisas</small></h1>
-  <span><span id="hoy"></span> <button id="lock" class="lockbtn" hidden></button></span>
+  <span><span id="hoy"></span> <button id="sync" class="lockbtn" hidden></button> <button id="lock" class="lockbtn" hidden></button></span>
 </header>
 
 <nav id="tabs">
   <button data-tab="resumen" class="on"><i>📊</i>Inicio</button>
   <button data-tab="ventas"><i>🧾</i>Ventas</button>
+  <button data-tab="agenda"><i>📅</i>Agenda</button>
   <button data-tab="stock"><i>📦</i>Stock</button>
   <button data-tab="clientes"><i>👥</i>Clientes</button>
   <button data-tab="caja"><i>💵</i>Caja</button>
@@ -31,10 +32,16 @@
 
 <main id="view"></main>
 
+<div id="login" hidden></div>
 <div id="modal" hidden><div class="card" id="modalBody"></div></div>
 <div id="toast" hidden></div>
 
+<script src="config.js"></script>
+<script src="supabase.min.js" defer></script>
+<script src="sync.js" defer></script>
 <script src="xlsx.min.js" defer></script>
 <script src="app.js" defer></script>
+<script src="extra.js" defer></script>
+<script src="boot.js" defer></script>
 </body>
 </html>
