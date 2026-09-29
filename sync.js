@@ -144,7 +144,7 @@ const Sync = (() => {
     const r = await fetch(CFG.url + '/functions/v1/cristalauto', { method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: CFG.key, Authorization: 'Bearer ' + data.session.access_token }, body: JSON.stringify({ action, ...body }) });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.error || ('Error ' + r.status));
+    if (!r.ok) throw new Error((j.error || j.message || j.msg || 'Error') + ' (código ' + r.status + ')');
     return j;
   }
   async function notifySale(id) {

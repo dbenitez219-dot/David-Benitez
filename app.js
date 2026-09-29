@@ -634,7 +634,16 @@ function vAjustes() {
   if ($('#sy_now')) { $('#sy_now').onclick = async () => { await Sync.pull(); await Sync.push(); pintar(); render(true); toast('Sincronizado'); }; $('#sy_out').onclick = () => { if (confirm('¿Cerrar sesión en este dispositivo?')) Sync.signOut(); }; }
   Sync.pushActive().then(a => { const el = $('#pu_st'); if (el) el.textContent = a ? '✅ activadas' : 'no activadas'; });
   $('#pu_on').onclick = async () => { try { await Sync.enablePush(); toast('Avisos activados'); vAjustes(); } catch (er) { toast(er.message || 'No se pudo activar'); } };
-  $('#pu_test').onclick = async () => { try { await Sync.call('test'); toast('Aviso de prueba enviado (revisá el correo y el teléfono)'); } catch (er) { toast('No se pudo: ' + er.message); } };
+  $('#pu_test').onclick = async () => {
+    try {
+      const r = await Sync.call('test');
+      const tel = r.push && typeof r.push === 'object' ? (r.push.total ? `${r.push.sent} de ${r.push.total} teléfonos` : 'ningún teléfono activado todavía') : esc(String(r.push));
+      modal(`<h2>Resultado de la prueba</h2><p>Correo: <b>${r.mail === 'ok' ? '✅ enviado a cristalauto95@gmail.com' : '❌ ' + esc(r.mail)}</b></p><p>Notificación al teléfono: <b>${tel}</b></p><button class="btn block" id="no">Cerrar</button>`);
+    } catch (er) {
+      modal(`<h2>No se pudo enviar</h2><p style="word-break:break-word"><b>${esc(er.message)}</b></p><p class="mut">Copiá este texto y pasáselo a Claude.</p><button class="btn block" id="no">Cerrar</button>`);
+    }
+    $('#no').onclick = cerrar;
+  };
   $('#e_ok').onclick = () => { Object.assign(db.cfg.empresa, { nombre: $('#e_n').value.trim(), ruc: $('#e_r').value.trim(), tel: $('#e_t').value.trim(), direccion: $('#e_d').value.trim(), timbrado: $('#e_ti').value.trim(), vigencia: $('#e_v').value.trim() });
     db.cfg.staff = $('#e_s').value.split('\n').map(x => x.trim()).filter(Boolean); db.cfg.minDefault = numGs($('#e_m').value) || 50; db.cfg.capMin = numGs($('#e_cmin').value) || 4; db.cfg.capMax = numGs($('#e_cmax').value) || 12; guardar(); toast('Guardado'); };
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => formProveedor(b.dataset.sp)); $('#sp_new').onclick = () => formProveedor();
