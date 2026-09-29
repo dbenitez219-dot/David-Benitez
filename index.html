@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stock Diario</title>
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Stock">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>📦 Stock Diario</h1>
+  <span id="hoy"></span>
+</header>
+
+<main id="view"></main>
+
+<nav id="tabs">
+  <button data-tab="resumen" class="on"><i>📊</i>Resumen</button>
+  <button data-tab="inventario"><i>📦</i>Inventario</button>
+  <button data-tab="carga"><i>➕</i>Carga diaria</button>
+  <button data-tab="historial"><i>🕘</i>Historial</button>
+  <button data-tab="datos"><i>💾</i>Datos</button>
+</nav>
+
+<div id="modal" hidden><div class="card" id="modalBody"></div></div>
+<div id="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

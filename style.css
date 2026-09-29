@@ -1,0 +1,69 @@
+:root{
+  --bg:#f1f5f9; --card:#fff; --tx:#0f172a; --mut:#64748b; --bd:#e2e8f0;
+  --pri:#2563eb; --ok:#16a34a; --bad:#dc2626; --warn:#d97706;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0b1220; --card:#131c2e; --tx:#e5e7eb; --mut:#94a3b8; --bd:#243049; --pri:#3b82f6}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);
+  padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:var(--pri);color:#fff;display:flex;justify-content:space-between;align-items:center;
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px}
+header h1{font-size:19px;margin:0}
+#hoy{font-size:13px;opacity:.9}
+main{max-width:1000px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:14px}
+h2{font-size:17px;margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px}
+.kpi b{display:block;font-size:24px}
+.kpi span{color:var(--mut);font-size:13px}
+.kpi.bad b{color:var(--bad)}
+input,select,textarea,button{font:inherit;color:inherit}
+input,select{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--card);min-height:44px}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 3px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1 1 140px}
+.btn{background:var(--pri);color:#fff;border:0;border-radius:10px;padding:10px 14px;min-height:44px;cursor:pointer;font-weight:600}
+.btn.sec{background:transparent;color:var(--pri);border:1px solid var(--pri)}
+.btn.bad{background:var(--bad)}
+.btn.sm{min-height:34px;padding:5px 10px;font-size:14px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:9px 8px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}
+th{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.03em}
+td.n,th.n{text-align:right}
+tr.low td:nth-child(4){color:var(--bad);font-weight:700}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600}
+.tag.in{background:#dcfce7;color:#166534}
+.tag.out{background:#fee2e2;color:#991b1b}
+.tag.adj{background:#fef3c7;color:#92400e}
+.seg{display:flex;border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.seg button{flex:1;border:0;background:var(--card);padding:11px;min-height:44px;font-weight:600;cursor:pointer}
+.seg button.on[data-t=in]{background:var(--ok);color:#fff}
+.seg button.on[data-t=out]{background:var(--bad);color:#fff}
+.seg button.on[data-t=adj]{background:var(--warn);color:#fff}
+.mut{color:var(--mut);font-size:13px}
+nav#tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--bd);
+  padding-bottom:env(safe-area-inset-bottom);z-index:6}
+nav#tabs button{flex:1;border:0;background:none;padding:8px 2px;font-size:11px;color:var(--mut);cursor:pointer}
+nav#tabs button i{display:block;font-style:normal;font-size:20px}
+nav#tabs button.on{color:var(--pri);font-weight:700}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:flex-end;justify-content:center}
+#modal[hidden]{display:none}
+#modal .card{width:100%;max-width:520px;max-height:90vh;overflow:auto;margin:0;border-radius:18px 18px 0 0}
+@media(min-width:700px){#modal{align-items:center}#modal .card{border-radius:18px}}
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#111827;color:#fff;
+  padding:10px 16px;border-radius:99px;z-index:20;font-size:14px}
+#toast[hidden]{display:none}
+@media(min-width:800px){
+  body{padding-bottom:0;padding-top:0}
+  nav#tabs{position:sticky;top:52px;bottom:auto;max-width:1000px;margin:0 auto;border:1px solid var(--bd);border-radius:12px;margin-top:10px}
+  nav#tabs button{font-size:14px;padding:10px}
+  nav#tabs button i{display:inline;margin-right:6px;font-size:16px}
+  /* mueve la barra arriba en escritorio */
+  body{display:flex;flex-direction:column}
+  header{order:0} nav#tabs{order:1;width:calc(100% - 28px)} main{order:2;width:100%}
+}
