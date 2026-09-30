@@ -8,7 +8,7 @@
 *{box-sizing:border-box}
 html,body{margin:0}
 body{font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx)}
-header{position:sticky;top:0;z-index:7;background:var(--pri);color:#fff;display:flex;justify-content:space-between;align-items:center;
+header{position:sticky;top:0;z-index:7;background:#000;border-bottom:3px solid #c40000;color:#fff;display:flex;justify-content:space-between;align-items:center;
   padding:calc(10px + env(safe-area-inset-top)) 16px 10px}
 header h1{font-size:19px;margin:0}
 header h1 small{font-weight:400;opacity:.85;font-size:13px}
@@ -87,3 +87,4 @@ tr.click:hover{background:rgba(100,116,139,.08)}
 #login{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
 #login[hidden]{display:none}
 #login .card{width:100%;max-width:380px}
+#login img.logo{display:block;width:100%;max-width:280px;margin:0 auto 6px;border-radius:14px}

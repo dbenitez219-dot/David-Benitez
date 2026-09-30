@@ -1,6 +1,6 @@
-const CACHE = 'cristalauto-v3';
+const CACHE = 'cristalauto-v4';
 const FILES = ['./', './index.html', './style.css', './config.js', './supabase.min.js', './sync.js', './xlsx.min.js', './app.js', './extra.js', './boot.js', './manifest.webmanifest',
-  './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+  './icons/logo.png', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));

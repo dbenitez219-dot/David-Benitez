@@ -10,7 +10,7 @@
 
   function pantallaLogin(msg) {
     const el = $('#login'); el.hidden = false;
-    el.innerHTML = `<form class="card" id="lf"><h1 style="margin:0 0 4px">🚗 CristalAuto</h1><p class="mut">Ingresá con tu correo y contraseña.</p>
+    el.innerHTML = `<form class="card" id="lf"><img class="logo" src="icons/logo.png" alt="CristalAuto Parabrisas"><p class="mut" style="text-align:center">Ingresá con tu correo y contraseña.</p>
       <label>Correo</label><input id="lg_mail" type="email" autocomplete="username" value="cristalauto95@gmail.com" required>
       <label>Contraseña</label><input id="lg_pass" type="password" autocomplete="current-password" required>
       <div id="lg_err" class="mut" style="color:var(--bad);min-height:20px">${msg || ''}</div>
