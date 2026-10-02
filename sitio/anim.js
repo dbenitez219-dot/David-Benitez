@@ -10,7 +10,7 @@
   $('#marcasTrack').innerHTML = spans + spans;
 
   /* Aparecer al hacer scroll */
-  const targets = $$('.sec h2, .sub, #cotizador, .svc, .steps li, .grid-why article, .info li, .map, .contact .cta');
+  const targets = $$('.sec h2, .sub, #cotizador, .svc, .steps li, .grid-why article, .info li, .map, .contact .cta, .rev, .gallery figure, .badges');
   targets.forEach((el, i) => {
     el.classList.add('reveal');
     const sib = el.parentElement ? [...el.parentElement.children].indexOf(el) : 0;

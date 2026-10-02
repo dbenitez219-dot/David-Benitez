@@ -20,6 +20,35 @@
   $('#redes').innerHTML = Object.entries(C.redes || {})
     .filter(([, url]) => url)
     .map(([k, url]) => `<a href="${url}" target="_blank" rel="noopener">${nombres[k] || k}</a>`).join('');
+  $('#redesPie').innerHTML = $('#redes').innerHTML;
+
+  /* Fotos reales, galería y opiniones: aparecen cuando están en config.js */
+  if (C.fotos && C.fotos.hero) {
+    const hero = $('.hero');
+    hero.style.setProperty('--foto', `url("${C.fotos.hero}")`);
+    hero.classList.add('has-photo');
+  }
+  if (C.galeria && C.galeria.length) {
+    $('#galeria').innerHTML = C.galeria.map(g => `<figure><img src="${g.src}" alt="${g.alt || ''}" loading="lazy"></figure>`).join('');
+    $('#trabajos').hidden = false;
+  }
+  if (C.resenas && C.resenas.length) {
+    $('#resenas').innerHTML = C.resenas.map(r => {
+      const n = Math.max(0, Math.min(5, r.estrellas || 5));
+      return `<blockquote class="rev"><div class="stars" aria-label="${n} de 5 estrellas">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</div><p>${r.texto}</p><cite>${r.nombre}</cite></blockquote>`;
+    }).join('');
+    $('#opiniones').hidden = false;
+  }
+
+  /* Menú del celular */
+  const burger = $('#burger'), menu = $('#menu');
+  const cerrar = () => { menu.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); };
+  burger.addEventListener('click', () => {
+    const abrir = !menu.classList.contains('open');
+    menu.classList.toggle('open', abrir);
+    burger.setAttribute('aria-expanded', String(abrir));
+  });
+  $$('#menu a').forEach(a => a.addEventListener('click', cerrar));
 
   /* ---------- Abierto / cerrado (hora de Paraguay) ---------- */
   function estado() {
@@ -32,6 +61,9 @@
     const abierto = h && min >= h[0] && min < h[1];
     el.className = 'eyebrow ' + (abierto ? 'open' : 'closed');
     el.textContent = abierto ? 'Abierto ahora · San Lorenzo' : 'Cerrado ahora · escribinos y te respondemos al abrir';
+    const bd = $('#badgeEstado');
+    bd.textContent = abierto ? 'Abierto ahora' : 'Cerrado ahora';
+    bd.className = 'badge ' + (abierto ? 'badge-ok' : 'badge-no');
   }
   estado();
   setInterval(estado, 60000);

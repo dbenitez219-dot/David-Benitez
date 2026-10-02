@@ -318,3 +318,80 @@ select:focus{outline:none;border-color:var(--red)}
 [hidden]{display:none!important}
 .fab{transition:opacity .25s,transform .25s}
 .en-form .fab{opacity:0;transform:translateY(20px);pointer-events:none}
+
+/* ====== Encabezado completo ====== */
+.top-actions{display:flex;align-items:center;gap:6px}
+.icon-btn{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;transition:background .2s}
+.icon-btn:hover{background:rgba(255,255,255,.12)}
+.icon-btn svg{fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.burger{width:40px;height:40px;border:0;background:none;display:grid;place-content:center;gap:5px;cursor:pointer;padding:0}
+.burger span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;transition:transform .3s,opacity .2s}
+.burger[aria-expanded="true"] span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.burger[aria-expanded="true"] span:nth-child(2){opacity:0}
+.burger[aria-expanded="true"] span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+.top-in{position:relative}
+.menu{position:absolute;top:100%;left:0;right:0;flex-direction:column;gap:0;background:var(--black);border-bottom:3px solid var(--red);
+  max-height:0;overflow:hidden;visibility:hidden;transition:max-height .35s ease,visibility .35s}
+.menu.open{display:flex;max-height:360px;visibility:visible}
+.menu a{padding:16px;border-top:1px solid #1d1d1d;font-size:17px}
+.menu a::after{display:none}
+@media (min-width:900px){
+  .menu{position:static;flex-direction:row;gap:24px;max-height:none;visibility:visible;background:none;border:0;overflow:visible}
+  .menu a{padding:4px 0;border:0;font-size:15px}
+  .menu a::after{display:block}
+  .burger{display:none}
+}
+
+/* ====== Hero con foto ====== */
+.hero.has-photo{background:linear-gradient(90deg,rgba(0,0,0,.92) 0,rgba(0,0,0,.7) 55%,rgba(0,0,0,.35)),var(--foto) center/cover no-repeat}
+.hero.has-photo .hero-art{display:none}
+.hero.has-photo .hero-in{grid-template-columns:1fr}
+
+/* ====== Insignias y contacto ====== */
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:600}
+.badge-ok{background:#e8f8ee;border-color:#b6e6c6;color:#116b34}
+.badge-ok::before,.badge-no::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.badge-no{background:#fdeeee;border-color:#f3c3c3;color:#9a1010}
+.badge-y{background:var(--black);border-color:var(--black);color:#fff}
+
+/* ====== Galería y opiniones ====== */
+.gallery{display:grid;gap:12px;grid-template-columns:repeat(2,1fr);margin-top:26px}
+.gallery figure{margin:0;border-radius:12px;overflow:hidden;aspect-ratio:4/3;background:#ddd}
+.gallery img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s}
+.gallery figure:hover img{transform:scale(1.06)}
+.grid-rev{grid-template-columns:1fr;margin-top:26px}
+.rev{margin:0;background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px}
+.stars{color:#f5b301;font-size:20px;letter-spacing:2px}
+.rev p{margin:10px 0 14px}
+.rev cite{font-style:normal;font-weight:700}
+@media (min-width:640px){.gallery{grid-template-columns:repeat(3,1fr)}.grid-rev{grid-template-columns:repeat(3,1fr)}}
+
+/* ====== Pie de página ====== */
+footer{padding:48px 0 0;color:#b5b5b5}
+.foot-grid{display:grid;gap:30px;grid-template-columns:1fr}
+footer h4{font:700 20px var(--f-head);text-transform:uppercase;color:#fff;margin:0 0 12px;letter-spacing:.5px}
+footer ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:15px}
+footer a{text-decoration:none}
+footer ul a:hover{color:#fff;text-decoration:underline}
+.foot-brand p{margin:12px 0;max-width:36ch}
+.social-foot a{border-color:#444;color:#fff}
+.social-foot a:hover{background:#fff;color:#000}
+.foot-cta{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.foot-bottom{display:flex;flex-direction:column;gap:6px;margin-top:36px;padding:18px 16px 96px;border-top:1px solid #222;font-size:13px}
+@media (min-width:640px){.foot-grid{grid-template-columns:1.4fr 1fr 1fr}.foot-cta{grid-column:1/-1;flex-direction:row}.foot-bottom{flex-direction:row;justify-content:space-between}}
+@media (min-width:900px){.foot-grid{grid-template-columns:1.5fr 1fr 1fr 1fr}.foot-cta{grid-column:auto;flex-direction:column}}
+
+/* Encabezado ajustado para celulares angostos */
+body{overflow-x:clip}
+@media (max-width:520px){
+  .top-in{gap:8px}
+  .brand-name{font-size:23px}
+  .top-actions{gap:2px}
+  .top-actions .icon-btn[aria-label="Ubicación"]{display:none}
+  .top-actions .btn-sm{padding:8px 12px}
+}
+@media (max-width:380px){
+  .top-actions .icon-btn{display:none}
+  .brand-name{font-size:21px}
+}

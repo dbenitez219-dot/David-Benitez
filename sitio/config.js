@@ -12,5 +12,10 @@ window.SITE = {
     6: [450, 750],                                                                   // sáb 7:30-12:30
   },
   // Pegá acá los links y aparecen solos en la página. Dejá '' para ocultar.
+  // Fotos reales (se muestran solas cuando las completes). Subilas a sitio/img/ y poné el nombre.
+  fotos: { hero: '' },            // ej: 'img/local.jpg'  (foto grande de la portada)
+  galeria: [],                    // ej: [{ src: 'img/trabajo1.jpg', alt: 'Cambio de parabrisas' }]
+  // Opiniones REALES de clientes (Google, Facebook, WhatsApp). No inventar.
+  resenas: [],                    // ej: [{ nombre: 'Juan P.', texto: 'Muy buena atención', estrellas: 5 }]
   redes: { facebook: '', instagram: '', tiktok: '' },
 };
