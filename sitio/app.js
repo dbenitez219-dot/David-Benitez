@@ -76,22 +76,27 @@
   const POSICIONES = ['Delantero izquierdo', 'Delantero derecho', 'Trasero izquierdo', 'Trasero derecho'];
   const MARCAS = ['Toyota', 'Nissan', 'Honda', 'Hyundai', 'Kia', 'Suzuki', 'Mitsubishi', 'Mazda', 'Chevrolet', 'Ford', 'Volkswagen', 'Fiat', 'Renault', 'Peugeot', 'Citroën', 'Subaru', 'BMW', 'Mercedes-Benz', 'Audi', 'Jeep', 'Isuzu', 'Chery', 'JAC', 'Great Wall', 'Lexus', 'Daihatsu', 'SsangYong', 'Dodge', 'Mini', 'Volvo'];
 
-  /* ---------- Cotizador ---------- */
-  $('#tipos').innerHTML = TIPOS.map((t, i) =>
-    `<label class="opt"><input type="radio" name="tipo" value="${t.id}"${i === 0 ? '' : ''}>
+  /* ---------- Cotizador por pasos ---------- */
+  const form = $('#cotizador');
+  $('#tipos').innerHTML = TIPOS.map(t =>
+    `<label class="opt"><input type="radio" name="tipo" value="${t.id}">
        <span class="ico">${t.svg}</span><span>${t.t}${t.small ? `<br><small>${t.small}</small>` : ''}</span></label>`).join('');
   $('#vidrios').innerHTML = VIDRIOS.map(v =>
     `<label class="opt"><input type="checkbox" name="vidrio" value="${v.id}">
        <span class="ico">${plan([v.id])}</span><span>${v.t}</span></label>`).join('');
   $('#posChips').innerHTML = POSICIONES.map(p =>
     `<label class="chip"><input type="checkbox" name="pos" value="${p}">${p}</label>`).join('');
-  $('#marcas').innerHTML = MARCAS.map(m => `<option value="${m}">`).join('');
+  const anioMax = new Date().getFullYear() + 1;
+  $('#fAnio').innerHTML = '<option value="">Elegí el año</option>' +
+    Array.from({ length: anioMax - 1979 }, (_, i) => `<option>${anioMax - i}</option>`).join('');
+  $('#fMarca').innerHTML = '<option value="">Elegí la marca</option>' +
+    MARCAS.map(m => `<option>${m}</option>`).join('') + '<option value="__otra">Otra marca…</option>';
 
-  const form = $('#cotizador');
-  const btn = $('#enviar');
-  const err = $('#err');
+  const btn = $('#enviar'), err = $('#err'), sigue = $('#sigue'), atras = $('#atras');
   const val = n => form.elements[n].value.trim();
   const checked = n => $$(`input[name="${n}"]:checked`, form).map(i => i.value);
+  const marca = () => val('marca') === '__otra' ? val('marcaOtra') : val('marca');
+  let paso = 1;
 
   function armar() {
     const tipo = checked('tipo')[0];
@@ -101,51 +106,67 @@
       const p = checked('pos');
       return 'Vidrio lateral' + (p.length ? ' (' + p.join(', ').toLowerCase() + ')' : '');
     });
-    const auto = [val('marca'), val('modelo'), val('anio')].filter(Boolean).join(' ');
+    const auto = [marca(), val('modelo'), val('anio')].filter(Boolean).join(' ');
     const l = ['Hola CristalAuto, quiero solicitar una cotización.', ''];
     l.push('• Vehículo: ' + (auto || '—') + (tipo ? ' (' + tipo + ')' : ''));
     l.push('• Vidrio: ' + (vid.length ? vid.join('; ') : '—'));
-    if (form.elements.domicilio.checked) l.push('• Quiero el servicio a domicilio');
+    if (form.elements.domicilio.checked) l.push('• Quiero el servicio a domicilio' + (val('zona') ? ' en ' + val('zona') : ''));
     if (val('nota')) l.push('• Detalle: ' + val('nota'));
     if (val('nombre')) l.push('', 'Mi nombre: ' + val('nombre'));
     return l.join('\n');
   }
 
-  function faltantes() {
+  /* Qué falta en cada paso */
+  function faltan(n) {
     const f = [];
-    if (!checked('tipo').length) f.push('el tipo de vehículo');
-    if (!checked('vidrio').length) f.push('el vidrio que necesitás');
-    ['marca', 'modelo', 'anio'].forEach(n => {
-      const ok = val(n) && (n !== 'anio' || /^\d{4}$/.test(val(n)));
-      form.elements[n].classList.toggle('bad', !ok && touched);
-      if (!ok) f.push(n === 'anio' ? 'el año (4 números)' : 'la ' + n);
-    });
+    if (n === 1 && !checked('vidrio').length) f.push('elegí al menos un vidrio');
+    if (n === 2) {
+      if (!checked('tipo').length) f.push('el tipo de vehículo');
+      if (!val('anio')) f.push('el año');
+      if (!marca()) f.push('la marca');
+      if (!val('modelo')) f.push('el modelo');
+    }
     return f;
   }
 
-  let touched = false;
+  function mostrar(n) {
+    paso = n;
+    $$('.pane', form).forEach(p => { p.hidden = +p.dataset.step !== n; });
+    $$('#stepper li').forEach((li, i) => {
+      li.classList.toggle('done', i + 1 < n);
+      li.classList.toggle('cur', i + 1 === n);
+    });
+    atras.style.visibility = n === 1 ? 'hidden' : 'visible';
+    sigue.hidden = n === 4;
+    sigue.textContent = n === 3 ? 'Ver resumen' : 'Siguiente';
+    refrescar();
+  }
+
   function refrescar() {
     $('#posiciones').hidden = !checked('vidrio').includes('lateral');
+    $('#otraMarca').hidden = val('marca') !== '__otra';
+    $('#zonaBox').hidden = !form.elements.domicilio.checked;
     const msg = armar();
     $('#preview').textContent = msg;
     btn.href = waUrl(msg);
-    if (touched) mostrarErrores();
-  }
-  function mostrarErrores() {
-    const f = faltantes();
-    err.hidden = !f.length;
-    err.textContent = f.length ? 'Falta completar: ' + f.join(', ') + '.' : '';
-    return f.length === 0;
+    sigue.disabled = faltan(paso).length > 0;
+    err.hidden = true;
   }
 
+  function ir(n) {
+    mostrar(n);
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
   form.addEventListener('input', refrescar);
   form.addEventListener('change', refrescar);
   form.addEventListener('submit', e => e.preventDefault());
-  btn.addEventListener('click', e => {
-    touched = true;
-    if (!mostrarErrores()) { e.preventDefault(); err.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+  sigue.addEventListener('click', () => {
+    const f = faltan(paso);
+    if (f.length) { err.hidden = false; err.textContent = 'Falta: ' + f.join(', ') + '.'; return; }
+    ir(paso + 1);
   });
-  refrescar();
+  atras.addEventListener('click', () => ir(paso - 1));
+  mostrar(1);
 
   /* ---------- Servicios ---------- */
   const ic = {

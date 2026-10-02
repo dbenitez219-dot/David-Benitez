@@ -50,3 +50,11 @@
   addEventListener('resize', onScroll);
   onScroll();
 })();
+
+/* Los botones flotantes se esconden mientras se completa el cotizador */
+(function () {
+  const sec = document.querySelector('#cotizar');
+  if (!sec || !('IntersectionObserver' in window)) return;
+  new IntersectionObserver(es => es.forEach(e => document.body.classList.toggle('en-form', e.isIntersecting)),
+    { threshold: 0.35 }).observe(sec);
+})();

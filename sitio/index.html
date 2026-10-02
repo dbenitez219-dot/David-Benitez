@@ -99,53 +99,79 @@
 
 <section id="cotizar" class="sec sec-light">
   <div class="wrap">
-    <h2>Pedí tu cotización en 3 pasos</h2>
-    <p class="sub">Elegí tu vehículo y el vidrio. Te respondemos por WhatsApp con el precio.</p>
+    <h2>Pedí tu cotización</h2>
+    <p class="sub">Respondé unas preguntas y te contestamos por WhatsApp con el precio.</p>
 
     <form id="cotizador" novalidate>
-      <fieldset>
-        <legend><span class="n">1</span> ¿Qué tipo de vehículo tenés?</legend>
-        <div class="grid grid-5" id="tipos" role="radiogroup"></div>
-      </fieldset>
+      <ol class="stepper" id="stepper" aria-label="Progreso">
+        <li><i></i><span>Vidrio</span></li>
+        <li><i></i><span>Vehículo</span></li>
+        <li><i></i><span>Tus datos</span></li>
+        <li><i></i><span>Enviar</span></li>
+      </ol>
 
-      <fieldset>
-        <legend><span class="n">2</span> ¿Qué vidrio necesitás? <small>Podés elegir más de uno</small></legend>
+      <section class="pane" data-step="1">
+        <h3 class="q">¿Qué vidrio necesitás?</h3>
+        <p class="hint">Podés elegir más de uno</p>
         <div class="grid grid-4" id="vidrios"></div>
         <div id="posiciones" class="pos" hidden>
-          <span class="pos-t">¿Qué vidrio lateral?</span>
+          <span class="pos-t">¿Cuál vidrio lateral?</span>
           <div class="pos-chips" id="posChips"></div>
         </div>
-      </fieldset>
+      </section>
 
-      <fieldset>
-        <legend><span class="n">3</span> Datos del vehículo</legend>
+      <section class="pane" data-step="2" hidden>
+        <h3 class="q">Contanos de tu vehículo</h3>
+        <p class="hint">Tipo de vehículo</p>
+        <div class="grid grid-5" id="tipos" role="radiogroup"></div>
         <div class="fields">
+          <label>Año
+            <select name="anio" id="fAnio"></select>
+          </label>
           <label>Marca
-            <input name="marca" list="marcas" autocomplete="off" placeholder="Ej: Toyota" required>
+            <select name="marca" id="fMarca"></select>
+          </label>
+          <label id="otraMarca" hidden>¿Cuál marca?
+            <input name="marcaOtra" autocomplete="off" placeholder="Escribí la marca">
           </label>
           <label>Modelo
-            <input name="modelo" autocomplete="off" placeholder="Ej: Vitz, New Beetle, Hilux" required>
+            <input name="modelo" autocomplete="off" placeholder="Ej: Vitz, New Beetle, Hilux">
           </label>
-          <label>Año
-            <input name="anio" type="number" inputmode="numeric" min="1950" max="2030" placeholder="Ej: 2012" required>
-          </label>
-          <label>Tu nombre <small>(opcional)</small>
+        </div>
+      </section>
+
+      <section class="pane" data-step="3" hidden>
+        <h3 class="q">Tus datos</h3>
+        <p class="hint">Todo es opcional, pero nos ayuda a atenderte mejor</p>
+        <div class="fields">
+          <label>Tu nombre
             <input name="nombre" autocomplete="name" placeholder="Ej: Juan">
           </label>
         </div>
         <label class="check"><input type="checkbox" name="domicilio"> Quiero el servicio a domicilio</label>
-        <label class="block">Algo más que debamos saber <small>(opcional)</small>
+        <label class="block" id="zonaBox" hidden>¿En qué zona o barrio estás?
+          <input name="zona" autocomplete="off" placeholder="Ej: Luque, centro">
+        </label>
+        <label class="block">Algo más que debamos saber
           <textarea name="nota" rows="2" placeholder="Ej: el parabrisas tiene sensor de lluvia"></textarea>
         </label>
-        <datalist id="marcas"></datalist>
-      </fieldset>
+      </section>
+
+      <section class="pane" data-step="4" hidden>
+        <h3 class="q">Revisá y enviá tu pedido</h3>
+        <p class="hint">Al tocar el botón se abre WhatsApp con este mensaje listo para enviar</p>
+        <pre id="preview" class="resumen"></pre>
+        <a id="enviar" class="btn btn-wa btn-lg" target="_blank" rel="noopener" href="#">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><use href="#i-wa"/></svg>
+          Solicitar cotización por WhatsApp
+        </a>
+      </section>
 
       <p class="err" id="err" role="alert" hidden></p>
-      <a id="enviar" class="btn btn-wa btn-lg" target="_blank" rel="noopener" href="#">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><use href="#i-wa"/></svg>
-        Solicitar cotización por WhatsApp
-      </a>
-      <details class="prev"><summary>Ver el mensaje que se enviará</summary><pre id="preview"></pre></details>
+      <div class="nav">
+        <button type="button" class="btn btn-soft" id="atras">Atrás</button>
+        <button type="button" class="btn btn-red" id="sigue" disabled>Siguiente</button>
+      </div>
     </form>
   </div>
 </section>

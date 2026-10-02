@@ -288,3 +288,33 @@ h2::after{transform-origin:0 50%;animation:none}
   .js .reveal{opacity:1;transform:none}
   .car-line{stroke-dashoffset:0}.car-fill,.wind{opacity:1}
 }
+
+/* ====== Cotizador por pasos ====== */
+.stepper{list-style:none;margin:0 0 26px;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stepper li{text-align:center;font-size:13px;color:var(--mut);font-weight:500}
+.stepper i{display:block;height:6px;border-radius:6px;background:var(--line);margin-bottom:8px;position:relative;overflow:hidden}
+.stepper i::after{content:"";position:absolute;inset:0;background:var(--red);transform:scaleX(0);transform-origin:0 50%;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
+.stepper li.done i::after{transform:scaleX(1)}
+.stepper li.cur i::after{transform:scaleX(.5)}
+.stepper li.cur{color:var(--ink);font-weight:700}
+.stepper li.done{color:var(--ink)}
+.pane:not([hidden]){animation:paneIn .45s cubic-bezier(.2,.7,.2,1)}
+@keyframes paneIn{from{opacity:0;transform:translateX(24px)}}
+.q{font:700 clamp(26px,5vw,34px)/1.1 var(--f-head);text-transform:uppercase;text-align:center;margin:6px 0 4px}
+.hint{text-align:center;color:var(--mut);margin:0 0 20px;font-size:15px}
+.pane .fields{margin-top:20px}
+select{width:100%;margin-top:6px;padding:12px;border:2px solid var(--line);border-radius:8px;font:400 16px var(--f-body);background:#fff;color:var(--ink);appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23111' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
+select:focus{outline:none;border-color:var(--red)}
+.resumen{white-space:pre-wrap;background:var(--soft);border-left:4px solid var(--red);border-radius:8px;padding:16px;font:15px/1.6 var(--f-body);margin:0 0 20px}
+.pane[data-step="4"] .btn-lg{display:flex;margin:0 auto}
+.nav{display:flex;justify-content:space-between;gap:12px;margin-top:24px}
+.btn-soft{background:#e8f0f8;color:#0b3a66;border-color:transparent}
+.btn-soft:hover{background:#d8e6f3}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.btn:disabled::before{display:none}
+.nav .btn{min-width:130px}
+[hidden]{display:none!important}
+.fab{transition:opacity .25s,transform .25s}
+.en-form .fab{opacity:0;transform:translateY(20px);pointer-events:none}
