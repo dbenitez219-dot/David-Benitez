@@ -185,3 +185,106 @@ footer{background:var(--black);color:#aaa;padding:26px 0 96px;font-size:14px;bor
   .fab-call{display:none}
 }
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+
+/* ====== Animaciones y detalles pro ====== */
+.progress{position:fixed;top:0;left:0;right:0;height:3px;background:var(--red);transform:scaleX(0);transform-origin:0 50%;z-index:50}
+.top{transition:box-shadow .3s,background .3s}
+.top-in{transition:min-height .3s}
+.top.scrolled{box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.top.scrolled .top-in{min-height:52px}
+.menu a{position:relative;padding:4px 0}
+.menu a::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:2px;background:var(--red);transform:scaleX(0);transform-origin:0 50%;transition:transform .25s}
+.menu a:hover::after,.menu a.on::after{transform:scaleX(1)}
+.menu a.on{opacity:1}
+
+/* Botones: brillo al pasar */
+.btn{position:relative;overflow:hidden}
+.btn::before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-120%);transition:transform .6s}
+.btn:hover::before{transform:translateX(120%)}
+.btn:hover{transform:translateY(-2px)}
+.btn-red,.btn-wa{box-shadow:0 8px 22px rgba(0,0,0,.18)}
+
+/* Hero */
+.hero-in{display:grid;gap:10px;align-items:center}
+.glow{position:absolute;width:640px;height:640px;right:-160px;top:-200px;border-radius:50%;background:radial-gradient(circle,rgba(209,10,10,.38),transparent 65%);animation:drift 9s ease-in-out infinite alternate;pointer-events:none}
+@keyframes drift{to{transform:translate(-60px,60px) scale(1.1)}}
+.hero-text>*{animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
+.hero-text>:nth-child(2){animation-delay:.1s}.hero-text>:nth-child(3){animation-delay:.2s}
+.hero-text>:nth-child(4){animation-delay:.3s}.hero-text>:nth-child(5){animation-delay:.4s}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}}
+.hero-art{position:relative;width:100%;max-width:620px;margin:30px auto 0;animation:rise 1s .3s cubic-bezier(.2,.7,.2,1) both}
+.hero-art svg{width:100%;height:auto;overflow:visible;filter:drop-shadow(0 24px 30px rgba(0,0,0,.6))}
+.car{animation:float 5s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-6px)}}
+.car-line{stroke:#fff;stroke-width:2.5;stroke-dasharray:1;stroke-dashoffset:1;animation:draw 2.4s .4s ease forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.car-fill{opacity:0;animation:fade 1s 1.6s forwards}
+@keyframes fade{to{opacity:1}}
+.wind{stroke:var(--red);stroke-width:5;stroke-linecap:round;opacity:0;animation:fade 1s 2s forwards,glowp 2.2s 3s ease-in-out infinite}
+@keyframes glowp{50%{filter:drop-shadow(0 0 8px #ff2a2a);stroke-width:7}}
+.shine{transform-box:fill-box;transform-origin:center;animation:sweep 4.5s 2.6s ease-in-out infinite}
+@keyframes sweep{0%{transform:translateX(-60px) skewX(-20deg)}45%,100%{transform:translateX(300px) skewX(-20deg)}}
+.spin{transform-box:fill-box;transform-origin:center;animation:rot 3s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.road{stroke:#444;stroke-width:3;stroke-dasharray:34 22;animation:roadm 1.1s linear infinite}
+@keyframes roadm{to{stroke-dashoffset:-56}}
+
+/* Marcas en movimiento */
+.marquee{overflow:hidden;background:var(--red);color:#fff;padding:12px 0;white-space:nowrap}
+.marquee .track{display:inline-flex;gap:34px;padding-left:34px;animation:marq 40s linear infinite;font:700 20px/1 var(--f-head);text-transform:uppercase;letter-spacing:1.5px}
+.marquee .track span::after{content:"◆";margin-left:34px;font-size:10px;vertical-align:middle;opacity:.7}
+.marquee:hover .track{animation-play-state:paused}
+@keyframes marq{to{transform:translateX(-50%)}}
+
+/* Aparecer al hacer scroll */
+.js .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1);transition-delay:var(--d,0s)}
+.js .reveal.in{opacity:1;transform:none}
+h2::after{transform-origin:0 50%;animation:none}
+.js h2.reveal::after{transform:scaleX(0);transition:transform .8s .3s}
+.js h2.reveal.in::after{transform:scaleX(1)}
+
+/* Tarjetas */
+.svc{position:relative;overflow:hidden}
+.svc::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--red);transform:scaleX(0);transform-origin:0 50%;transition:transform .35s}
+.svc:hover::after{transform:scaleX(1)}
+.svc:hover{box-shadow:0 14px 30px rgba(0,0,0,.08)}
+.svc-ico{transition:background .25s,transform .25s}
+.svc:hover .svc-ico{background:var(--red);transform:rotate(-6deg) scale(1.06)}
+.grid-why article{transition:transform .25s,background .25s}
+.grid-why article:hover{transform:translateX(6px);background:#1d1d1d}
+
+/* Pasos */
+.steps{list-style:none;margin:30px 0 0;padding:0;display:grid;gap:22px;position:relative;--p:0}
+.steps::before,.steps::after{content:"";position:absolute;left:21px;top:22px;bottom:22px;width:3px;background:var(--line);border-radius:3px}
+.steps::after{background:var(--red);transform-origin:50% 0;transform:scaleY(var(--p));bottom:22px}
+.steps li{position:relative;padding-left:64px}
+.steps b{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;background:#fff;border:3px solid var(--line);display:grid;place-items:center;font:700 22px var(--f-head);transition:background .3s,border-color .3s,color .3s;z-index:1}
+.steps li.on b{background:var(--red);border-color:var(--red);color:#fff;box-shadow:0 0 0 6px rgba(209,10,10,.15)}
+.steps h3{font:700 24px/1.1 var(--f-head);text-transform:uppercase;margin:6px 0 4px}
+.steps p{margin:0;color:var(--mut)}
+
+/* Cotizador con vida */
+.opt{transition:border-color .15s,box-shadow .15s,transform .2s}
+.opt:hover{transform:translateY(-3px)}
+.opt:has(input:checked){animation:pop .35s}
+@keyframes pop{40%{transform:scale(1.05)}}
+.opt:has(input:checked)::after{animation:pop .35s}
+.pos:not([hidden]){animation:slide .35s}
+@keyframes slide{from{opacity:0;transform:translateY(-8px)}}
+.fab-wa{position:relative}
+.fab-wa::before{content:"";position:absolute;inset:0;border-radius:50%;background:var(--wa);z-index:-1;animation:ring 2.2s infinite}
+@keyframes ring{to{transform:scale(1.7);opacity:0}}
+
+@media (min-width:900px){
+  .hero-in{grid-template-columns:1.05fr 1fr;gap:30px}
+  .hero-art{margin:0}
+  .steps{grid-template-columns:repeat(4,1fr);gap:24px}
+  .steps::before,.steps::after{left:22px;right:22px;top:21px;bottom:auto;width:auto;height:3px}
+  .steps::after{transform-origin:0 50%;transform:scaleX(var(--p))}
+  .steps li{padding:56px 0 0}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .js .reveal{opacity:1;transform:none}
+  .car-line{stroke-dashoffset:0}.car-fill,.wind{opacity:1}
+}

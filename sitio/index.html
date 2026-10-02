@@ -15,6 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;1,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add("js")</script>
 <link rel="stylesheet" href="style.css">
 <script type="application/ld+json">
 {
@@ -33,6 +34,7 @@
 </script>
 </head>
 <body>
+<div class="progress" aria-hidden="true"></div>
 
 <header class="top">
   <div class="wrap top-in">
@@ -53,7 +55,9 @@
 <main id="inicio">
 
 <section class="hero">
+  <div class="glow" aria-hidden="true"></div>
   <div class="wrap hero-in">
+    <div class="hero-text">
     <p class="eyebrow" id="estado" aria-live="polite"></p>
     <h1>Cambio de parabrisas y vidrios <span class="r">para tu auto</span></h1>
     <p class="lead">En San Lorenzo y a domicilio en Asunción y Gran Asunción. Buen precio, trabajo de calidad y <strong>1 año de garantía</strong> por la instalación.</p>
@@ -66,8 +70,32 @@
       <li>Servicio a domicilio</li>
       <li>Atención rápida</li>
     </ul>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <svg viewBox="0 0 600 270" fill="none">
+        <defs>
+          <clipPath id="gl"><path d="M236 98l30-38h66v38z"/><path d="M344 60h52q8 0 14 7l32 31H344z"/></clipPath>
+          <linearGradient id="glg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9db8c9" stop-opacity=".55"/><stop offset="1" stop-color="#1a2630" stop-opacity=".85"/></linearGradient>
+          <linearGradient id="shn" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+          <linearGradient id="bdy" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#262626"/><stop offset="1" stop-color="#0c0c0c"/></linearGradient>
+        </defs>
+        <g class="car">
+          <path class="car-fill" d="M25 190V150q5-25 70-30l80-15 45-45q10-10 30-10h120q20 0 35 15l40 45 85 15q40 10 40 40v25z" fill="url(#bdy)"/>
+          <path class="car-line" pathLength="1" d="M25 190V150q5-25 70-30l80-15 45-45q10-10 30-10h120q20 0 35 15l40 45 85 15q40 10 40 40v25z"/>
+          <path d="M236 98l30-38h66v38z" fill="url(#glg)"/><path d="M344 60h52q8 0 14 7l32 31H344z" fill="url(#glg)"/>
+          <g clip-path="url(#gl)"><rect class="shine" x="180" y="40" width="70" height="80" fill="url(#shn)"/></g>
+          <path class="wind" d="M396 60q8 0 14 7l32 31"/>
+          <rect x="560" y="140" width="22" height="10" rx="4" fill="#f3d36b"/><rect x="18" y="140" width="14" height="10" rx="4" fill="#d10a0a"/>
+          <g class="wheel-g" style="--cx:140px"><circle cx="140" cy="200" r="38" fill="#050505"/><g class="spin"><circle cx="140" cy="200" r="22" fill="#222" stroke="#666" stroke-width="2"/><path d="M140 182v36M122 200h36M127 187l26 26M153 187l-26 26" stroke="#888" stroke-width="3"/></g></g>
+          <g class="wheel-g"><circle cx="470" cy="200" r="38" fill="#050505"/><g class="spin"><circle cx="470" cy="200" r="22" fill="#222" stroke="#666" stroke-width="2"/><path d="M470 182v36M452 200h36M457 187l26 26M483 187l-26 26" stroke="#888" stroke-width="3"/></g></g>
+        </g>
+        <path class="road" d="M0 246H600"/>
+      </svg>
+    </div>
   </div>
 </section>
+
+<div class="marquee" aria-label="Cotizá para tu marca"><div class="track" id="marcasTrack"></div></div>
 
 <section id="cotizar" class="sec sec-light">
   <div class="wrap">
@@ -126,6 +154,18 @@
   <div class="wrap">
     <h2>Nuestros servicios</h2>
     <div class="grid grid-svc" id="servicios-lista"></div>
+  </div>
+</section>
+
+<section id="proceso" class="sec">
+  <div class="wrap">
+    <h2>Cómo trabajamos</h2>
+    <ol class="steps">
+      <li><b>1</b><h3>Elegís tu vidrio</h3><p>Usás el cotizador o nos escribís por WhatsApp.</p></li>
+      <li><b>2</b><h3>Te cotizamos</h3><p>Te respondemos con el precio para tu vehículo.</p></li>
+      <li><b>3</b><h3>Instalamos</h3><p>En nuestro local de San Lorenzo o en tu domicilio.</p></li>
+      <li><b>4</b><h3>1 año de garantía</h3><p>Respaldamos la instalación de tu vidrio.</p></li>
+    </ol>
   </div>
 </section>
 
@@ -198,5 +238,6 @@
 
 <script src="config.js"></script>
 <script src="app.js"></script>
+<script src="anim.js"></script>
 </body>
 </html>
