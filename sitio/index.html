@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CristalAuto Parabrisas | Cambio de parabrisas en San Lorenzo</title>
+<meta name="description" content="Cambio de parabrisas, lunetas y vidrios laterales en San Lorenzo, Paraguay. Polarizado y pulida de vidrios y faros. Servicio a domicilio en Asunción y Gran Asunción. Garantía de 1 año por la instalación.">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:title" content="CristalAuto Parabrisas · San Lorenzo, Paraguay">
+<meta property="og:description" content="Parabrisas, lunetas, vidrios laterales y polarizado. A domicilio en Asunción y Gran Asunción. 1 año de garantía.">
+<meta property="og:image" content="img/logo.png">
+<link rel="icon" href="img/icon-192.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;1,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "AutoGlass",
+  "name": "CristalAuto Parabrisas",
+  "image": "img/logo.png",
+  "telephone": "+595984102671",
+  "address": { "@type": "PostalAddress", "streetAddress": "Calle Nicanor Ríos", "addressLocality": "San Lorenzo", "addressCountry": "PY" },
+  "areaServed": ["Asunción", "Gran Asunción", "Central"],
+  "openingHoursSpecification": [
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "07:30", "closes": "17:30" },
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "07:30", "closes": "12:30" }
+  ]
+}
+</script>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="#inicio" aria-label="CristalAuto Parabrisas, inicio">
+      <span class="brand-name"><b>CRISTAL</b><b class="r">AUTO</b></span>
+      <span class="brand-sub">PARABRISAS</span>
+    </a>
+    <nav class="menu" aria-label="Secciones">
+      <a href="#cotizar">Cotizar</a>
+      <a href="#servicios">Servicios</a>
+      <a href="#nosotros">Por qué elegirnos</a>
+      <a href="#contacto">Contacto</a>
+    </nav>
+    <a class="btn btn-sm btn-call" data-tel href="#contacto">Llamar</a>
+  </div>
+</header>
+
+<main id="inicio">
+
+<section class="hero">
+  <div class="wrap hero-in">
+    <p class="eyebrow" id="estado" aria-live="polite"></p>
+    <h1>Cambio de parabrisas y vidrios <span class="r">para tu auto</span></h1>
+    <p class="lead">En San Lorenzo y a domicilio en Asunción y Gran Asunción. Buen precio, trabajo de calidad y <strong>1 año de garantía</strong> por la instalación.</p>
+    <div class="cta">
+      <a class="btn btn-red" href="#cotizar">Pedir cotización</a>
+      <a class="btn btn-ghost" data-tel href="#contacto">Llamar ahora</a>
+    </div>
+    <ul class="chips">
+      <li>Garantía de 1 año</li>
+      <li>Servicio a domicilio</li>
+      <li>Atención rápida</li>
+    </ul>
+  </div>
+</section>
+
+<section id="cotizar" class="sec sec-light">
+  <div class="wrap">
+    <h2>Pedí tu cotización en 3 pasos</h2>
+    <p class="sub">Elegí tu vehículo y el vidrio. Te respondemos por WhatsApp con el precio.</p>
+
+    <form id="cotizador" novalidate>
+      <fieldset>
+        <legend><span class="n">1</span> ¿Qué tipo de vehículo tenés?</legend>
+        <div class="grid grid-5" id="tipos" role="radiogroup"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="n">2</span> ¿Qué vidrio necesitás? <small>Podés elegir más de uno</small></legend>
+        <div class="grid grid-4" id="vidrios"></div>
+        <div id="posiciones" class="pos" hidden>
+          <span class="pos-t">¿Qué vidrio lateral?</span>
+          <div class="pos-chips" id="posChips"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="n">3</span> Datos del vehículo</legend>
+        <div class="fields">
+          <label>Marca
+            <input name="marca" list="marcas" autocomplete="off" placeholder="Ej: Toyota" required>
+          </label>
+          <label>Modelo
+            <input name="modelo" autocomplete="off" placeholder="Ej: Vitz, New Beetle, Hilux" required>
+          </label>
+          <label>Año
+            <input name="anio" type="number" inputmode="numeric" min="1950" max="2030" placeholder="Ej: 2012" required>
+          </label>
+          <label>Tu nombre <small>(opcional)</small>
+            <input name="nombre" autocomplete="name" placeholder="Ej: Juan">
+          </label>
+        </div>
+        <label class="check"><input type="checkbox" name="domicilio"> Quiero el servicio a domicilio</label>
+        <label class="block">Algo más que debamos saber <small>(opcional)</small>
+          <textarea name="nota" rows="2" placeholder="Ej: el parabrisas tiene sensor de lluvia"></textarea>
+        </label>
+        <datalist id="marcas"></datalist>
+      </fieldset>
+
+      <p class="err" id="err" role="alert" hidden></p>
+      <a id="enviar" class="btn btn-wa btn-lg" target="_blank" rel="noopener" href="#">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><use href="#i-wa"/></svg>
+        Solicitar cotización por WhatsApp
+      </a>
+      <details class="prev"><summary>Ver el mensaje que se enviará</summary><pre id="preview"></pre></details>
+    </form>
+  </div>
+</section>
+
+<section id="servicios" class="sec">
+  <div class="wrap">
+    <h2>Nuestros servicios</h2>
+    <div class="grid grid-svc" id="servicios-lista"></div>
+  </div>
+</section>
+
+<section id="nosotros" class="sec sec-dark">
+  <div class="wrap">
+    <h2>Por qué elegirnos</h2>
+    <div class="grid grid-why">
+      <article><b>01</b><h3>Buen precio</h3><p>Cotización clara, sin vueltas.</p></article>
+      <article><b>02</b><h3>Calidad</h3><p>Instalación prolija y cuidadosa con tu vehículo.</p></article>
+      <article><b>03</b><h3>Rapidez</h3><p>Respetamos tu tiempo: atención y trabajo ágiles.</p></article>
+      <article><b>04</b><h3>A domicilio</h3><p>Vamos adonde estés en Asunción y Gran Asunción.</p></article>
+      <article><b>05</b><h3>1 año de garantía</h3><p>Por la instalación de tu vidrio.</p></article>
+    </div>
+  </div>
+</section>
+
+<section id="contacto" class="sec sec-light">
+  <div class="wrap contact">
+    <div>
+      <h2>Visitanos o llamanos</h2>
+      <ul class="info">
+        <li><span>Dirección</span><strong id="dir"></strong></li>
+        <li><span>WhatsApp y teléfono</span><strong><a data-tel href="#"></a></strong></li>
+        <li><span>Horario</span>
+          <table class="hrs">
+            <tr><td>Lunes a viernes</td><td>7:30 a 17:30</td></tr>
+            <tr><td>Sábados</td><td>7:30 a 12:30</td></tr>
+            <tr><td>Domingos</td><td>Cerrado</td></tr>
+          </table>
+        </li>
+        <li><span>Zona de servicio a domicilio</span><strong>Asunción y Gran Asunción (Dpto. Central)</strong></li>
+      </ul>
+      <div class="cta">
+        <a class="btn btn-wa" data-wa target="_blank" rel="noopener" href="#">Escribir por WhatsApp</a>
+        <a class="btn btn-dark" data-tel href="#">Llamar</a>
+      </div>
+      <div class="social" id="redes"></div>
+    </div>
+    <div class="map">
+      <iframe id="mapa" title="Ubicación de CristalAuto en San Lorenzo" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+      <a class="maplink" id="maplink" target="_blank" rel="noopener" href="#">Cómo llegar</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span class="brand-name"><b>CRISTAL</b><b class="r">AUTO</b></span>
+    <span>© <span id="anio"></span> CristalAuto Parabrisas · San Lorenzo, Paraguay</span>
+  </div>
+</footer>
+
+<div class="fab">
+  <a class="fab-call" data-tel href="#" aria-label="Llamar">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="#fff" d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+  </a>
+  <a class="fab-wa" data-wa target="_blank" rel="noopener" href="#" aria-label="Escribir por WhatsApp">
+    <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><use href="#i-wa"/></svg>
+  </a>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-wa" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M12 2.5a9.5 9.5 0 0 0-8.1 14.4L2.5 21.5l4.7-1.3A9.5 9.5 0 1 0 12 2.5z"/>
+    <path fill="#25D366" d="M8.6 7.8c-.2.4-.5 1-.1 2 .6 1.6 2.6 4.1 5.3 5 .9.3 1.6.1 2-.5l.3-.8c.1-.3-.1-.5-.3-.6l-1.3-.6c-.3-.1-.5 0-.6.2l-.5.7c-1.2-.4-2.2-1.4-2.7-2.5l.6-.6c.2-.2.2-.4.1-.7l-.6-1.3c-.1-.3-.4-.4-.7-.3z"/>
+  </symbol>
+</svg>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
