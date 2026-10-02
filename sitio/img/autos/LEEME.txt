@@ -1,0 +1,15 @@
+FOTOS REALES DE CADA AUTO
+=========================
+Cada modelo tiene su propia carpeta con el nombre  marca-modelo  (en minúsculas, sin tildes):
+
+    img/autos/toyota-vitz/
+        frente.jpg   -> el auto visto de frente (se ve el parabrisas)
+        atras.jpg    -> el auto visto de atrás (se ve la luneta)
+        lado.jpg     -> el auto visto de costado (se ven las puertas)
+
+Otros ejemplos:  img/autos/volkswagen-new-beetle/   img/autos/nissan-march/   img/autos/toyota-hilux/
+
+Consejos para sacar las fotos:
+ - Con el celular acostado (horizontal), buena luz y el auto completo en la foto.
+ - Fondo ordenado y sin personas.
+ - Formato JPG. Si una foto falta, la página muestra un dibujo del tipo de vehículo.

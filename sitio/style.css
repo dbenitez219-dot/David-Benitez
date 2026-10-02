@@ -431,3 +431,12 @@ select,input:not([type=checkbox]):not([type=radio]),textarea{border-radius:12px;
 
 .opt{color:var(--text)}
 .opt .lbl{font-weight:700}
+
+/* Fotos reales de los vehículos */
+.opt .ico.foto{border-radius:12px;overflow:hidden;position:relative;aspect-ratio:16/10;background:#e7e5df;max-width:none}
+.ico.foto img,.veh-prev.foto img{width:100%;height:100%;object-fit:cover;display:block}
+.foto-hl{position:absolute;inset:0;width:100%;height:100%}
+.foto-hl polygon{fill:rgba(225,25,18,.55);stroke:#fff;stroke-width:.6;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.veh-prev.foto{padding:0;overflow:hidden;position:relative;aspect-ratio:16/10}
+.veh-prev.foto .car{display:none}
+#vehResumen{color:var(--text);font-size:16px}

@@ -14,7 +14,7 @@
   $('#dir').textContent = C.direccion;
   $('#anio').textContent = new Date().getFullYear();
   const q = encodeURIComponent(C.mapaQuery);
-  $('#mapa').src = 'https://www.google.com/maps?q=' + q + '&output=embed';
+  $('#mapa').src = 'https://www.google.com/maps?q=' + q + '&hl=es&output=embed';
   $('#maplink').href = 'https://www.google.com/maps/search/?api=1&query=' + q;
   const nombres = { facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok' };
   $('#redes').innerHTML = Object.entries(C.redes || {})
@@ -68,62 +68,118 @@
   estado();
   setInterval(estado, 60000);
 
-  /* ---------- Dibujos (ver cars.js) ---------- */
+  /* ---------- Cotizador por pasos ---------- */
   const TIPOS = [
     { id: 'Sedán', k: 'sedan' },
     { id: 'Hatchback', k: 'hatch' },
-    { id: 'SUV / Crossover', k: 'suv' },
+    { id: 'SUV / Camioneta', k: 'suv' },
     { id: 'Camioneta pick-up', k: 'pickup' },
     { id: 'Furgón / utilitario', k: 'van' },
   ];
-
+  const kDe = id => (TIPOS.find(t => t.id === id) || { k: 'sedan' }).k;
   const VIDRIOS = [
-    { id: 'parabrisas', t: 'Parabrisas delantero', img: () => Cars.front('parabrisas') },
-    { id: 'luneta', t: 'Luneta', s: 'Vidrio trasero', img: () => Cars.rear('luneta') },
-    { id: 'lateral', t: 'Vidrio lateral', s: 'Puertas', img: () => Cars.side('sedan', 'lateral') },
-    { id: 'fijo', t: 'Vidrios fijos', s: 'Laterales y traseros', img: () => Cars.side('sedan', 'fijo') },
+    { id: 'parabrisas', t: 'Parabrisas delantero', vista: 'frente', img: () => Cars.front('parabrisas') },
+    { id: 'luneta', t: 'Luneta', s: 'Vidrio trasero', vista: 'atras', img: () => Cars.rear('luneta') },
+    { id: 'lateral', t: 'Vidrio lateral', s: 'Puertas', vista: 'lado', img: k => Cars.side(k, 'lateral') },
+    { id: 'fijo', t: 'Vidrios fijos', s: 'Laterales y traseros', vista: 'lado', img: k => Cars.side(k, 'fijo') },
   ];
   const POSICIONES = ['Delantero izquierdo', 'Delantero derecho', 'Trasero izquierdo', 'Trasero derecho'];
-  const MARCAS = ['Toyota', 'Nissan', 'Honda', 'Hyundai', 'Kia', 'Suzuki', 'Mitsubishi', 'Mazda', 'Chevrolet', 'Ford', 'Volkswagen', 'Fiat', 'Renault', 'Peugeot', 'Citroën', 'Subaru', 'BMW', 'Mercedes-Benz', 'Audi', 'Jeep', 'Isuzu', 'Chery', 'JAC', 'Great Wall', 'Lexus', 'Daihatsu', 'SsangYong', 'Dodge', 'Mini', 'Volvo'];
+  const CAT = window.CATALOGO || {};
+  const MARCAS = [...new Set([...Object.keys(CAT), 'Mercedes-Benz', 'BMW', 'Audi', 'Citroën', 'Lexus', 'Daihatsu', 'Chery', 'JAC', 'Great Wall', 'SsangYong', 'Dodge', 'Mini', 'Volvo'])]
+    .sort((a, b) => a.localeCompare(b, 'es'));
+  const slug = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-  /* ---------- Cotizador por pasos ---------- */
   const form = $('#cotizador');
-  $('#vidrios').innerHTML = VIDRIOS.map(v =>
-    `<label class="opt"><input type="checkbox" name="vidrio" value="${v.id}">
-       <span class="ico">${v.img()}</span><span class="lbl">${v.t}${v.s ? `<small>${v.s}</small>` : ''}</span></label>`).join('');
-  $('#posChips').innerHTML = POSICIONES.map(p =>
-    `<label class="chip"><input type="checkbox" name="pos" value="${p}">${p}</label>`).join('');
-  const anioMax = new Date().getFullYear() + 1;
-  $('#fAnio').innerHTML = '<option value="">Elegí el año</option>' +
-    Array.from({ length: anioMax - 1979 }, (_, i) => `<option>${anioMax - i}</option>`).join('');
-  $('#fTipo').innerHTML = '<option value="">Elegí la carrocería</option>' + TIPOS.map(t => `<option value="${t.id}">${t.id}</option>`).join('');
-  let ultimoTipo = null;
-  const verAuto = () => {
-    const t = TIPOS.find(x => x.id === val('tipo'));
-    const k = t ? t.k : 'sedan';
-    if (k + !!t === ultimoTipo) return;
-    ultimoTipo = k + !!t;
-    $('#vehPrev').innerHTML = Cars.side(k, '');
-    $('#vehPrev').classList.toggle('vacio', !t);
-  };
-  $('#fMarca').innerHTML = '<option value="">Elegí la marca</option>' +
-    MARCAS.map(m => `<option>${m}</option>`).join('') + '<option value="__otra">Otra marca…</option>';
-
   const btn = $('#enviar'), err = $('#err'), sigue = $('#sigue'), atras = $('#atras');
   const val = n => form.elements[n].value.trim();
   const checked = n => $$(`input[name="${n}"]:checked`, form).map(i => i.value);
   const marca = () => val('marca') === '__otra' ? val('marcaOtra') : val('marca');
+  const modelo = () => (val('modelo') && val('modelo') !== '__otro') ? val('modelo') : val('modeloOtro');
+  const carpeta = () => slug(marca() + ' ' + modelo());
   let paso = 1;
+
+  /* Fotos reales: se usan si existen en img/autos/<marca-modelo>/ (ver catalogo.js) */
+  const cache = {};
+  const hayFoto = (dir, vista) => {
+    const u = `img/autos/${dir}/${vista}.jpg`;
+    return cache[u] || (cache[u] = new Promise(res => { const i = new Image(); i.onload = () => res(u); i.onerror = () => res(null); i.src = u; }));
+  };
+  const nombreAuto = () => [marca(), modelo()].filter(Boolean).join(' ');
+  function fotoHTML(u, claveVidrio, dir) {
+    const poly = (window.HIGHLIGHT[dir] || {})[claveVidrio];
+    const polys = poly ? (Array.isArray(poly[0][0]) ? poly : [poly]) : [];
+    const sv = polys.length ? `<svg class="foto-hl" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${polys.map(p => `<polygon points="${p.map(q => q.join(',')).join(' ')}"/>`).join('')}</svg>` : '';
+    return `<img src="${u}" alt="${nombreAuto()}" loading="lazy">${sv}`;
+  }
+
+  /* Año, marca y carrocería */
+  const anioMax = new Date().getFullYear() + 1;
+  $('#fAnio').innerHTML = '<option value="">Elegí el año</option>' +
+    Array.from({ length: anioMax - 1979 }, (_, i) => `<option>${anioMax - i}</option>`).join('');
+  $('#fMarca').innerHTML = '<option value="">Elegí la marca</option>' +
+    MARCAS.map(m => `<option>${m}</option>`).join('') + '<option value="__otra">Otra marca…</option>';
+  $('#fTipo').innerHTML = '<option value="">Elegí la carrocería</option>' + TIPOS.map(t => `<option value="${t.id}">${t.id}</option>`).join('');
+
+  function cargarModelos() {
+    const lista = CAT[val('marca')];
+    const sel = $('#fModelo'), otro = $('#fModeloOtro');
+    if (lista) {
+      sel.innerHTML = '<option value="">Elegí el modelo</option>' +
+        Object.keys(lista).sort((a, b) => a.localeCompare(b, 'es')).map(m => `<option>${m}</option>`).join('') + '<option value="__otro">Otro modelo…</option>';
+      sel.hidden = false; otro.hidden = true;
+    } else {
+      sel.innerHTML = ''; sel.hidden = true; otro.hidden = false;
+    }
+    otro.value = '';
+  }
+  cargarModelos();
+
+  /* Vista previa del vehículo (foto real si existe, si no un dibujo) */
+  let ultimaVista = '';
+  function verAuto() {
+    const tipo = val('tipo'), dir = carpeta();
+    const clave = dir + '|' + tipo;
+    if (clave === ultimaVista) return;
+    ultimaVista = clave;
+    const prev = $('#vehPrev');
+    prev.classList.remove('foto');
+    prev.classList.toggle('vacio', !tipo);
+    prev.innerHTML = Cars.side(kDe(tipo), '');
+    if (dir.length > 1) hayFoto(dir, 'lado').then(u => {
+      if (u && ultimaVista === clave) { prev.innerHTML = fotoHTML(u, 'lado', dir); prev.classList.add('foto'); prev.classList.remove('vacio'); }
+    });
+  }
+
+  /* Tarjetas de vidrio con las fotos de ese vehículo */
+  let vidriosPara = '';
+  function pintarVidrios() {
+    const dir = carpeta(), tipo = val('tipo');
+    const clave = dir + '|' + tipo;
+    $('#vehResumen').textContent = [nombreAuto(), val('anio')].filter(Boolean).join(' ') + (tipo ? ' · ' + tipo : '');
+    if (clave === vidriosPara) return;
+    vidriosPara = clave;
+    const marcados = new Set(checked('vidrio'));
+    const k = kDe(tipo);
+    $('#vidrios').innerHTML = VIDRIOS.map(v =>
+      `<label class="opt"><input type="checkbox" name="vidrio" value="${v.id}"${marcados.has(v.id) ? ' checked' : ''}>
+         <span class="ico" data-v="${v.id}">${v.img(k)}</span><span class="lbl">${v.t}${v.s ? `<small>${v.s}</small>` : ''}</span></label>`).join('');
+    if (dir.length > 1) VIDRIOS.forEach(v => hayFoto(dir, v.vista).then(u => {
+      const box = $(`.ico[data-v="${v.id}"]`);
+      if (u && box && vidriosPara === clave) { box.innerHTML = fotoHTML(u, v.id, dir); box.classList.add('foto'); }
+    }));
+  }
+  $('#posChips').innerHTML = POSICIONES.map(p =>
+    `<label class="chip"><input type="checkbox" name="pos" value="${p}">${p}</label>`).join('');
 
   function armar() {
     const tipo = val('tipo');
-    const nombreV = Object.fromEntries(VIDRIOS.map(v => [v.id, v.t.replace(/ \(.*\)/, '')]));
+    const nombreV = Object.fromEntries(VIDRIOS.map(v => [v.id, v.t]));
     const vid = checked('vidrio').map(id => {
       if (id !== 'lateral') return nombreV[id];
       const p = checked('pos');
       return 'Vidrio lateral' + (p.length ? ' (' + p.join(', ').toLowerCase() + ')' : '');
     });
-    const auto = [marca(), val('modelo'), val('anio')].filter(Boolean).join(' ');
+    const auto = [marca(), modelo(), val('anio')].filter(Boolean).join(' ');
     const l = ['Hola CristalAuto, quiero solicitar una cotización.', ''];
     l.push('• Vehículo: ' + (auto || '—') + (tipo ? ' (' + tipo + ')' : ''));
     l.push('• Vidrio: ' + (vid.length ? vid.join('; ') : '—'));
@@ -136,13 +192,13 @@
   /* Qué falta en cada paso */
   function faltan(n) {
     const f = [];
-    if (n === 1 && !checked('vidrio').length) f.push('elegí al menos un vidrio');
-    if (n === 2) {
-      if (!val('tipo')) f.push('la carrocería');
+    if (n === 1) {
       if (!val('anio')) f.push('el año');
       if (!marca()) f.push('la marca');
-      if (!val('modelo')) f.push('el modelo');
+      if (!modelo()) f.push('el modelo');
+      if (!val('tipo')) f.push('el tipo de carrocería');
     }
+    if (n === 2 && !checked('vidrio').length) f.push('elegí al menos un vidrio');
     return f;
   }
 
@@ -156,12 +212,14 @@
     atras.style.visibility = n === 1 ? 'hidden' : 'visible';
     sigue.hidden = n === 4;
     sigue.textContent = n === 3 ? 'Ver resumen' : 'Siguiente';
+    if (n === 2) pintarVidrios();
     refrescar();
   }
 
   function refrescar() {
     $('#posiciones').hidden = !checked('vidrio').includes('lateral');
     $('#otraMarca').hidden = val('marca') !== '__otra';
+    $('#fModeloOtro').hidden = !$('#fModelo').hidden && val('modelo') !== '__otro';
     verAuto();
     $('#zonaBox').hidden = !form.elements.domicilio.checked;
     const msg = armar();
@@ -176,7 +234,14 @@
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   form.addEventListener('input', refrescar);
-  form.addEventListener('change', refrescar);
+  form.addEventListener('change', e => {
+    if (e.target.id === 'fMarca') { cargarModelos(); }
+    if (e.target.id === 'fModelo') {
+      const t = (CAT[val('marca')] || {})[val('modelo')];
+      if (t) form.elements.tipo.value = t;
+    }
+    refrescar();
+  });
   form.addEventListener('submit', e => e.preventDefault());
   sigue.addEventListener('click', () => {
     const f = faltan(paso);

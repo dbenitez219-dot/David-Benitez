@@ -135,25 +135,15 @@
 
     <form id="cotizador" novalidate>
       <ol class="stepper" id="stepper" aria-label="Progreso">
-        <li><i></i><span>Vidrio</span></li>
         <li><i></i><span>Vehículo</span></li>
+        <li><i></i><span>Vidrio</span></li>
         <li><i></i><span>Tus datos</span></li>
         <li><i></i><span>Enviar</span></li>
       </ol>
 
       <section class="pane" data-step="1">
-        <h3 class="q">¿Qué vidrio necesitás?</h3>
-        <p class="hint">Podés elegir más de uno</p>
-        <div class="grid grid-4" id="vidrios"></div>
-        <div id="posiciones" class="pos" hidden>
-          <span class="pos-t">¿Cuál vidrio lateral?</span>
-          <div class="pos-chips" id="posChips"></div>
-        </div>
-      </section>
-
-      <section class="pane" data-step="2" hidden>
-        <h3 class="q">Contanos de tu vehículo</h3>
-        <p class="hint">Elegí los datos de tu vehículo para cotizar el vidrio exacto</p>
+        <h3 class="q">¿Cuál es tu vehículo?</h3>
+        <p class="hint">Elegí los datos de tu auto para cotizar el vidrio exacto</p>
         <div class="veh">
           <div class="veh-prev" id="vehPrev" aria-hidden="true"></div>
           <div class="fields">
@@ -167,12 +157,23 @@
               <input name="marcaOtra" autocomplete="off" placeholder="Escribí la marca">
             </label>
             <label>Modelo
-              <input name="modelo" autocomplete="off" placeholder="Ej: Vitz, New Beetle, Hilux">
+              <select name="modelo" id="fModelo"></select>
+              <input name="modeloOtro" id="fModeloOtro" autocomplete="off" placeholder="Escribí el modelo, ej: Vitz" hidden>
             </label>
             <label>Tipo de carrocería
               <select name="tipo" id="fTipo"></select>
             </label>
           </div>
+        </div>
+      </section>
+
+      <section class="pane" data-step="2" hidden>
+        <h3 class="q">¿Qué vidrio necesitás?</h3>
+        <p class="hint"><strong id="vehResumen"></strong><br>Podés elegir más de uno</p>
+        <div class="grid grid-4" id="vidrios"></div>
+        <div id="posiciones" class="pos" hidden>
+          <span class="pos-t">¿Cuál vidrio lateral?</span>
+          <div class="pos-chips" id="posChips"></div>
         </div>
       </section>
 
@@ -373,6 +374,7 @@
 </svg>
 
 <script src="config.js"></script>
+<script src="catalogo.js"></script>
 <script src="cars.js"></script>
 <script src="app.js"></script>
 <script src="anim.js"></script>
