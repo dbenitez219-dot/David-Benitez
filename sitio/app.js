@@ -219,10 +219,12 @@
     ['pulida', 'Pulida de vidrios', 'Recuperamos la transparencia de tus vidrios.'],
     ['faro', 'Pulida de faros', 'Faros opacos o amarillentos, como nuevos.'],
   ];
-  $('#servicios-lista').innerHTML = SERVICIOS.map(([k, t, d]) => {
+  $('#servicios-lista').innerHTML = SERVICIOS.map(([k, t, d], i) => {
     const link = ['polar', 'pulida', 'faro'].includes(k)
       ? waUrl(`Hola CristalAuto, quiero consultar por ${t.toLowerCase()}.`) : '#cotizar';
-    return `<article class="svc"><div class="svc-ico"><svg viewBox="0 0 24 24" aria-hidden="true">${ic[k]}</svg></div>
-      <div><h3>${t}</h3><p>${d}</p><a href="${link}"${link[0] === 'h' ? ' target="_blank" rel="noopener"' : ''}>Pedir cotización →</a></div></article>`;
+    const ext = link[0] === 'h' ? ' target="_blank" rel="noopener"' : '';
+    return `<article class="svc${i === 0 ? ' big' : ''}">
+      <div class="svc-top"><div class="svc-ico"><svg viewBox="0 0 24 24" aria-hidden="true">${ic[k]}</svg></div><span class="svc-n">0${i + 1}</span></div>
+      <div><h3>${t}</h3><p>${d}</p><a href="${link}"${ext}>Pedir cotización</a></div></article>`;
   }).join('');
 })();

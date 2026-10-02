@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CristalAuto Parabrisas | Cambio de parabrisas en San Lorenzo</title>
 <meta name="description" content="Cambio de parabrisas, lunetas y vidrios laterales en San Lorenzo, Paraguay. Polarizado y pulida de vidrios y faros. Servicio a domicilio en Asunción y Gran Asunción. Garantía de 1 año por la instalación.">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#0a0a0b">
 <meta property="og:type" content="website">
 <meta property="og:title" content="CristalAuto Parabrisas · San Lorenzo, Paraguay">
 <meta property="og:description" content="Parabrisas, lunetas, vidrios laterales y polarizado. A domicilio en Asunción y Gran Asunción. 1 año de garantía.">
 <meta property="og:image" content="img/logo.png">
 <link rel="icon" href="img/icon-192.png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;1,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" as="font" type="font/woff2" href="fonts/archivo-latin.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="fonts/manrope-latin.woff2" crossorigin>
 <script>document.documentElement.classList.add("js")</script>
+<link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="style.css">
 <script type="application/ld+json">
 {
@@ -51,8 +51,8 @@
     </nav>
     <div class="top-actions">
       <a class="btn btn-sm btn-call" href="#cotizar">Cotizar</a>
-      <a class="icon-btn" href="#contacto" aria-label="Ubicación"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.800 7 12 7 12z"/><circle cx="12" cy="10" r="2.500"/></svg></a>
-      <a class="icon-btn" data-tel href="#" aria-label="Llamar"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 4h4l2 5-2.500 1.500a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></a>
+      <a class="icon-btn" href="#contacto" aria-label="Ubicación"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg></a>
+      <a class="icon-btn" data-tel href="#" aria-label="Llamar"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></a>
       <button class="burger" id="burger" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
     </div>
   </div>
@@ -61,52 +61,77 @@
 <main id="inicio">
 
 <section class="hero">
-  <div class="glow" aria-hidden="true"></div>
+  <div class="hero-bg" aria-hidden="true"><i class="grid-lines"></i><i class="glow"></i></div>
   <div class="wrap hero-in">
     <div class="hero-text">
-    <p class="eyebrow" id="estado" aria-live="polite"></p>
-    <h1>Cambio de parabrisas y vidrios <span class="r">para tu auto</span></h1>
-    <p class="lead">En San Lorenzo y a domicilio en Asunción y Gran Asunción. Buen precio, trabajo de calidad y <strong>1 año de garantía</strong> por la instalación.</p>
-    <div class="cta">
-      <a class="btn btn-red" href="#cotizar">Pedir cotización</a>
-      <a class="btn btn-ghost" data-tel href="#contacto">Llamar ahora</a>
+      <p class="eyebrow" id="estado" aria-live="polite"></p>
+      <h1>Cambio de <span class="out">parabrisas</span> y vidrios <span class="r">para tu auto</span></h1>
+      <p class="lead">En San Lorenzo y a domicilio en Asunción y Gran Asunción. Buen precio, trabajo de calidad y garantía de un año por la instalación.</p>
+      <div class="cta">
+        <a class="btn btn-red" href="#cotizar">Pedir cotización</a>
+        <a class="btn btn-ghost" data-tel href="#contacto">Llamar ahora</a>
+      </div>
     </div>
-    <ul class="chips">
-      <li>Garantía de 1 año</li>
-      <li>Servicio a domicilio</li>
-      <li>Atención rápida</li>
-    </ul>
-    </div>
-    <div class="hero-art" aria-hidden="true">
-      <svg viewBox="0 0 600 270" fill="none">
+
+    <div class="hero-art" id="heroArt" aria-hidden="true">
+      <svg viewBox="0 0 520 440" fill="none">
         <defs>
-          <clipPath id="gl"><path d="M236 98l30-38h66v38z"/><path d="M344 60h52q8 0 14 7l32 31H344z"/></clipPath>
-          <linearGradient id="glg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9db8c9" stop-opacity=".55"/><stop offset="1" stop-color="#1a2630" stop-opacity=".85"/></linearGradient>
-          <linearGradient id="shn" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
-          <linearGradient id="bdy" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#262626"/><stop offset="1" stop-color="#0c0c0c"/></linearGradient>
+          <linearGradient id="gGlass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3f5b70"/><stop offset=".55" stop-color="#101a22"/><stop offset="1" stop-color="#05080b"/></linearGradient>
+          <linearGradient id="gBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#303036"/><stop offset="1" stop-color="#0d0d0f"/></linearGradient>
+          <linearGradient id="gHood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3c3c43"/><stop offset=".55" stop-color="#1a1a1d"/><stop offset="1" stop-color="#0e0e10"/></linearGradient>
+          <linearGradient id="gRef" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".32"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+          <linearGradient id="gScan" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff3b2f" stop-opacity="0"/><stop offset="1" stop-color="#ff3b2f" stop-opacity=".5"/></linearGradient>
+          <radialGradient id="gSh"><stop offset="0" stop-color="#000" stop-opacity=".75"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+          <clipPath id="cWs"><path d="M132 232Q146 118 208 98H312Q374 118 388 232Z"/></clipPath>
+          <g id="hl">
+            <path d="M80 308Q112 286 178 300L172 326Q116 332 82 326Z" fill="#141417" stroke="#5a5a62" stroke-width="1.5"/>
+            <path d="M92 314Q125 302 168 310" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <g id="mir"><path d="M104 244Q78 240 72 262Q82 278 108 270Z" fill="#1b1b1f" stroke="#4a4a52" stroke-width="1.5"/></g>
         </defs>
-        <g class="car">
-          <path class="car-fill" d="M25 190V150q5-25 70-30l80-15 45-45q10-10 30-10h120q20 0 35 15l40 45 85 15q40 10 40 40v25z" fill="url(#bdy)"/>
-          <path class="car-line" pathLength="1" d="M25 190V150q5-25 70-30l80-15 45-45q10-10 30-10h120q20 0 35 15l40 45 85 15q40 10 40 40v25z"/>
-          <path d="M236 98l30-38h66v38z" fill="url(#glg)"/><path d="M344 60h52q8 0 14 7l32 31H344z" fill="url(#glg)"/>
-          <g clip-path="url(#gl)"><rect class="shine" x="180" y="40" width="70" height="80" fill="url(#shn)"/></g>
-          <path class="wind" d="M396 60q8 0 14 7l32 31"/>
-          <rect x="560" y="140" width="22" height="10" rx="4" fill="#f3d36b"/><rect x="18" y="140" width="14" height="10" rx="4" fill="#d10a0a"/>
-          <g class="wheel-g" style="--cx:140px"><circle cx="140" cy="200" r="38" fill="#050505"/><g class="spin"><circle cx="140" cy="200" r="22" fill="#222" stroke="#666" stroke-width="2"/><path d="M140 182v36M122 200h36M127 187l26 26M153 187l-26 26" stroke="#888" stroke-width="3"/></g></g>
-          <g class="wheel-g"><circle cx="470" cy="200" r="38" fill="#050505"/><g class="spin"><circle cx="470" cy="200" r="22" fill="#222" stroke="#666" stroke-width="2"/><path d="M470 182v36M452 200h36M457 187l26 26M483 187l-26 26" stroke="#888" stroke-width="3"/></g></g>
+        <ellipse cx="260" cy="414" rx="226" ry="20" fill="url(#gSh)"/>
+        <g class="car-front">
+          <rect x="86" y="394" width="50" height="30" rx="7" fill="#050506"/><rect x="384" y="394" width="50" height="30" rx="7" fill="#050506"/>
+          <use href="#mir"/><g transform="translate(520 0) scale(-1 1)"><use href="#mir"/></g>
+          <path d="M104 244Q122 86 198 60H322Q398 86 416 244Z" fill="url(#gBody)" stroke="#44444c" stroke-width="1.5"/>
+          <path d="M132 232Q146 118 208 98H312Q374 118 388 232Z" fill="url(#gGlass)" stroke="#6b737d" stroke-width="2"/>
+          <g clip-path="url(#cWs)">
+            <path class="reflect" d="M130 90h46l-62 160H68z" fill="url(#gRef)"/>
+            <g class="scan"><rect x="120" y="96" width="280" height="70" fill="url(#gScan)"/><rect x="120" y="164" width="280" height="3" fill="#ff5a4d"/></g>
+          </g>
+          <path d="M150 226L268 198M270 226L372 202" stroke="#08080a" stroke-width="5" stroke-linecap="round"/>
+          <path d="M72 346Q84 270 104 244H416Q436 270 448 346Z" fill="url(#gHood)" stroke="#44444c" stroke-width="1.5"/>
+          <path d="M196 246L182 340M324 246L338 340" stroke="#5a5a62" stroke-opacity=".45"/>
+          <use href="#hl"/><g transform="translate(520 0) scale(-1 1)"><use href="#hl"/></g>
+          <path d="M72 346H448V386Q448 404 428 404H92Q72 404 72 386Z" fill="#101012" stroke="#44444c" stroke-width="1.5"/>
+          <path d="M196 354H324Q334 354 334 364V378Q334 388 324 388H196Q186 388 186 378V364Q186 354 196 354Z" fill="#050506" stroke="#44444c"/>
+          <path d="M190 366H330M190 377H330" stroke="#26262a"/>
+          <circle cx="260" cy="344" r="9" fill="#d10a0a"/><circle cx="260" cy="344" r="4" fill="#0a0a0b"/>
+          <g class="brackets" stroke="#ff3b2f" stroke-width="3" stroke-linecap="round">
+            <path d="M118 122V92H150M402 122V92H370M118 218V248H150M402 218V248H370"/>
+          </g>
+          <text class="tag" x="260" y="38" text-anchor="middle">PARABRISAS DELANTERO</text>
         </g>
-        <path class="road" d="M0 246H600"/>
       </svg>
     </div>
+
+    <ul class="stats">
+      <li><b>1 año</b><span>de garantía por la instalación</span></li>
+      <li><b>A domicilio</b><span>Asunción y Gran Asunción</span></li>
+      <li><b>7:30</b><span>abrimos de lunes a sábado</span></li>
+    </ul>
   </div>
 </section>
 
 <div class="marquee" aria-label="Cotizá para tu marca"><div class="track" id="marcasTrack"></div></div>
 
-<section id="cotizar" class="sec sec-light">
+<section id="cotizar" class="sec sec-paper">
   <div class="wrap">
-    <h2>Pedí tu cotización</h2>
-    <p class="sub">Respondé unas preguntas y te contestamos por WhatsApp con el precio.</p>
+    <div class="sec-head">
+      <span class="kicker">01 · Cotizá</span>
+      <h2>Pedí tu cotización</h2>
+      <p class="sub">Respondé unas preguntas y te contestamos por WhatsApp con el precio.</p>
+    </div>
 
     <form id="cotizador" novalidate>
       <ol class="stepper" id="stepper" aria-label="Progreso">
@@ -178,20 +203,27 @@
         <button type="button" class="btn btn-soft" id="atras">Atrás</button>
         <button type="button" class="btn btn-red" id="sigue" disabled>Siguiente</button>
       </div>
+      <datalist id="marcas"></datalist>
     </form>
   </div>
 </section>
 
-<section id="servicios" class="sec">
+<section id="servicios" class="sec sec-dark">
   <div class="wrap">
-    <h2>Nuestros servicios</h2>
-    <div class="grid grid-svc" id="servicios-lista"></div>
+    <div class="sec-head">
+      <span class="kicker">02 · Servicios</span>
+      <h2>Todo para los vidrios de tu vehículo</h2>
+    </div>
+    <div class="bento" id="servicios-lista"></div>
   </div>
 </section>
 
 <section id="proceso" class="sec">
   <div class="wrap">
-    <h2>Cómo trabajamos</h2>
+    <div class="sec-head">
+      <span class="kicker">03 · Proceso</span>
+      <h2>Cómo trabajamos</h2>
+    </div>
     <ol class="steps">
       <li><b>1</b><h3>Elegís tu vidrio</h3><p>Usás el cotizador o nos escribís por WhatsApp.</p></li>
       <li><b>2</b><h3>Te cotizamos</h3><p>Te respondemos con el precio para tu vehículo.</p></li>
@@ -201,37 +233,44 @@
   </div>
 </section>
 
-<section id="nosotros" class="sec sec-dark">
-  <div class="wrap">
-    <h2>Por qué elegirnos</h2>
-    <div class="grid grid-why">
-      <article><b>01</b><h3>Buen precio</h3><p>Cotización clara, sin vueltas.</p></article>
-      <article><b>02</b><h3>Calidad</h3><p>Instalación prolija y cuidadosa con tu vehículo.</p></article>
-      <article><b>03</b><h3>Rapidez</h3><p>Respetamos tu tiempo: atención y trabajo ágiles.</p></article>
-      <article><b>04</b><h3>A domicilio</h3><p>Vamos adonde estés en Asunción y Gran Asunción.</p></article>
-      <article><b>05</b><h3>1 año de garantía</h3><p>Por la instalación de tu vidrio.</p></article>
+<section id="nosotros" class="sec sec-red">
+  <div class="wrap why">
+    <div class="sec-head">
+      <span class="kicker">04 · Por qué elegirnos</span>
+      <h2>Trabajo bien hecho, sin vueltas</h2>
+      <a class="btn btn-white" href="#cotizar">Pedir cotización</a>
     </div>
+    <ul class="why-list">
+      <li><b>01</b><div><h3>Buen precio</h3><p>Cotización clara, sin vueltas.</p></div></li>
+      <li><b>02</b><div><h3>Calidad</h3><p>Instalación prolija y cuidadosa con tu vehículo.</p></div></li>
+      <li><b>03</b><div><h3>Rapidez</h3><p>Respetamos tu tiempo: atención y trabajo ágiles.</p></div></li>
+      <li><b>04</b><div><h3>A domicilio</h3><p>Vamos adonde estés en Asunción y Gran Asunción.</p></div></li>
+      <li><b>05</b><div><h3>1 año de garantía</h3><p>Por la instalación de tu vidrio.</p></div></li>
+    </ul>
   </div>
 </section>
 
 <section id="trabajos" class="sec" hidden>
   <div class="wrap">
-    <h2>Nuestros trabajos</h2>
+    <div class="sec-head"><span class="kicker">Galería</span><h2>Nuestros trabajos</h2></div>
     <div class="gallery" id="galeria"></div>
   </div>
 </section>
 
-<section id="opiniones" class="sec sec-light" hidden>
+<section id="opiniones" class="sec sec-paper" hidden>
   <div class="wrap">
-    <h2>Lo que dicen nuestros clientes</h2>
+    <div class="sec-head"><span class="kicker">Opiniones</span><h2>Lo que dicen nuestros clientes</h2></div>
     <div class="grid grid-rev" id="resenas"></div>
   </div>
 </section>
 
-<section id="contacto" class="sec sec-light">
+<section id="contacto" class="sec sec-paper">
   <div class="wrap contact">
     <div>
-      <h2>Visitanos o llamanos</h2>
+      <div class="sec-head">
+        <span class="kicker">05 · Contacto</span>
+        <h2>Visitanos o llamanos</h2>
+      </div>
       <div class="badges"><span class="badge" id="badgeEstado"></span><span class="badge badge-y">Servicio a domicilio</span><span class="badge">1 año de garantía</span></div>
       <ul class="info">
         <li><span>Dirección</span><strong id="dir"></strong></li>
@@ -294,6 +333,7 @@
     <span>© <span id="anio"></span> CristalAuto Parabrisas. Todos los derechos reservados.</span>
     <span>San Lorenzo, Paraguay</span>
   </div>
+  <div class="watermark" aria-hidden="true">CRISTALAUTO</div>
 </footer>
 
 <div class="fab">

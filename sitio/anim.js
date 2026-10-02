@@ -10,7 +10,7 @@
   $('#marcasTrack').innerHTML = spans + spans;
 
   /* Aparecer al hacer scroll */
-  const targets = $$('.sec h2, .sub, #cotizador, .svc, .steps li, .grid-why article, .info li, .map, .contact .cta, .rev, .gallery figure, .badges');
+  const targets = $$('.sec-head, #cotizador, .svc, .steps li, .why-list li, .info li, .map, .contact .cta, .rev, .gallery figure, .badges');
   targets.forEach((el, i) => {
     el.classList.add('reveal');
     const sib = el.parentElement ? [...el.parentElement.children].indexOf(el) : 0;
@@ -57,4 +57,26 @@
   if (!sec || !('IntersectionObserver' in window)) return;
   new IntersectionObserver(es => es.forEach(e => document.body.classList.toggle('en-form', e.isIntersecting)),
     { threshold: 0.35 }).observe(sec);
+})();
+
+/* Brillo que sigue al mouse en las tarjetas y leve inclinación 3D del parabrisas */
+(function () {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !matchMedia('(hover: hover)').matches) return;
+  document.addEventListener('pointermove', e => {
+    const c = e.target.closest && e.target.closest('.svc');
+    if (!c) return;
+    const r = c.getBoundingClientRect();
+    c.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  });
+  const art = document.querySelector('#heroArt');
+  const hero = document.querySelector('.hero');
+  if (!art || !hero) return;
+  hero.addEventListener('pointermove', e => {
+    const r = hero.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+    art.style.setProperty('--ry', (x * 10).toFixed(2) + 'deg');
+    art.style.setProperty('--rx', (-y * 8).toFixed(2) + 'deg');
+  });
+  hero.addEventListener('pointerleave', () => { art.style.setProperty('--ry', '0deg'); art.style.setProperty('--rx', '0deg'); });
 })();
