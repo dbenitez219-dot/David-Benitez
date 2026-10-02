@@ -75,6 +75,7 @@
     { id: 'SUV / Camioneta', k: 'suv' },
     { id: 'Camioneta pick-up', k: 'pickup' },
     { id: 'Furgón / utilitario', k: 'van' },
+    { id: 'Monovolumen / familiar', k: 'suv' },
   ];
   const kDe = id => (TIPOS.find(t => t.id === id) || { k: 'sedan' }).k;
   const VIDRIOS = [
@@ -84,9 +85,13 @@
     { id: 'fijo', t: 'Vidrios fijos', s: 'Laterales y traseros', vista: 'lado', img: k => Cars.side(k, 'fijo') },
   ];
   const POSICIONES = ['Delantero izquierdo', 'Delantero derecho', 'Trasero izquierdo', 'Trasero derecho'];
-  const CAT = window.CATALOGO || {};
-  const MARCAS = [...new Set([...Object.keys(CAT), 'Mercedes-Benz', 'BMW', 'Audi', 'Citroën', 'Lexus', 'Daihatsu', 'Chery', 'JAC', 'Great Wall', 'SsangYong', 'Dodge', 'Mini', 'Volvo'])]
-    .sort((a, b) => a.localeCompare(b, 'es'));
+  /* Catálogo del inventario (ver catalogo.js): una fila por vehículo cubierto por cada vidrio */
+  const FLAT = [];
+  (window.CATALOGO || []).forEach(f => f.veh.forEach(([marca, modelo, carr]) =>
+    FLAT.push({ cod: f.cod, tipo: f.tipo, desde: f.desde, hasta: f.hasta || 9999, marca, modelo, carr })));
+  const alfa = (a, b) => a.localeCompare(b, 'es');
+  const unicos = arr => [...new Set(arr)];
+
   const slug = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
   const form = $('#cotizador');
@@ -112,27 +117,41 @@
     return `<img src="${u}" alt="${nombreAuto()}" loading="lazy">${sv}`;
   }
 
-  /* Año, marca y carrocería */
+  /* Año, marca, modelo y carrocería: se filtran según el inventario */
+  const anioNum = () => +val('anio') || 0;
+  const delAnio = () => FLAT.filter(f => !anioNum() || (anioNum() >= f.desde && anioNum() <= f.hasta));
   const anioMax = new Date().getFullYear() + 1;
   $('#fAnio').innerHTML = '<option value="">Elegí el año</option>' +
     Array.from({ length: anioMax - 1979 }, (_, i) => `<option>${anioMax - i}</option>`).join('');
-  $('#fMarca').innerHTML = '<option value="">Elegí la marca</option>' +
-    MARCAS.map(m => `<option>${m}</option>`).join('') + '<option value="__otra">Otra marca…</option>';
   $('#fTipo').innerHTML = '<option value="">Elegí la carrocería</option>' + TIPOS.map(t => `<option value="${t.id}">${t.id}</option>`).join('');
 
-  function cargarModelos() {
-    const lista = CAT[val('marca')];
-    const sel = $('#fModelo'), otro = $('#fModeloOtro');
-    if (lista) {
-      sel.innerHTML = '<option value="">Elegí el modelo</option>' +
-        Object.keys(lista).sort((a, b) => a.localeCompare(b, 'es')).map(m => `<option>${m}</option>`).join('') + '<option value="__otro">Otro modelo…</option>';
-      sel.hidden = false; otro.hidden = true;
-    } else {
-      sel.innerHTML = ''; sel.hidden = true; otro.hidden = false;
-    }
-    otro.value = '';
+  function cargarMarcas() {
+    const sel = $('#fMarca'), actual = sel.value;
+    const lista = unicos(delAnio().map(f => f.marca)).sort(alfa);
+    sel.innerHTML = '<option value="">Elegí la marca</option>' + lista.map(m => `<option>${m}</option>`).join('') +
+      '<option value="__otra">Mi marca no está en la lista</option>';
+    sel.value = (lista.includes(actual) || actual === '__otra') ? actual : '';
+    cargarModelos();
   }
-  cargarModelos();
+  function cargarModelos() {
+    const m = val('marca'), sel = $('#fModelo'), otro = $('#fModeloOtro'), actual = sel.value;
+    const lista = unicos(delAnio().filter(f => f.marca === m).map(f => f.modelo)).sort(alfa);
+    if (m && m !== '__otra') {
+      sel.innerHTML = '<option value="">Elegí el modelo</option>' + lista.map(x => `<option>${x}</option>`).join('') +
+        '<option value="__otro">Mi modelo no está en la lista</option>';
+      sel.value = (lista.includes(actual) || actual === '__otro') ? actual : '';
+      sel.hidden = false;
+    } else {
+      sel.innerHTML = ''; sel.hidden = true;
+    }
+    if (sel.hidden) otro.hidden = false; else if (sel.value !== '__otro') { otro.hidden = true; otro.value = ''; }
+  }
+  /* Códigos de vidrio que sirven para el auto elegido */
+  const codigos = tipo => {
+    if (!anioNum() || !val('marca') || val('marca') === '__otra' || !val('modelo') || val('modelo') === '__otro') return [];
+    return unicos(delAnio().filter(f => f.tipo === tipo && f.marca === val('marca') && f.modelo === val('modelo')).map(f => f.cod));
+  };
+  cargarMarcas();
 
   /* Vista previa del vehículo (foto real si existe, si no un dibujo) */
   let ultimaVista = '';
@@ -150,11 +169,16 @@
     });
   }
 
+  const etiqueta = v => {
+    const c = v.id === 'parabrisas' ? codigos('parabrisas') : v.id === 'luneta' ? codigos('luneta') : [];
+    return c.length ? `<small class="cod">Código ${c.join(' o ')}</small>` : (v.s ? `<small>${v.s}</small>` : '');
+  };
+
   /* Tarjetas de vidrio con las fotos de ese vehículo */
   let vidriosPara = '';
   function pintarVidrios() {
     const dir = carpeta(), tipo = val('tipo');
-    const clave = dir + '|' + tipo;
+    const clave = dir + '|' + tipo + '|' + anioNum();
     $('#vehResumen').textContent = [nombreAuto(), val('anio')].filter(Boolean).join(' ') + (tipo ? ' · ' + tipo : '');
     if (clave === vidriosPara) return;
     vidriosPara = clave;
@@ -162,7 +186,7 @@
     const k = kDe(tipo);
     $('#vidrios').innerHTML = VIDRIOS.map(v =>
       `<label class="opt"><input type="checkbox" name="vidrio" value="${v.id}"${marcados.has(v.id) ? ' checked' : ''}>
-         <span class="ico" data-v="${v.id}">${v.img(k)}</span><span class="lbl">${v.t}${v.s ? `<small>${v.s}</small>` : ''}</span></label>`).join('');
+         <span class="ico" data-v="${v.id}">${v.img(k)}</span><span class="lbl">${v.t}${etiqueta(v)}</span></label>`).join('');
     if (dir.length > 1) VIDRIOS.forEach(v => hayFoto(dir, v.vista).then(u => {
       const box = $(`.ico[data-v="${v.id}"]`);
       if (u && box && vidriosPara === clave) { box.innerHTML = fotoHTML(u, v.id, dir); box.classList.add('foto'); }
@@ -183,6 +207,9 @@
     const l = ['Hola CristalAuto, quiero solicitar una cotización.', ''];
     l.push('• Vehículo: ' + (auto || '—') + (tipo ? ' (' + tipo + ')' : ''));
     l.push('• Vidrio: ' + (vid.length ? vid.join('; ') : '—'));
+    const cp = checked('vidrio').includes('parabrisas') ? codigos('parabrisas') : [], cl = checked('vidrio').includes('luneta') ? codigos('luneta') : [];
+    if (cp.length) l.push('• Código del parabrisas: ' + cp.join(' o '));
+    if (cl.length) l.push('• Código de la luneta: ' + cl.join(' o '));
     if (form.elements.domicilio.checked) l.push('• Quiero el servicio a domicilio' + (val('zona') ? ' en ' + val('zona') : ''));
     if (val('nota')) l.push('• Detalle: ' + val('nota'));
     if (val('nombre')) l.push('', 'Mi nombre: ' + val('nombre'));
@@ -220,6 +247,14 @@
     $('#posiciones').hidden = !checked('vidrio').includes('lateral');
     $('#otraMarca').hidden = val('marca') !== '__otra';
     $('#fModeloOtro').hidden = !$('#fModelo').hidden && val('modelo') !== '__otro';
+    const av = $('#codAviso'), cp = codigos('parabrisas');
+    av.hidden = !(anioNum() && val('marca') && val('modelo'));
+    if (!av.hidden) {
+      const propio = val('marca') === '__otra' || val('modelo') === '__otro';
+      av.className = 'cod-aviso ' + (cp.length ? 'ok' : 'no');
+      av.textContent = cp.length ? 'Código de tu parabrisas: ' + cp.join(' o ') + '. Te confirmamos precio y disponibilidad por WhatsApp.'
+        : (propio ? 'Sin problema: lo consultamos con tus datos por WhatsApp.' : 'Este modelo no figura en nuestra lista, pero consultanos igual y lo revisamos.');
+    }
     verAuto();
     $('#zonaBox').hidden = !form.elements.domicilio.checked;
     const msg = armar();
@@ -235,10 +270,11 @@
   }
   form.addEventListener('input', refrescar);
   form.addEventListener('change', e => {
-    if (e.target.id === 'fMarca') { cargarModelos(); }
+    if (e.target.id === 'fAnio') cargarMarcas();
+    if (e.target.id === 'fMarca') cargarModelos();
     if (e.target.id === 'fModelo') {
-      const t = (CAT[val('marca')] || {})[val('modelo')];
-      if (t) form.elements.tipo.value = t;
+      const f = delAnio().find(x => x.marca === val('marca') && x.modelo === val('modelo'));
+      if (f) form.elements.tipo.value = f.carr;
     }
     refrescar();
   });

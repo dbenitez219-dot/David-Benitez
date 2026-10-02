@@ -440,3 +440,9 @@ select,input:not([type=checkbox]):not([type=radio]),textarea{border-radius:12px;
 .veh-prev.foto{padding:0;overflow:hidden;position:relative;aspect-ratio:16/10}
 .veh-prev.foto .car{display:none}
 #vehResumen{color:var(--text);font-size:16px}
+
+/* Aviso del código de vidrio */
+.cod-aviso{grid-column:1/-1;margin:0;padding:12px 14px;border-radius:12px;font-size:14px;font-weight:600;line-height:1.4}
+.cod-aviso.ok{background:#e9f7ee;color:#0f6a32;border:1px solid #b9e3c8}
+.cod-aviso.no{background:#fff7e6;color:#8a5a00;border:1px solid #f1d9a0}
+.opt small.cod{color:var(--red);font-weight:700}
