@@ -1,16 +1,5 @@
-FOTOS DEL AUTO PARA ELEGIR EL VIDRIO
-====================================
-Un auto "normal" (sedán o hatchback de 4 puertas) en 3 vistas. Los nombres de los archivos son:
-
-    lado.jpg     -> el auto de costado, bien de perfil (se ven las 2 puertas y los vidrios fijos)
-    frente.jpg   -> el auto de frente, derecho (se ve el parabrisas completo)
-    atras.jpg    -> el auto de atrás, derecho (se ve la luneta completa)
-
-Cómo tienen que ser:
- - El MISMO auto (o parecido) en las 3 fotos, de color neutro: blanco, plateado o gris.
-   Así el rojo del vidrio elegido se nota bien.
- - Fondo liso o ambiente simple. Mejor si es horizontal y de buena calidad (1600 px de ancho o más).
- - Foto de costado: indicar hacia qué lado mira el auto (en catalogo.js, campo 'lado').
- - Que se vean TODOS los vidrios, sin reflejos fuertes ni árboles tapando.
- - Sin marcas ni logos grandes. Fotos propias, generadas con IA o de bancos de imágenes con
-   licencia libre (Unsplash, Pexels, Pixabay).
+AUTO GENÉRICO PARA ELEGIR EL VIDRIO
+===================================
+lado-sil.webp, frente-sil.webp y atras-sil.webp son siluetas de un sedán, SIN marca ni modelo.
+Sirven para todos los autos. Los vidrios que el cliente puede tocar se definen en catalogo.js (AUTO_FOTOS).
+Para pick-up, SUV y furgón se usa un dibujo propio hasta tener su silueta.

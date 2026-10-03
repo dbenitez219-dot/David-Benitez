@@ -620,19 +620,16 @@ window.LOGOS = {
   'Ford': 'ford', 'Fiat': 'fiat', 'Renault': 'renault', 'Peugeot': 'peugeot', 'Subaru': 'subaru', 'Jeep': 'jeep'
 };
 
-/* FOTO DEL AUTO PARA ELEGIR EL VIDRIO (un auto "normal" de color neutro, en 3 vistas).
-   Se guardan en img/auto/:  lado.jpg   frente.jpg   atras.jpg
-   zonas = el contorno de cada vidrio sobre la foto, en porcentaje (0 a 100) [[x,y],[x,y],...]
-   Vistas y vidrios:
-     lado   -> 'puerta-del' (puerta delantera), 'puerta-tra' (puerta trasera), 'fijo-del', 'fijo-tra'
-     frente -> 'parabrisas'            atras -> 'luneta'
-   Mientras una vista no tenga zonas, la página muestra el dibujo. */
+/* AUTO GENÉRICO PARA ELEGIR EL VIDRIO: silueta de un sedán, sin marcas ni modelo (img/auto/*-sil.webp).
+   zonas = contorno de cada vidrio sobre la imagen, en porcentaje (0 a 100) [[x,y],...]
+   lado -> 'puerta-del', 'puerta-tra', 'fijo-del', 'fijo-tra'    frente -> 'parabrisas'    atras -> 'luneta'
+   'lado' indica hacia qué lado mira el auto en la imagen (izq = se ve el lado del conductor). */
 window.AUTO_FOTOS = {
-  tipos: ['sedan', 'hatch'],   // carrocerías que usan estas fotos (las demás usan el dibujo hasta tener su foto)
-  lado:   { src: 'img/auto/lado.jpg', lado: 'izq',   // la foto muestra el lado del conductor (el auto mira a la izquierda)
-            zonas: { 'puerta-del': [[35.2,39.9],[42.4,33.0],[47.5,31.1],[54.0,30.6],[54.0,42.5],[38.7,43.9],[37.3,40.5]], 'fijo-del': [[31.1,43.6],[34.3,40.4],[34.3,43.6]], 'puerta-tra': [[56.7,31.0],[66.8,32.0],[67.2,41.4],[56.7,41.9]], 'fijo-tra': [[67.9,32.6],[73.4,35.4],[75.9,37.6],[75.0,39.4],[67.9,41.2]] } },
-  frente: { src: 'img/auto/frente.jpg',
-            zonas: { 'parabrisas': [[16.3,40.4],[20.5,32.0],[25.5,28.2],[35,27.2],[65,27.2],[74.5,28.2],[79.5,32.0],[83.7,40.4],[50,41.0]] } },
-  atras:  { src: 'img/auto/atras.jpg',
-            zonas: { 'luneta': [[18.6,40.3],[22.0,35.3],[27.5,31.3],[35,29.8],[47.8,30.3],[46.8,33.0],[41,39.5],[39.8,41.0],[30,40.6]] } },
+  tipos: ['sedan', 'hatch'],   // carrocerías que usan esta silueta (las demás usan su dibujo)
+  lado:   { src: 'img/auto/lado-sil.webp', lado: 'izq',
+            zonas: { 'puerta-del': [[33.0,30.3],[41.0,17.6],[46.6,14.0],[53.7,13.1],[53.7,35.1],[36.9,37.7],[35.4,31.4]], 'fijo-del': [[28.5,37.1],[32.1,31.2],[32.1,37.1]], 'puerta-tra': [[56.7,13.9],[67.7,15.7],[68.2,33.1],[56.7,34.0]], 'fijo-tra': [[69.0,16.8],[75.0,22.0],[77.7,26.1],[76.8,29.4],[69.0,32.7]] } },
+  frente: { src: 'img/auto/frente-sil.webp',
+            zonas: { 'parabrisas': [[16.3,31.3],[20.6,18.4],[25.6,12.5],[35.1,10.9],[65.2,10.9],[74.7,12.5],[79.7,18.4],[83.9,31.3],[50.1,32.2]] } },
+  atras:  { src: 'img/auto/atras-sil.webp',
+            zonas: { 'luneta': [[14.8,29.7],[18.7,21.7],[25.1,15.4],[33.7,13.0],[48.4,13.8],[47.2,18.1],[40.6,28.4],[39.2,30.8],[27.9,30.1]] } },
 };
