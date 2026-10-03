@@ -628,7 +628,11 @@ window.LOGOS = {
      frente -> 'parabrisas'            atras -> 'luneta'
    Mientras una vista no tenga zonas, la página muestra el dibujo. */
 window.AUTO_FOTOS = {
-  lado:   { src: 'img/auto/lado.jpg',   zonas: {} },
-  frente: { src: 'img/auto/frente.jpg', zonas: {} },
-  atras:  { src: 'img/auto/atras.jpg',  zonas: {} },
+  tipos: ['sedan', 'hatch'],   // carrocerías que usan estas fotos (las demás usan el dibujo hasta tener su foto)
+  lado:   { src: 'img/auto/lado.jpg', lado: 'izq',   // la foto muestra el lado del conductor (el auto mira a la izquierda)
+            zonas: { 'puerta-del': [[35.2,39.9],[42.4,33.0],[47.5,31.1],[54.0,30.6],[54.0,42.5],[38.7,43.9],[37.3,40.5]], 'fijo-del': [[31.1,43.6],[34.3,40.4],[34.3,43.6]], 'puerta-tra': [[56.7,31.0],[66.8,32.0],[67.2,41.4],[56.7,41.9]], 'fijo-tra': [[67.9,32.6],[73.4,35.4],[75.9,37.6],[75.0,39.4],[67.9,41.2]] } },
+  frente: { src: 'img/auto/frente.jpg',
+            zonas: { 'parabrisas': [[16.3,40.4],[20.5,32.0],[25.5,28.2],[35,27.2],[65,27.2],[74.5,28.2],[79.5,32.0],[83.7,40.4],[50,41.0]] } },
+  atras:  { src: 'img/auto/atras.jpg',
+            zonas: { 'luneta': [[18.6,40.3],[22.0,35.3],[27.5,31.3],[35,29.8],[47.8,30.3],[46.8,33.0],[41,39.5],[39.8,41.0],[30,40.6]] } },
 };

@@ -721,3 +721,6 @@ select{background-repeat:no-repeat;background-position:right 14px center;backgro
 .foto-picker polygon:focus-visible{outline:none;stroke:#fff;stroke-width:3}
 .picker.espejo .foto-picker{transform:scaleX(-1)}
 @media (prefers-reduced-motion:reduce){.foto-picker polygon:not(.on){animation:none}}
+.veh-prev.foto{min-height:0}
+.veh-prev.foto img{filter:none}
+.veh-prev.vacio.foto img{opacity:.55}

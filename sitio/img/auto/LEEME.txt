@@ -10,7 +10,7 @@ Cómo tienen que ser:
  - El MISMO auto (o parecido) en las 3 fotos, de color neutro: blanco, plateado o gris.
    Así el rojo del vidrio elegido se nota bien.
  - Fondo liso o ambiente simple. Mejor si es horizontal y de buena calidad (1600 px de ancho o más).
- - Foto de costado: que el auto mire hacia la DERECHA.
+ - Foto de costado: indicar hacia qué lado mira el auto (en catalogo.js, campo 'lado').
  - Que se vean TODOS los vidrios, sin reflejos fuertes ni árboles tapando.
  - Sin marcas ni logos grandes. Fotos propias, generadas con IA o de bancos de imágenes con
    licencia libre (Unsplash, Pexels, Pixabay).

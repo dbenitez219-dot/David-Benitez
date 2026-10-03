@@ -178,7 +178,10 @@
     prev.classList.remove('foto');
     prev.classList.toggle('vacio', !tipo);
     const insignia = marca() && modelo() ? `<span class="veh-badge">${logoMarca(marca())}<b>${nombreAuto()}</b></span>` : '';
-    prev.innerHTML = Cars.side(kDe(tipo), '') + insignia;
+    const AF = window.AUTO_FOTOS || {};
+    const generica = (!tipo || (AF.tipos || []).includes(kDe(tipo))) && AF.lado;
+    prev.classList.toggle('foto', !!generica);
+    prev.innerHTML = (generica ? `<img src="${AF.lado.src}" alt="">` : Cars.side(kDe(tipo), '')) + insignia;
     if (dir.length > 1) hayFoto(dir, 'lado').then(u => {
       if (u && ultimaVista === clave) { prev.innerHTML = fotoHTML(u, 'lado', dir) + insignia; prev.classList.add('foto'); prev.classList.remove('vacio'); }
     });
@@ -186,14 +189,15 @@
 
   /* ---------- Selector: se toca el vidrio sobre el auto ---------- */
   const sel = new Set();          // 'parabrisas', 'luneta', 'puerta-del:izq', 'fijo-tra:der', ...
-  let vista = 'lado', lado = 'der', enfocar = null;
+  let vista = 'lado', lado = ((window.AUTO_FOTOS || {}).lado || {}).lado || 'der', enfocar = null;
   const orden = c => ['parabrisas', 'luneta', 'puerta-del', 'puerta-tra', 'fijo-del', 'fijo-tra'].indexOf(c.split(':')[0]) * 3 + (c.endsWith(':izq') ? 0 : 1);
   const claveDe = z => (z === 'parabrisas' || z === 'luneta') ? z : z + ':' + lado;
 
   /* Foto real del auto con los vidrios marcados encima (ver catalogo.js -> AUTO_FOTOS).
      Si todavía no hay foto/zonas para esa vista, se usa el dibujo. */
-  function fotoPicker(v, activos) {
-    const cfg = (window.AUTO_FOTOS || {})[v];
+  function fotoPicker(v, activos, k) {
+    const AF = window.AUTO_FOTOS || {}, cfg = AF[v];
+    if (!(AF.tipos || []).includes(k)) return null;
     if (!cfg || !cfg.src || !cfg.zonas || !Object.keys(cfg.zonas).length) return null;
     const polys = Object.entries(cfg.zonas).flatMap(([z, pts]) =>
       (Array.isArray(pts[0][0]) ? pts : [pts]).map(p =>
@@ -215,10 +219,11 @@
     $('#vehResumen').innerHTML = logoMarca(marca()) + [nombreAuto(), val('anio')].filter(Boolean).join(' ') + (tipo ? ' · ' + tipo : '');
     const deLado = new Set([...sel].filter(c => c.endsWith(':' + lado)).map(c => c.split(':')[0]));
     const o = { sel: vista === 'lado' ? deLado : sel };
-    const foto = fotoPicker(vista, o.sel);
+    const foto = fotoPicker(vista, o.sel, k);
     $('#picker').innerHTML = foto || (vista === 'frente' ? Cars.front('', o) : vista === 'atras' ? Cars.rear('', o) : Cars.side(k, '', o));
     $('#picker').classList.toggle('con-foto', !!foto);
-    $('#picker').classList.toggle('espejo', vista === 'lado' && lado === 'izq');
+    const nativo = foto && vista === 'lado' ? (window.AUTO_FOTOS.lado.lado || 'der') : 'der';
+    $('#picker').classList.toggle('espejo', vista === 'lado' && lado !== nativo);
     $('#ladoBox').hidden = vista !== 'lado';
     $$('.vista').forEach(b => b.classList.toggle('on', b.dataset.v === vista));
     $$('.lado').forEach(b => b.classList.toggle('on', b.dataset.l === lado));
