@@ -619,17 +619,3 @@ window.LOGOS = {
   'Chevrolet': 'chevrolet', 'Infiniti': 'infiniti', 'Mitsubishi': 'mitsubishi', 'Mazda': 'mazda', 'Suzuki': 'suzuki',
   'Ford': 'ford', 'Fiat': 'fiat', 'Renault': 'renault', 'Peugeot': 'peugeot', 'Subaru': 'subaru', 'Jeep': 'jeep'
 };
-
-/* AUTO GENÉRICO PARA ELEGIR EL VIDRIO: silueta de un sedán, sin marcas ni modelo (img/auto/*-sil.webp).
-   zonas = contorno de cada vidrio sobre la imagen, en porcentaje (0 a 100) [[x,y],...]
-   lado -> 'puerta-del', 'puerta-tra', 'fijo-del', 'fijo-tra'    frente -> 'parabrisas'    atras -> 'luneta'
-   'lado' indica hacia qué lado mira el auto en la imagen (izq = se ve el lado del conductor). */
-window.AUTO_FOTOS = {
-  tipos: ['sedan', 'hatch'],   // carrocerías que usan esta silueta (las demás usan su dibujo)
-  lado:   { src: 'img/auto/lado-sil.webp', lado: 'izq',
-            zonas: { 'puerta-del': [[33.0,30.3],[41.0,17.6],[46.6,14.0],[53.7,13.1],[53.7,35.1],[36.9,37.7],[35.4,31.4]], 'fijo-del': [[28.5,37.1],[32.1,31.2],[32.1,37.1]], 'puerta-tra': [[56.7,13.9],[67.7,15.7],[68.2,33.1],[56.7,34.0]], 'fijo-tra': [[69.0,16.8],[75.0,22.0],[77.7,26.1],[76.8,29.4],[69.0,32.7]] } },
-  frente: { src: 'img/auto/frente-sil.webp',
-            zonas: { 'parabrisas': [[16.3,31.3],[20.6,18.4],[25.6,12.5],[35.1,10.9],[65.2,10.9],[74.7,12.5],[79.7,18.4],[83.9,31.3],[50.1,32.2]] } },
-  atras:  { src: 'img/auto/atras-sil.webp',
-            zonas: { 'luneta': [[14.8,29.5],[18.7,21.5],[25.1,15.2],[33.7,12.8],[48.4,13.6],[47.2,17.9],[40.6,28.2],[39.2,30.6],[27.9,30.0]] } },
-};

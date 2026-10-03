@@ -1,5 +1,0 @@
-AUTO GENÉRICO PARA ELEGIR EL VIDRIO
-===================================
-lado-sil.webp, frente-sil.webp y atras-sil.webp son siluetas de un sedán, SIN marca ni modelo.
-Sirven para todos los autos. Los vidrios que el cliente puede tocar se definen en catalogo.js (AUTO_FOTOS).
-Para pick-up, SUV y furgón se usa un dibujo propio hasta tener su silueta.
