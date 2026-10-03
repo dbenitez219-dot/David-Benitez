@@ -33,11 +33,31 @@
     $('#trabajos').hidden = false;
   }
   if (C.resenas && C.resenas.length) {
+    const G = C.google || {};
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const estrellas = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+    const color = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) % 360; return `hsl(${h} 55% 42%)`; };
     $('#resenas').innerHTML = C.resenas.map(r => {
-      const n = Math.max(0, Math.min(5, r.estrellas || 5));
-      return `<blockquote class="rev"><div class="stars" aria-label="${n} de 5 estrellas">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</div><p>${r.texto}</p><cite>${r.nombre}</cite></blockquote>`;
+      const n = Math.max(0, Math.min(5, Math.round(r.estrellas || 5)));
+      const nombre = esc(r.nombre || 'Cliente');
+      return `<article class="rev"><header><span class="av" style="background:${color(nombre)}">${nombre.trim().charAt(0).toUpperCase()}</span>
+        <div><strong>${nombre}</strong>${r.fecha ? `<small>${esc(r.fecha)}</small>` : ''}</div></header>
+        <div class="stars" role="img" aria-label="${n} de 5 estrellas">${estrellas(n)}</div><p>${esc(r.texto)}</p></article>`;
     }).join('');
+    if (G.calificacion) {
+      const nota = String(G.calificacion).replace('.', ',');
+      $('#gHead').innerHTML = `<div class="g-score"><b>${nota}</b><div><span class="stars" aria-hidden="true">${estrellas(Math.round(G.calificacion))}</span>
+        <small>${G.total ? `Basado en ${esc(G.total)} reseñas` : 'Calificación'} en Google Maps</small></div></div>` +
+        (G.enlace ? `<a class="btn btn-ghost" href="${esc(G.enlace)}" target="_blank" rel="noopener">Ver todas en Google Maps</a>` : '');
+    } else if (G.enlace) {
+      $('#gHead').innerHTML = `<small class="g-src">Reseñas de clientes en Google Maps</small><a class="btn btn-ghost" href="${esc(G.enlace)}" target="_blank" rel="noopener">Ver todas en Google Maps</a>`;
+    }
+    const tr = $('#resenas');
+    const paso = () => Math.max(260, tr.clientWidth * 0.8);
+    $('#revPrev').addEventListener('click', () => tr.scrollBy({ left: -paso(), behavior: 'smooth' }));
+    $('#revNext').addEventListener('click', () => tr.scrollBy({ left: paso(), behavior: 'smooth' }));
     $('#opiniones').hidden = false;
+    $('#menuOpiniones').hidden = false;
   }
 
   /* Menú del celular */

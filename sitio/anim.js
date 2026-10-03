@@ -13,7 +13,7 @@
   $('#tilesB').innerHTML = fila(marcas.slice(mitad).concat(marcas.slice(0, 2)));
 
   /* Aparecer al hacer scroll */
-  const targets = $$('.sec-head, #cotizador, .svc, .steps li, .why-list li, .info li, .map, .contact .cta, .rev, .gallery figure, .badges');
+  const targets = $$('.sec-head, #cotizador, .svc, .steps li, .why-list li, .info li, .map, .contact .cta, .gallery figure, .badges, .g-head, .rev-wrap');
   targets.forEach((el, i) => {
     el.classList.add('reveal');
     const sib = el.parentElement ? [...el.parentElement.children].indexOf(el) : 0;

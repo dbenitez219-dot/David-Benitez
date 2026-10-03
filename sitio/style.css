@@ -609,3 +609,29 @@ select{background-repeat:no-repeat;background-position:right 14px center;backgro
   .hero-art{padding-top:96px}
   .float-card{top:0;right:-10px}
 }
+
+/* Auto deportivo: el escáner recorre el parabrisas más bajo */
+@keyframes scan{from{transform:translateY(-55px)}to{transform:translateY(46px)}}
+.tag{font-size:10.5px}
+
+/* ---------- Reseñas de Google Maps ---------- */
+.g-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:16px 28px;margin:-6px 0 30px}
+.g-score{display:flex;align-items:center;gap:14px}
+.g-score b{font-size:52px;line-height:1;font-weight:800;letter-spacing:-.03em}
+.g-score .stars{font-size:22px;display:block}
+.g-score small,.g-src{display:block;color:var(--mut);font-size:13.5px}
+.rev-wrap{position:relative}
+.rev-track{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 4px 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.rev-track::-webkit-scrollbar{display:none}
+.rev-track:focus-visible{outline:2px solid var(--hot);outline-offset:4px}
+.rev{flex:0 0 min(86%,360px);scroll-snap-align:start;padding:22px 22px 24px;margin:0;display:flex;flex-direction:column;gap:10px}
+.rev header{display:flex;align-items:center;gap:12px}
+.rev .av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:18px;color:#fff;flex:none}
+.rev strong{display:block;font-size:15.5px;line-height:1.2}
+.rev small{display:block;color:var(--mut);font-size:12.5px}
+.rev p{margin:0;color:#e6dcdc;font-size:15px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical;overflow:hidden}
+.rev-nav{position:absolute;top:50%;transform:translateY(-60%);z-index:2;width:44px;height:44px;border:1px solid rgba(255,255,255,.3);background:rgba(10,6,7,.85);color:#fff;font-size:26px;line-height:1;cursor:pointer;display:none;border-radius:3px}
+.rev-nav:hover{background:var(--red);border-color:var(--red)}
+#revPrev{left:-10px}#revNext{right:-10px}
+@media (min-width:900px){.rev-nav{display:block}.rev{flex-basis:calc((100% - 32px)/3)}}
+@media (min-width:900px){.hero-art{padding-top:128px}}

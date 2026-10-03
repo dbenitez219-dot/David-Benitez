@@ -15,7 +15,12 @@ window.SITE = {
   // Fotos reales (se muestran solas cuando las completes). Subilas a sitio/img/ y poné el nombre.
   fotos: { hero: '' },            // ej: 'img/local.jpg'  (foto grande de la portada)
   galeria: [],                    // ej: [{ src: 'img/trabajo1.jpg', alt: 'Cambio de parabrisas' }]
-  // Opiniones REALES de clientes (Google, Facebook, WhatsApp). No inventar.
-  resenas: [],                    // ej: [{ nombre: 'Juan P.', texto: 'Muy buena atención', estrellas: 5 }]
+  // Reseñas de Google Maps. Solo opiniones REALES (no inventar). La sección aparece sola cuando hay al menos una.
+  google: {
+    enlace: '',          // link de CristalAuto en Google Maps (para el botón "Ver todas las reseñas")
+    calificacion: null,  // ej: 4.8   (la que muestra Google)
+    total: null,         // ej: 57    (cantidad total de reseñas en Google)
+  },
+  resenas: [],           // ej: [{ nombre: 'Juan P.', fecha: 'hace 2 semanas', estrellas: 5, texto: 'Excelente atención' }]
   redes: { facebook: '', instagram: '', tiktok: '' },
 };
