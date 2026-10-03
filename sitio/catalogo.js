@@ -611,3 +611,11 @@ window.CATALOGO = [
 /* Vidrio marcado sobre la foto real (puntos en porcentaje 0-100). Ejemplo:
    window.HIGHLIGHT = { 'toyota-vitz': { parabrisas: [[22,30],[78,30],[84,52],[16,52]] } }  */
 window.HIGHLIGHT = {};
+
+/* Logos de marcas (archivos en img/marcas/). Si una marca no tiene logo, se muestra solo el nombre.
+   Los logos son marcas registradas de sus dueños y se usan solo para identificar el vehículo. */
+window.LOGOS = {
+  'Toyota': 'toyota', 'Nissan': 'nissan', 'Honda': 'honda', 'Hyundai': 'hyundai', 'Kia': 'kia', 'Volkswagen': 'volkswagen',
+  'Chevrolet': 'chevrolet', 'Infiniti': 'infiniti', 'Mitsubishi': 'mitsubishi', 'Mazda': 'mazda', 'Suzuki': 'suzuki',
+  'Ford': 'ford', 'Fiat': 'fiat', 'Renault': 'renault', 'Peugeot': 'peugeot', 'Subaru': 'subaru', 'Jeep': 'jeep'
+};

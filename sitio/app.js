@@ -122,6 +122,7 @@
     const u = `img/autos/${dir}/${vista}.jpg`;
     return cache[u] || (cache[u] = new Promise(res => { const i = new Image(); i.onload = () => res(u); i.onerror = () => res(null); i.src = u; }));
   };
+  const logoMarca = m => (window.LOGOS || {})[m] ? `<img src="img/marcas/${window.LOGOS[m]}.svg" alt="">` : '';
   const nombreAuto = () => [marca(), modelo()].filter(Boolean).join(' ');
   function fotoHTML(u, claveVidrio, dir) {
     const poly = (window.HIGHLIGHT[dir] || {})[claveVidrio];
@@ -176,9 +177,10 @@
     const prev = $('#vehPrev');
     prev.classList.remove('foto');
     prev.classList.toggle('vacio', !tipo);
-    prev.innerHTML = Cars.side(kDe(tipo), '');
+    const insignia = marca() && modelo() ? `<span class="veh-badge">${logoMarca(marca())}<b>${nombreAuto()}</b></span>` : '';
+    prev.innerHTML = Cars.side(kDe(tipo), '') + insignia;
     if (dir.length > 1) hayFoto(dir, 'lado').then(u => {
-      if (u && ultimaVista === clave) { prev.innerHTML = fotoHTML(u, 'lado', dir); prev.classList.add('foto'); prev.classList.remove('vacio'); }
+      if (u && ultimaVista === clave) { prev.innerHTML = fotoHTML(u, 'lado', dir) + insignia; prev.classList.add('foto'); prev.classList.remove('vacio'); }
     });
   }
 
@@ -199,7 +201,7 @@
   }
   function pintarPicker() {
     const tipo = val('tipo'), k = kDe(tipo);
-    $('#vehResumen').textContent = [nombreAuto(), val('anio')].filter(Boolean).join(' ') + (tipo ? ' · ' + tipo : '');
+    $('#vehResumen').innerHTML = logoMarca(marca()) + [nombreAuto(), val('anio')].filter(Boolean).join(' ') + (tipo ? ' · ' + tipo : '');
     const deLado = new Set([...sel].filter(c => c.endsWith(':' + lado)).map(c => c.split(':')[0]));
     const o = { sel: vista === 'lado' ? deLado : sel };
     $('#picker').innerHTML = vista === 'frente' ? Cars.front('', o) : vista === 'atras' ? Cars.rear('', o) : Cars.side(k, '', o);

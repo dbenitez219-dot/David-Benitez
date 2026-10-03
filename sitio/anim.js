@@ -6,7 +6,8 @@
 
   /* Marcas: dos filas de tarjetas que se mueven en sentidos opuestos */
   const marcas = [...new Set((window.CATALOGO || []).flatMap(f => f.veh.map(v => v[0])))];
-  const tile = m => `<span class="tile"><b>${m}</b></span>`;
+  const logo = m => (window.LOGOS || {})[m] ? `<img src="img/marcas/${window.LOGOS[m]}.svg" alt="" loading="lazy">` : '';
+  const tile = m => `<span class="tile"><span class="ti">${logo(m)}<b>${m}</b></span></span>`;
   const fila = arr => { const s = arr.map(tile).join(''); return s + s + s + s; };
   const mitad = Math.ceil(marcas.length / 2);
   $('#tilesA').innerHTML = fila(marcas.slice(0, mitad));
