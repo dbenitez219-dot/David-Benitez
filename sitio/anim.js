@@ -4,10 +4,13 @@
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* Marcas en cinta (se duplican para que el bucle no tenga saltos) */
-  const marcas = $$('#marcas option').map(o => o.value);
-  const spans = marcas.map(m => `<span>${m}</span>`).join('');
-  $('#marcasTrack').innerHTML = spans + spans;
+  /* Marcas: dos filas de tarjetas que se mueven en sentidos opuestos */
+  const marcas = [...new Set((window.CATALOGO || []).flatMap(f => f.veh.map(v => v[0])))];
+  const tile = m => `<span class="tile"><b>${m}</b></span>`;
+  const fila = arr => { const s = arr.map(tile).join(''); return s + s + s + s; };
+  const mitad = Math.ceil(marcas.length / 2);
+  $('#tilesA').innerHTML = fila(marcas.slice(0, mitad));
+  $('#tilesB').innerHTML = fila(marcas.slice(mitad).concat(marcas.slice(0, 2)));
 
   /* Aparecer al hacer scroll */
   const targets = $$('.sec-head, #cotizador, .svc, .steps li, .why-list li, .info li, .map, .contact .cta, .rev, .gallery figure, .badges');

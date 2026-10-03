@@ -61,24 +61,33 @@
 <main id="inicio">
 
 <section class="hero">
-  <div class="hero-bg" aria-hidden="true"><i class="grid-lines"></i><i class="glow"></i></div>
+  <div class="hero-bg" aria-hidden="true"><i class="grid-lines"></i><i class="glow"></i><div class="rays"><i></i><i></i><i></i><i></i></div></div>
   <div class="wrap hero-in">
     <div class="hero-text">
       <p class="eyebrow" id="estado" aria-live="polite"></p>
-      <h1>Cambio de <span class="out">parabrisas</span> y vidrios <span class="r">para tu auto</span></h1>
+      <h1><span class="l">Cambio de</span> <span class="b">parabrisas y vidrios</span> <em>para tu auto</em></h1>
       <p class="lead">En San Lorenzo y a domicilio en Asunción y Gran Asunción. Buen precio, trabajo de calidad y garantía de un año por la instalación.</p>
       <div class="cta">
         <a class="btn btn-red" href="#cotizar">Pedir cotización</a>
-        <a class="btn btn-ghost" data-tel href="#contacto">Llamar ahora</a>
+        <a class="btn btn-ghost" href="#servicios">Ver servicios</a>
       </div>
     </div>
 
-    <div class="hero-art" id="heroArt" aria-hidden="true">
-      <svg viewBox="0 0 520 440" fill="none">
+    <div class="hero-art" id="heroArt">
+      <aside class="float-card" aria-label="Qué incluye tu cambio">
+        <div class="fc-head"><strong>Tu cambio incluye</strong><span class="fc-tag">1 año de garantía</span></div>
+        <ul>
+          <li><span>Instalación profesional</span><b>✓</b></li>
+          <li><span>Servicio a domicilio</span><b>✓</b></li>
+          <li><span>Cotización por WhatsApp</span><b>✓</b></li>
+          <li><span>Garantía por la instalación</span><b>1 año</b></li>
+        </ul>
+      </aside>
+      <svg viewBox="0 0 520 440" fill="none" aria-hidden="true">
         <defs>
           <linearGradient id="gGlass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3f5b70"/><stop offset=".55" stop-color="#101a22"/><stop offset="1" stop-color="#05080b"/></linearGradient>
-          <linearGradient id="gBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#303036"/><stop offset="1" stop-color="#0d0d0f"/></linearGradient>
-          <linearGradient id="gHood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3c3c43"/><stop offset=".55" stop-color="#1a1a1d"/><stop offset="1" stop-color="#0e0e10"/></linearGradient>
+          <linearGradient id="gBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3201a"/><stop offset=".5" stop-color="#6e0c0a"/><stop offset="1" stop-color="#1c0303"/></linearGradient>
+          <linearGradient id="gHood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0352b"/><stop offset=".5" stop-color="#8d100c"/><stop offset="1" stop-color="#2a0505"/></linearGradient>
           <linearGradient id="gRef" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".32"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
           <linearGradient id="gScan" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff3b2f" stop-opacity="0"/><stop offset="1" stop-color="#ff3b2f" stop-opacity=".5"/></linearGradient>
           <radialGradient id="gSh"><stop offset="0" stop-color="#000" stop-opacity=".75"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
@@ -123,11 +132,19 @@
   </div>
 </section>
 
-<div class="marquee" aria-label="Cotizá para tu marca"><div class="track" id="marcasTrack"></div></div>
+<section class="brands" aria-labelledby="t-marcas">
+  <div class="sec-head center">
+    <span class="kicker">Marcas</span>
+    <h2 id="t-marcas">Vidrios para tu marca</h2>
+    <p class="sub">Trabajamos con vidrios para las marcas más comunes en Paraguay. Si la tuya no figura, consultanos igual.</p>
+  </div>
+  <div class="tiles" aria-hidden="true"><div class="row" id="tilesA"></div><div class="row rev" id="tilesB"></div></div>
+  <p class="brands-cta"><a class="btn btn-red" href="#cotizar">Cotizar mi vidrio</a></p>
+</section></div>
 
 <section id="cotizar" class="sec sec-paper">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head center">
       <span class="kicker">01 · Cotizá</span>
       <h2>Pedí tu cotización</h2>
       <p class="sub">Respondé unas preguntas y te contestamos por WhatsApp con el precio.</p>
@@ -217,7 +234,7 @@
 
 <section id="servicios" class="sec sec-dark">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head center">
       <span class="kicker">02 · Servicios</span>
       <h2>Todo para los vidrios de tu vehículo</h2>
     </div>
@@ -227,7 +244,7 @@
 
 <section id="proceso" class="sec">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head center">
       <span class="kicker">03 · Proceso</span>
       <h2>Cómo trabajamos</h2>
     </div>
