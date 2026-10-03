@@ -296,7 +296,7 @@
     $('#otraMarca').hidden = val('marca') !== '__otra';
     $('#fModeloOtro').hidden = !$('#fModelo').hidden && val('modelo') !== '__otro';
     const av = $('#codAviso'), cp = codigos('parabrisas');
-    av.hidden = !(anioNum() && val('marca') && val('modelo'));
+    av.hidden = !(anioNum() && marca() && modelo());
     if (!av.hidden) {
       const propio = val('marca') === '__otra' || val('modelo') === '__otro';
       av.className = 'cod-aviso ' + (cp.length ? 'ok' : 'no');
@@ -337,20 +337,38 @@
 
   /* ---------- Servicios ---------- */
   const SERVICIOS = [
-    ['parabrisas', 'Parabrisas delantero', 'Cambio e instalación de parabrisas para tu vehículo.', () => Cars.front('parabrisas')],
-    ['luneta', 'Lunetas', 'Cambio del vidrio trasero.', () => Cars.rear('luneta')],
-    ['lateral', 'Vidrios laterales', 'Puertas delanteras y traseras.', () => Cars.side('sedan', 'lateral')],
-    ['fijo', 'Vidrios fijos', 'Los vidrios fijos laterales y traseros.', () => Cars.side('hatch', 'fijo')],
-    ['polar', 'Polarizado', 'Más privacidad y menos calor dentro del vehículo.', () => Cars.side('suv', 'polar')],
-    ['pulida', 'Pulida de vidrios', 'Recuperamos la transparencia de tus vidrios.', () => Cars.front('pulida')],
-    ['faro', 'Pulida de faros', 'Faros opacos o amarillentos, como nuevos.', () => Cars.front('faros')],
+    ['parabrisas', 'Parabrisas delantero', 'Cambio e instalación de parabrisas para tu vehículo.'],
+    ['luneta', 'Lunetas', 'Cambio del vidrio trasero.'],
+    ['lateral', 'Vidrios laterales', 'Puertas delanteras y traseras.'],
+    ['fijo', 'Vidrios fijos', 'Los vidrios fijos laterales y traseros.'],
+    ['polar', 'Polarizado', 'Más privacidad y menos calor dentro del vehículo.'],
+    ['pulida', 'Pulida de vidrios', 'Recuperamos la transparencia de tus vidrios.'],
+    ['faro', 'Pulida de faros', 'Faros opacos o amarillentos, como nuevos.'],
   ];
-  $('#servicios-lista').innerHTML = SERVICIOS.map(([k, t, d, img], i) => {
+  /* Imagen en línea de cada servicio con el vidrio (o faro) resaltado */
+  const FAROS = [[6.3,43.4],[8,42.9],[13.1,46.6],[18.9,50.1],[25.1,51.1],[27.5,57.3],[21.8,58.5],[16.2,55.6],[10.9,54.4],[7.3,52.6],[5.8,48.6]];
+  const espejoX = p => p.map(([x, y]) => [+(100 - x).toFixed(1), y]);
+  function svcImg(k) {
+    const AL = window.AUTO_LINEA;
+    if (!AL) return '';
+    const poly = (pts, cls) => { const s = pts.map(q => q.join(',')).join(' '); return `<polygon class="${cls}" points="${s}"/>` + (cls === 'on' ? `<polygon class="zb" points="${s}"/>` : ''); };
+    const lado = AL.izq.zonas, fr = AL.frente.zonas.parabrisas, at = AL.atras.zonas.luneta;
+    let src, g = '';
+    if (k === 'parabrisas') { src = AL.frente.src; g = poly(fr, 'on'); }
+    else if (k === 'luneta') { src = AL.atras.src; g = poly(at, 'on'); }
+    else if (k === 'lateral') { src = AL.izq.src; g = poly(lado['puerta-del'], 'on') + poly(lado['puerta-tra'], 'on'); }
+    else if (k === 'fijo') { src = AL.izq.src; g = poly(lado['fijo-del'], 'on') + poly(lado['fijo-tra'], 'on'); }
+    else if (k === 'polar') { src = AL.izq.src; g = Object.values(lado).map(p => poly(p, 'tint')).join(''); }
+    else if (k === 'pulida') { src = AL.frente.src; g = poly(fr, 'pul') + '<path class="spark" d="M70 20l1.6 4.4 4.4 1.6-4.4 1.6-1.6 4.4-1.6-4.4-4.4-1.6 4.4-1.6zM30 14l1 2.8 2.8 1-2.8 1-1 2.8-1-2.8-2.8-1 2.8-1z"/>'; }
+    else { src = AL.frente.src; g = poly(FAROS, 'glow') + poly(espejoX(FAROS), 'glow'); }
+    return `<div class="foto-picker svc-img"><img src="${src}" alt="" loading="lazy"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${g}</svg></div>`;
+  }
+  $('#servicios-lista').innerHTML = SERVICIOS.map(([k, t, d], i) => {
     const link = ['polar', 'pulida', 'faro'].includes(k)
       ? waUrl(`Hola CristalAuto, quiero consultar por ${t.toLowerCase()}.`) : '#cotizar';
     const ext = link[0] === 'h' ? ' target="_blank" rel="noopener"' : '';
     return `<article class="svc${i === 0 ? ' big' : ''}">
-      <div class="svc-top"><div class="svc-car">${img()}</div><span class="svc-n">0${i + 1}</span></div>
+      <div class="svc-top"><div class="svc-car">${svcImg(k)}</div><span class="svc-n">0${i + 1}</span></div>
       <div><h3>${t}</h3><p>${d}</p><a href="${link}"${ext}>Pedir cotización</a></div></article>`;
   }).join('');
 })();

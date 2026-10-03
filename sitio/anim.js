@@ -11,7 +11,7 @@
   const fila = arr => { const s = arr.map(tile).join(''); return s + s + s + s; };
   const mitad = Math.ceil(marcas.length / 2);
   $('#tilesA').innerHTML = fila(marcas.slice(0, mitad));
-  $('#tilesB').innerHTML = fila(marcas.slice(mitad).concat(marcas.slice(0, 2)));
+  $('#tilesB').innerHTML = fila(marcas.slice(mitad));
 
   /* Aparecer al hacer scroll */
   const targets = $$('.sec-head, #cotizador, .svc, .steps li, .why-list li, .info li, .map, .contact .cta, .gallery figure, .badges, .g-head, .rev-wrap');

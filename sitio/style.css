@@ -768,3 +768,33 @@ select{background-repeat:no-repeat;background-position:right 14px center;backgro
 .foto-picker polygon,.car .z,.foto-picker svg,.picker svg{outline:none;-webkit-tap-highlight-color:transparent}
 .foto-picker polygon:focus-visible,.car .z:focus-visible{outline:none;stroke:#fff;stroke-width:3.2}
 .foto-picker polygon.on:focus-visible{stroke:#fff}
+
+/* ===== Revisión final ===== */
+#cotizador{margin-inline:auto}
+.nojs{margin:0;padding:12px 16px;background:#fff3cd;color:#3b2f00;text-align:center;font-size:14px}
+.nojs a{color:#7a0a06;font-weight:700}
+
+/* Servicios: imágenes en línea con el vidrio resaltado */
+.svc-car{flex:1;max-width:none}
+.svc-img{background:#f6f4f0;border-radius:10px;padding:8px;max-width:300px;overflow:hidden}
+.svc.big .svc-img{max-width:min(100%,440px)}
+.svc-img img{width:100%;height:auto;display:block;mix-blend-mode:multiply}
+.svc-img svg{inset:8px;width:calc(100% - 16px);height:calc(100% - 16px)}
+.svc-img polygon{pointer-events:none;animation:none!important;stroke-dasharray:none;transition:none}
+.svc-img polygon.on{fill:url(#vr);stroke:#7d0b05;stroke-width:1.6;mix-blend-mode:normal}
+.svc-img polygon.zb{fill:url(#vb);stroke:none}
+.svc-img polygon.tint{fill:rgba(10,10,14,.9)!important;stroke:#000!important;stroke-width:1.4!important}
+.svc-img polygon.pul{fill:rgba(150,200,240,.6)!important;stroke:#2a6fa8!important;stroke-width:1.6!important}
+.svc-img polygon.glow{fill:rgba(255,200,0,.85)!important;stroke:#b57a00!important;stroke-width:1.4!important}
+.svc-img .spark{fill:#fff;stroke:#2a6fa8;stroke-width:.6}
+.svc:hover .svc-car .car{transform:none}
+
+/* Zonas táctiles y letras más cómodas */
+.float-card ul{font-size:12.5px}
+.fc-head strong{font-size:14px}
+.svc a{padding:12px 0;margin-top:6px}
+.info a{display:inline-block;padding:6px 0}
+footer ul a{display:inline-block;padding:6px 0}
+.top-actions .btn-sm{min-height:40px}
+.social a{display:inline-flex;align-items:center;min-height:40px}
+.stepper li.cur:last-child i::after{transform:scaleX(1)}
