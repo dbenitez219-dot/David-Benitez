@@ -755,3 +755,16 @@ select{background-repeat:no-repeat;background-position:right 14px center;backgro
 .veh-prev.linea .veh-badge{background:#0b0b0d}
 .foto-picker img,.veh-prev.linea>img{mix-blend-mode:multiply}
 .foto-picker polygon.on{mix-blend-mode:multiply}
+
+/* Vidrio elegido: se ve como un vidrio rojo con reflejos, con la forma real del vidrio */
+.foto-picker polygon{stroke-linejoin:round}
+.foto-picker polygon.on{fill:url(#vr);stroke:#7d0b05;stroke-width:2;stroke-dasharray:none;mix-blend-mode:normal;animation:vidrioIn .4s ease-out}
+.foto-picker polygon.zb{fill:url(#vb);stroke:none;pointer-events:none;animation:vidrioIn .5s ease-out}
+@keyframes vidrioIn{from{opacity:0}}
+.foto-picker polygon:not(.on):not(.zb){fill:rgba(224,36,27,.08);stroke:rgba(224,36,27,.7);stroke-width:1.8}
+.foto-picker polygon:not(.on):not(.zb):hover{fill:rgba(224,36,27,.4)}
+
+/* Sin recuadro de foco del navegador: el foco se ve en el propio contorno del vidrio */
+.foto-picker polygon,.car .z,.foto-picker svg,.picker svg{outline:none;-webkit-tap-highlight-color:transparent}
+.foto-picker polygon:focus-visible,.car .z:focus-visible{outline:none;stroke:#fff;stroke-width:3.2}
+.foto-picker polygon.on:focus-visible{stroke:#fff}

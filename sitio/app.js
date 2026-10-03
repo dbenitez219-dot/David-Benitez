@@ -201,7 +201,9 @@
     const cfg = AL[v === 'lado' ? lado : v];
     if (!cfg) return null;
     const polys = Object.entries(cfg.zonas).map(([z, p]) =>
-      `<polygon class="z${activos.has(z) ? ' on' : ''}" data-z="${z}" tabindex="0" role="button" aria-pressed="${activos.has(z)}" aria-label="${Cars.nombre(z)}" points="${p.map(q => q.join(',')).join(' ')}"/>`).join('');
+      { const pt = p.map(q => q.join(',')).join(' '), on = activos.has(z);
+        return `<polygon class="z${on ? ' on' : ''}" data-z="${z}" tabindex="0" role="button" aria-pressed="${on}" aria-label="${Cars.nombre(z)}" points="${pt}"/>` +
+          (on ? `<polygon class="zb" points="${pt}"/>` : ''); }).join('');
     return `<div class="foto-picker"><img src="${cfg.src}" alt="" draggable="false"><svg viewBox="0 0 100 100" preserveAspectRatio="none">${polys}</svg></div>`;
   }
 
