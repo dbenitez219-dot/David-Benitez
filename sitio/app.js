@@ -190,6 +190,17 @@
   const orden = c => ['parabrisas', 'luneta', 'puerta-del', 'puerta-tra', 'fijo-del', 'fijo-tra'].indexOf(c.split(':')[0]) * 3 + (c.endsWith(':izq') ? 0 : 1);
   const claveDe = z => (z === 'parabrisas' || z === 'luneta') ? z : z + ':' + lado;
 
+  /* Foto real del auto con los vidrios marcados encima (ver catalogo.js -> AUTO_FOTOS).
+     Si todavía no hay foto/zonas para esa vista, se usa el dibujo. */
+  function fotoPicker(v, activos) {
+    const cfg = (window.AUTO_FOTOS || {})[v];
+    if (!cfg || !cfg.src || !cfg.zonas || !Object.keys(cfg.zonas).length) return null;
+    const polys = Object.entries(cfg.zonas).flatMap(([z, pts]) =>
+      (Array.isArray(pts[0][0]) ? pts : [pts]).map(p =>
+        `<polygon class="z${activos.has(z) ? ' on' : ''}" data-z="${z}" tabindex="0" role="button" aria-pressed="${activos.has(z)}" aria-label="${Cars.nombre(z)}" points="${p.map(q => q.join(',')).join(' ')}"/>`)).join('');
+    return `<div class="foto-picker"><img src="${cfg.src}" alt="" draggable="false"><svg viewBox="0 0 100 100" preserveAspectRatio="none">${polys}</svg></div>`;
+  }
+
   function pintarLista() {
     const l = $('#selLista');
     if (!sel.size) { l.innerHTML = '<span class="sel-vacio">Todavía no elegiste ningún vidrio.</span>'; return; }
@@ -204,7 +215,9 @@
     $('#vehResumen').innerHTML = logoMarca(marca()) + [nombreAuto(), val('anio')].filter(Boolean).join(' ') + (tipo ? ' · ' + tipo : '');
     const deLado = new Set([...sel].filter(c => c.endsWith(':' + lado)).map(c => c.split(':')[0]));
     const o = { sel: vista === 'lado' ? deLado : sel };
-    $('#picker').innerHTML = vista === 'frente' ? Cars.front('', o) : vista === 'atras' ? Cars.rear('', o) : Cars.side(k, '', o);
+    const foto = fotoPicker(vista, o.sel);
+    $('#picker').innerHTML = foto || (vista === 'frente' ? Cars.front('', o) : vista === 'atras' ? Cars.rear('', o) : Cars.side(k, '', o));
+    $('#picker').classList.toggle('con-foto', !!foto);
     $('#picker').classList.toggle('espejo', vista === 'lado' && lado === 'izq');
     $('#ladoBox').hidden = vista !== 'lado';
     $$('.vista').forEach(b => b.classList.toggle('on', b.dataset.v === vista));

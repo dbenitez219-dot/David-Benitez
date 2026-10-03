@@ -619,3 +619,16 @@ window.LOGOS = {
   'Chevrolet': 'chevrolet', 'Infiniti': 'infiniti', 'Mitsubishi': 'mitsubishi', 'Mazda': 'mazda', 'Suzuki': 'suzuki',
   'Ford': 'ford', 'Fiat': 'fiat', 'Renault': 'renault', 'Peugeot': 'peugeot', 'Subaru': 'subaru', 'Jeep': 'jeep'
 };
+
+/* FOTO DEL AUTO PARA ELEGIR EL VIDRIO (un auto "normal" de color neutro, en 3 vistas).
+   Se guardan en img/auto/:  lado.jpg   frente.jpg   atras.jpg
+   zonas = el contorno de cada vidrio sobre la foto, en porcentaje (0 a 100) [[x,y],[x,y],...]
+   Vistas y vidrios:
+     lado   -> 'puerta-del' (puerta delantera), 'puerta-tra' (puerta trasera), 'fijo-del', 'fijo-tra'
+     frente -> 'parabrisas'            atras -> 'luneta'
+   Mientras una vista no tenga zonas, la página muestra el dibujo. */
+window.AUTO_FOTOS = {
+  lado:   { src: 'img/auto/lado.jpg',   zonas: {} },
+  frente: { src: 'img/auto/frente.jpg', zonas: {} },
+  atras:  { src: 'img/auto/atras.jpg',  zonas: {} },
+};

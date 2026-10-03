@@ -707,3 +707,17 @@ select{background-repeat:no-repeat;background-position:right 14px center;backgro
 .veh-badge img,#vehResumen img{height:20px;width:auto;max-width:30px;filter:brightness(0) invert(1);vertical-align:-4px;margin-right:8px}
 .veh-badge img{margin:0}
 .legal{position:relative;z-index:1;margin:0 auto 6px;padding:0 20px 8px;font-size:12px;line-height:1.5;color:#7d7273;max-width:1180px}
+
+/* Selector sobre foto real: el vidrio elegido se pinta de rojo */
+.picker.con-foto{padding:12px;background:#0b0708}
+.foto-picker{position:relative;width:100%;max-width:640px;line-height:0}
+.foto-picker img{width:100%;height:auto;display:block;border-radius:2px;user-select:none;-webkit-user-drag:none}
+.foto-picker svg{position:absolute;inset:0;width:100%;height:100%}
+.foto-picker polygon{fill:rgba(255,59,47,.14);stroke:rgba(255,255,255,.75);stroke-width:1.4;vector-effect:non-scaling-stroke;stroke-linejoin:round;cursor:pointer;transition:fill .2s}
+.foto-picker polygon:not(.on){animation:fpulse 2.2s ease-in-out infinite}
+@keyframes fpulse{50%{fill:rgba(255,59,47,.34)}}
+.foto-picker polygon:hover{fill:rgba(255,59,47,.5)}
+.foto-picker polygon.on{fill:rgba(235,25,15,.62);stroke:#fff;stroke-width:2;animation:none}
+.foto-picker polygon:focus-visible{outline:none;stroke:#fff;stroke-width:3}
+.picker.espejo .foto-picker{transform:scaleX(-1)}
+@media (prefers-reduced-motion:reduce){.foto-picker polygon:not(.on){animation:none}}
