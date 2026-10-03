@@ -635,3 +635,64 @@ select{background-repeat:no-repeat;background-position:right 14px center;backgro
 #revPrev{left:-10px}#revNext{right:-10px}
 @media (min-width:900px){.rev-nav{display:block}.rev{flex-basis:calc((100% - 32px)/3)}}
 @media (min-width:900px){.hero-art{padding-top:128px}}
+
+/* =========================================================
+   Portada con foto, franja y selector táctil del vidrio
+   ========================================================= */
+.hero-art{max-width:none;width:100%;padding-top:0;margin-top:6px}
+.hero-stage{position:relative;transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .25s ease-out}
+.hero-foto{display:block;width:100%;height:auto;
+  -webkit-mask-image:radial-gradient(ellipse 74% 80% at 52% 54%,#000 60%,transparent 100%);mask-image:radial-gradient(ellipse 74% 80% at 52% 54%,#000 60%,transparent 100%)}
+.hero-scan{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:none;transform:none;pointer-events:none}
+.hero-art svg.hero-scan{filter:none}
+.hero-scan .scan{animation:scanFoto 3.4s ease-in-out infinite alternate}
+@keyframes scanFoto{from{transform:translateY(-12px)}to{transform:translateY(142px)}}
+.hero-scan .brackets{opacity:.9}
+@media (min-width:900px){
+  .hero-art{padding-top:0;margin-right:-70px;width:calc(100% + 70px)}
+  .float-card{top:-8px;right:70px}
+}
+
+/* Franja con el Audi e-tron */
+.banner{position:relative;overflow:hidden;min-height:400px;display:flex;align-items:center;background:#2a0305 url(img/banner-audi.jpg) 78% center/cover no-repeat;border-block:1px solid rgba(255,59,47,.35)}
+.banner::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,5,6,.96) 0,rgba(5,5,6,.82) 42%,rgba(5,5,6,.2) 85%)}
+.banner-in{position:relative;z-index:1;padding-block:70px}
+.banner h2{font-size:clamp(28px,5.4vw,50px);font-weight:300;max-width:16ch;margin:6px 0 14px}
+.banner p{color:#d6cccc;max-width:46ch;margin:0 0 26px}
+.banner .kicker::before{background:var(--hot)}
+@media (max-width:640px){.banner::before{background:linear-gradient(180deg,rgba(5,5,6,.9),rgba(5,5,6,.6))}.banner{background-position:70% center}}
+
+/* Selector táctil */
+.vistas,.lados{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 0 14px}
+.vista,.lado{padding:11px 20px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.05);color:#fff;font:700 12.5px var(--f-d);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:3px;transition:background .2s,border-color .2s}
+.lado{font-size:11.5px;padding:9px 14px;letter-spacing:.04em}
+.vista:hover,.lado:hover{border-color:var(--hot)}
+.vista.on,.lado.on{background:var(--red);border-color:var(--hot);box-shadow:0 0 20px rgba(255,59,47,.35)}
+.picker{display:grid;place-items:center;padding:22px 12px 10px;min-height:220px;clip-path:var(--cut);
+  background:radial-gradient(ellipse at 50% 100%,rgba(255,59,47,.3) 0,rgba(20,8,10,.92) 64%);box-shadow:inset 0 0 0 1px rgba(255,59,47,.35)}
+.picker .car{max-width:600px}
+.picker.espejo .car{transform:scaleX(-1)}
+.car .z{cursor:pointer;transition:filter .2s}
+.car .z:not(.on){animation:zpulse 2.2s ease-in-out infinite}
+@keyframes zpulse{50%{stroke:#ff6a5e;stroke-width:2.4;filter:drop-shadow(0 0 5px rgba(255,59,47,.95))}}
+.car .z:hover{filter:brightness(1.35) drop-shadow(0 0 7px rgba(255,59,47,.95))}
+.car .z:focus-visible{outline:none;stroke:#fff;stroke-width:3}
+.picker-hint{text-align:center;color:var(--mut);font-size:13.5px;margin:12px 0 0}
+.sel-lista{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px;min-height:38px}
+.sel-vacio{color:var(--mut);font-size:14px;align-self:center}
+.sel-chip{display:inline-flex;align-items:center;gap:8px;padding:8px 8px 8px 14px;background:rgba(255,59,47,.16);border:1px solid var(--hot);border-radius:3px;font-size:13.5px;font-weight:600}
+.sel-chip em{font-style:normal;color:#ff8d84;font-weight:700}
+.sel-chip button{width:24px;height:24px;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:17px;line-height:1;cursor:pointer;border-radius:50%}
+.sel-chip button:hover{background:var(--red)}
+@media (prefers-reduced-motion:reduce){.car .z:not(.on),.hero-scan .scan{animation:none}}
+
+/* Foto de la portada: bordes que se funden con el fondo y tarjeta sobre la cortina */
+.hero-foto{
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 24%,#000 86%,transparent 100%),linear-gradient(180deg,transparent 0,#000 20%,#000 78%,transparent 100%);
+  -webkit-mask-composite:source-in;
+  mask-image:linear-gradient(90deg,transparent 0,#000 24%,#000 86%,transparent 100%),linear-gradient(180deg,transparent 0,#000 20%,#000 78%,transparent 100%);
+  mask-composite:intersect}
+@media (min-width:900px){
+  .hero-art{padding-top:96px}
+  .float-card{top:0;right:40px}
+}

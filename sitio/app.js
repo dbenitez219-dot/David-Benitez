@@ -98,13 +98,6 @@
     { id: 'Monovolumen / familiar', k: 'suv' },
   ];
   const kDe = id => (TIPOS.find(t => t.id === id) || { k: 'sedan' }).k;
-  const VIDRIOS = [
-    { id: 'parabrisas', t: 'Parabrisas delantero', vista: 'frente', img: () => Cars.front('parabrisas') },
-    { id: 'luneta', t: 'Luneta', s: 'Vidrio trasero', vista: 'atras', img: () => Cars.rear('luneta') },
-    { id: 'lateral', t: 'Vidrio lateral', s: 'Puertas', vista: 'lado', img: k => Cars.side(k, 'lateral') },
-    { id: 'fijo', t: 'Vidrios fijos', s: 'Laterales y traseros', vista: 'lado', img: k => Cars.side(k, 'fijo') },
-  ];
-  const POSICIONES = ['Delantero izquierdo', 'Delantero derecho', 'Trasero izquierdo', 'Trasero derecho'];
   /* Catálogo del inventario (ver catalogo.js): una fila por vehículo cubierto por cada vidrio */
   const FLAT = [];
   (window.CATALOGO || []).forEach(f => f.veh.forEach(([marca, modelo, carr]) =>
@@ -189,45 +182,60 @@
     });
   }
 
-  const etiqueta = v => {
-    const c = v.id === 'parabrisas' ? codigos('parabrisas') : v.id === 'luneta' ? codigos('luneta') : [];
-    return c.length ? `<small class="cod">Código ${c.join(' o ')}</small>` : (v.s ? `<small>${v.s}</small>` : '');
-  };
+  /* ---------- Selector: se toca el vidrio sobre el auto ---------- */
+  const sel = new Set();          // 'parabrisas', 'luneta', 'puerta-del:izq', 'fijo-tra:der', ...
+  let vista = 'lado', lado = 'der', enfocar = null;
+  const orden = c => ['parabrisas', 'luneta', 'puerta-del', 'puerta-tra', 'fijo-del', 'fijo-tra'].indexOf(c.split(':')[0]) * 3 + (c.endsWith(':izq') ? 0 : 1);
+  const claveDe = z => (z === 'parabrisas' || z === 'luneta') ? z : z + ':' + lado;
 
-  /* Tarjetas de vidrio con las fotos de ese vehículo */
-  let vidriosPara = '';
-  function pintarVidrios() {
-    const dir = carpeta(), tipo = val('tipo');
-    const clave = dir + '|' + tipo + '|' + anioNum();
-    $('#vehResumen').textContent = [nombreAuto(), val('anio')].filter(Boolean).join(' ') + (tipo ? ' · ' + tipo : '');
-    if (clave === vidriosPara) return;
-    vidriosPara = clave;
-    const marcados = new Set(checked('vidrio'));
-    const k = kDe(tipo);
-    $('#vidrios').innerHTML = VIDRIOS.map(v =>
-      `<label class="opt"><input type="checkbox" name="vidrio" value="${v.id}"${marcados.has(v.id) ? ' checked' : ''}>
-         <span class="ico" data-v="${v.id}">${v.img(k)}</span><span class="lbl">${v.t}${etiqueta(v)}</span></label>`).join('');
-    if (dir.length > 1) VIDRIOS.forEach(v => hayFoto(dir, v.vista).then(u => {
-      const box = $(`.ico[data-v="${v.id}"]`);
-      if (u && box && vidriosPara === clave) { box.innerHTML = fotoHTML(u, v.id, dir); box.classList.add('foto'); }
-    }));
+  function pintarLista() {
+    const l = $('#selLista');
+    if (!sel.size) { l.innerHTML = '<span class="sel-vacio">Todavía no elegiste ningún vidrio.</span>'; return; }
+    l.innerHTML = [...sel].sort((a, b) => orden(a) - orden(b)).map(c => {
+      const cod = c === 'parabrisas' || c === 'luneta' ? codigos(c) : [];
+      return `<span class="sel-chip">${Cars.nombre(c)}${cod.length ? ` <em>· código ${cod.join(' o ')}</em>` : ''}
+        <button type="button" data-q="${c}" aria-label="Quitar ${Cars.nombre(c)}">×</button></span>`;
+    }).join('');
   }
-  $('#posChips').innerHTML = POSICIONES.map(p =>
-    `<label class="chip"><input type="checkbox" name="pos" value="${p}">${p}</label>`).join('');
+  function pintarPicker() {
+    const tipo = val('tipo'), k = kDe(tipo);
+    $('#vehResumen').textContent = [nombreAuto(), val('anio')].filter(Boolean).join(' ') + (tipo ? ' · ' + tipo : '');
+    const deLado = new Set([...sel].filter(c => c.endsWith(':' + lado)).map(c => c.split(':')[0]));
+    const o = { sel: vista === 'lado' ? deLado : sel };
+    $('#picker').innerHTML = vista === 'frente' ? Cars.front('', o) : vista === 'atras' ? Cars.rear('', o) : Cars.side(k, '', o);
+    $('#picker').classList.toggle('espejo', vista === 'lado' && lado === 'izq');
+    $('#ladoBox').hidden = vista !== 'lado';
+    $$('.vista').forEach(b => b.classList.toggle('on', b.dataset.v === vista));
+    $$('.lado').forEach(b => b.classList.toggle('on', b.dataset.l === lado));
+    pintarLista();
+    if (enfocar) { const el = $(`#picker [data-z="${enfocar}"]`); if (el) el.focus(); enfocar = null; }
+  }
+  function alternar(z) {
+    const c = claveDe(z);
+    sel.has(c) ? sel.delete(c) : sel.add(c);
+    enfocar = z;
+    pintarPicker(); refrescar();
+  }
+  $('#picker').addEventListener('click', e => { const t = e.target.closest('[data-z]'); if (t) alternar(t.dataset.z); });
+  $('#picker').addEventListener('keydown', e => {
+    const t = e.target.closest('[data-z]');
+    if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); alternar(t.dataset.z); }
+  });
+  $('#selLista').addEventListener('click', e => {
+    const q = e.target.closest('[data-q]'); if (!q) return;
+    sel.delete(q.dataset.q); pintarPicker(); refrescar();
+  });
+  $$('.vista').forEach(b => b.addEventListener('click', () => { vista = b.dataset.v; pintarPicker(); }));
+  $$('.lado').forEach(b => b.addEventListener('click', () => { lado = b.dataset.l; pintarPicker(); }));
 
   function armar() {
     const tipo = val('tipo');
-    const nombreV = Object.fromEntries(VIDRIOS.map(v => [v.id, v.t]));
-    const vid = checked('vidrio').map(id => {
-      if (id !== 'lateral') return nombreV[id];
-      const p = checked('pos');
-      return 'Vidrio lateral' + (p.length ? ' (' + p.join(', ').toLowerCase() + ')' : '');
-    });
+    const vid = [...sel].sort((a, b) => orden(a) - orden(b)).map(c => Cars.nombre(c));
     const auto = [marca(), modelo(), val('anio')].filter(Boolean).join(' ');
     const l = ['Hola CristalAuto, quiero solicitar una cotización.', ''];
     l.push('• Vehículo: ' + (auto || '—') + (tipo ? ' (' + tipo + ')' : ''));
     l.push('• Vidrio: ' + (vid.length ? vid.join('; ') : '—'));
-    const cp = checked('vidrio').includes('parabrisas') ? codigos('parabrisas') : [], cl = checked('vidrio').includes('luneta') ? codigos('luneta') : [];
+    const cp = sel.has('parabrisas') ? codigos('parabrisas') : [], cl = sel.has('luneta') ? codigos('luneta') : [];
     if (cp.length) l.push('• Código del parabrisas: ' + cp.join(' o '));
     if (cl.length) l.push('• Código de la luneta: ' + cl.join(' o '));
     if (form.elements.domicilio.checked) l.push('• Quiero el servicio a domicilio' + (val('zona') ? ' en ' + val('zona') : ''));
@@ -245,7 +253,7 @@
       if (!modelo()) f.push('el modelo');
       if (!val('tipo')) f.push('el tipo de carrocería');
     }
-    if (n === 2 && !checked('vidrio').length) f.push('elegí al menos un vidrio');
+    if (n === 2 && !sel.size) f.push('tocá al menos un vidrio del auto');
     return f;
   }
 
@@ -259,12 +267,11 @@
     atras.style.visibility = n === 1 ? 'hidden' : 'visible';
     sigue.hidden = n === 4;
     sigue.textContent = n === 3 ? 'Ver resumen' : 'Siguiente';
-    if (n === 2) pintarVidrios();
+    if (n === 2) pintarPicker();
     refrescar();
   }
 
   function refrescar() {
-    $('#posiciones').hidden = !checked('vidrio').includes('lateral');
     $('#otraMarca').hidden = val('marca') !== '__otra';
     $('#fModeloOtro').hidden = !$('#fModelo').hidden && val('modelo') !== '__otro';
     const av = $('#codAviso'), cp = codigos('parabrisas');

@@ -6,9 +6,29 @@
 window.Cars = (function () {
   'use strict';
 
-  const glass = (d, on, tint) =>
-    `<path d="${d}" fill="${on ? 'url(#cgh)' : tint ? '#0b1118' : 'url(#cg)'}" stroke="${on ? '#fff' : '#5c6674'}" stroke-width="${on ? 1.6 : 1}"/>` +
-    (on || tint ? '' : `<path d="${d}" fill="url(#cgl)" opacity=".55"/>`);
+  /* Nombres de cada vidrio (para etiquetas y para el mensaje de WhatsApp) */
+  const ZONAS = {
+    'parabrisas': ['Parabrisas delantero', ''],
+    'luneta': ['Luneta (vidrio trasero)', ''],
+    'puerta-del': ['Vidrio de la puerta delantera', 'f'],
+    'puerta-tra': ['Vidrio de la puerta trasera', 'f'],
+    'fijo-del': ['Vidrio fijo delantero', 'm'],
+    'fijo-tra': ['Vidrio fijo trasero', 'm'],
+  };
+  const LADOS = { izq: ['izquierda', 'izquierdo'], der: ['derecha', 'derecho'] };
+  /* clave 'puerta-del:izq' -> "Vidrio de la puerta delantera izquierda" */
+  const nombre = clave => {
+    const [z, l] = clave.split(':');
+    const [txt, g] = ZONAS[z] || [clave, ''];
+    return l ? txt + ' ' + LADOS[l][g === 'm' ? 1 : 0] : txt;
+  };
+
+  /* z = id de zona táctil; si viene, el vidrio se puede tocar para elegirlo */
+  const glass = (d, on, tint, z) => {
+    const attr = z ? ` class="z${on ? ' on' : ''}" data-z="${z}" tabindex="0" role="button" aria-pressed="${!!on}" aria-label="${(ZONAS[z] || [z])[0]}"` : '';
+    return `<path${attr} d="${d}" fill="${on ? 'url(#cgh)' : tint ? '#0b1118' : 'url(#cg)'}" stroke="${on ? '#fff' : '#5c6674'}" stroke-width="${on ? 1.6 : 1}"/>` +
+      (on || tint || z ? '' : `<path d="${d}" fill="url(#cgl)" opacity=".55" pointer-events="none"/>`);
+  };
 
   function wheel(cx, cy, r) {
     const rim = r * 0.62;
@@ -62,10 +82,21 @@ window.Cars = (function () {
     }
   };
 
-  function side(tipo, hl) {
+  /* Qué vidrio es cada pieza (el orden coincide con SIDE[..].lat y .fijo) */
+  const ZSIDE = {
+    sedan: { lat: ['puerta-tra', 'puerta-del'], fijo: ['fijo-tra', 'fijo-del'] },
+    hatch: { lat: ['puerta-tra', 'puerta-del'], fijo: ['fijo-tra', 'fijo-del'] },
+    suv: { lat: ['puerta-tra', 'puerta-del'], fijo: ['fijo-tra', 'fijo-del'] },
+    pickup: { lat: ['puerta-del'], fijo: ['fijo-tra'] },
+    van: { lat: ['puerta-tra', 'puerta-del'], fijo: ['fijo-tra'] },
+  };
+
+  /* o = { sel: Set de zonas elegidas } -> vidrios táctiles */
+  function side(tipo, hl, o) {
     const c = SIDE[tipo] || SIDE.sedan;
+    const Z = ZSIDE[tipo] || ZSIDE.sedan;
     const tint = hl === 'polar';
-    const gl = (arr, key) => arr.map(d => glass(d, hl === key, tint)).join('');
+    const gl = (arr, key, zs) => arr.map((d, i) => glass(d, o ? o.sel.has(zs[i]) : hl === key, tint, o ? zs[i] : null)).join('');
     const arches = c.wheels.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r + 5}" fill="#0f1013"/>`).join('');
     const whs = c.wheels.map(([x, y, r]) => wheel(x, y, r)).join('');
     const seams = c.seams.map(x => `<path d="M${x} 76V108" stroke="#8b919b" stroke-width="1" opacity=".8"/>`).join('');
@@ -78,7 +109,7 @@ window.Cars = (function () {
       </g>
       ${arches}
       <g transform="translate(0 112) scale(.96 1.2) translate(-8 -112)">
-        ${gl(c.fijo, 'fijo')}${gl(c.lat, 'lateral')}
+        ${gl(c.fijo, 'fijo', Z.fijo)}${gl(c.lat, 'lateral', Z.lat)}
         ${seams}${handles}
         <path d="${c.mirror}" fill="#e3e6eb" stroke="#858b96" stroke-width="1"/>
         <path d="M28 90Q200 84 372 92" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.4"/>
@@ -92,8 +123,8 @@ window.Cars = (function () {
   }
 
   /* ---------- Vista frontal ---------- */
-  function front(hl) {
-    const ws = hl === 'parabrisas', fa = hl === 'faros', pu = hl === 'pulida';
+  function front(hl, o) {
+    const ws = hl === 'parabrisas' || !!(o && o.sel.has('parabrisas')), fa = hl === 'faros', pu = hl === 'pulida';
     const lamp = (mirror) => `<g${mirror ? ' transform="translate(300 0) scale(-1 1)"' : ''}>
       <path d="M48 128Q68 118 100 126L96 142Q66 146 50 142Z" fill="${fa ? '#fff3b0' : 'url(#chl)'}" stroke="${fa ? '#ff3b2f' : '#7c828d'}" stroke-width="${fa ? 2 : 1}"/>
       <path d="M54 134Q74 128 94 134" stroke="${fa ? '#ff9b00' : '#fff'}" stroke-width="2" stroke-linecap="round" fill="none"/></g>`;
@@ -101,8 +132,8 @@ window.Cars = (function () {
       <ellipse cx="150" cy="188" rx="120" ry="8" fill="url(#csh)"/>
       <rect x="54" y="150" width="28" height="34" rx="5" fill="#111214"/><rect x="218" y="150" width="28" height="34" rx="5" fill="#111214"/>
       <path d="M66 100L90 36Q94 28 106 28H194Q206 28 210 36L234 100Z" fill="url(#cb)" stroke="#858b96" stroke-width="1.2"/>
-      <path d="M80 96L100 44Q103 38 112 38H188Q197 38 200 44L220 96Z" fill="${ws ? 'url(#cgh)' : 'url(#cg)'}" stroke="${ws ? '#fff' : '#5c6674'}" stroke-width="${ws ? 2 : 1.2}"/>
-      ${ws ? '' : '<path d="M80 96L100 44Q103 38 112 38H188Q197 38 200 44L220 96Z" fill="url(#cgl)" opacity=".5"/>'}
+      <path${o ? ` class="z${ws ? ' on' : ''}" data-z="parabrisas" tabindex="0" role="button" aria-pressed="${ws}" aria-label="Parabrisas delantero"` : ''} d="M80 96L100 44Q103 38 112 38H188Q197 38 200 44L220 96Z" fill="${ws ? 'url(#cgh)' : 'url(#cg)'}" stroke="${ws ? '#fff' : '#5c6674'}" stroke-width="${ws ? 2 : 1.2}"/>
+      ${ws || o ? '' : '<path d="M80 96L100 44Q103 38 112 38H188Q197 38 200 44L220 96Z" fill="url(#cgl)" opacity=".5"/>'}
       ${pu ? '<path d="M200 56l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" fill="#fff"/><path d="M104 74l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="#fff" opacity=".8"/>' : ''}
       <path d="M92 90L146 78M154 78L208 90" stroke="#0e0f12" stroke-width="3" stroke-linecap="round"/>
       <path d="M44 148Q50 112 62 100H238Q250 112 256 148Z" fill="url(#chd)" stroke="#858b96" stroke-width="1.2"/>
@@ -116,14 +147,14 @@ window.Cars = (function () {
   }
 
   /* ---------- Vista trasera ---------- */
-  function rear(hl) {
-    const lu = hl === 'luneta';
+  function rear(hl, o) {
+    const lu = hl === 'luneta' || !!(o && o.sel.has('luneta'));
     return `<svg class="car car-rear" viewBox="0 0 300 200" role="img" aria-hidden="true">
       <ellipse cx="150" cy="188" rx="120" ry="8" fill="url(#csh)"/>
       <rect x="54" y="150" width="28" height="34" rx="5" fill="#111214"/><rect x="218" y="150" width="28" height="34" rx="5" fill="#111214"/>
       <path d="M66 98L90 38Q94 30 106 30H194Q206 30 210 38L234 98Z" fill="url(#cb)" stroke="#858b96" stroke-width="1.2"/>
-      <path d="M82 94L102 52Q105 46 114 46H186Q195 46 198 52L218 94Z" fill="${lu ? 'url(#cgh)' : 'url(#cg)'}" stroke="${lu ? '#fff' : '#5c6674'}" stroke-width="${lu ? 2 : 1.2}"/>
-      ${lu ? '' : '<path d="M82 94L102 52Q105 46 114 46H186Q195 46 198 52L218 94Z" fill="url(#cgl)" opacity=".5"/>'}
+      <path${o ? ` class="z${lu ? ' on' : ''}" data-z="luneta" tabindex="0" role="button" aria-pressed="${lu}" aria-label="Luneta"` : ''} d="M82 94L102 52Q105 46 114 46H186Q195 46 198 52L218 94Z" fill="${lu ? 'url(#cgh)' : 'url(#cg)'}" stroke="${lu ? '#fff' : '#5c6674'}" stroke-width="${lu ? 2 : 1.2}"/>
+      ${lu || o ? '' : '<path d="M82 94L102 52Q105 46 114 46H186Q195 46 198 52L218 94Z" fill="url(#cgl)" opacity=".5"/>'}
       <path d="M96 86H204M100 74H200" stroke="${lu ? '#fff' : '#8fa9c2'}" stroke-opacity=".55" stroke-width="1"/>
       <path d="M44 142Q50 112 62 98H238Q250 112 256 142Z" fill="url(#chd)" stroke="#858b96" stroke-width="1.2"/>
       <path d="M62 98Q42 96 38 110Q44 120 64 114Z" fill="#e3e6eb" stroke="#858b96"/><path d="M238 98Q258 96 262 110Q256 120 236 114Z" fill="#e3e6eb" stroke="#858b96"/>
@@ -134,5 +165,5 @@ window.Cars = (function () {
     </svg>`;
   }
 
-  return { side, front, rear };
+  return { side, front, rear, nombre };
 })();
