@@ -619,3 +619,14 @@ window.LOGOS = {
   'Chevrolet': 'chevrolet', 'Infiniti': 'infiniti', 'Mitsubishi': 'mitsubishi', 'Mazda': 'mazda', 'Suzuki': 'suzuki',
   'Ford': 'ford', 'Fiat': 'fiat', 'Renault': 'renault', 'Peugeot': 'peugeot', 'Subaru': 'subaru', 'Jeep': 'jeep'
 };
+
+/* AUTO GENÉRICO EN LÍNEA PARA ELEGIR EL VIDRIO (img/auto/*.webp). Sin marca ni modelo.
+   zonas = contorno de cada vidrio sobre la imagen, en porcentaje (0 a 100) [[x,y],...]
+   costado -> 'puerta-del', 'puerta-tra', 'fijo-del', 'fijo-tra'   frente -> 'parabrisas'   atras -> 'luneta' */
+window.AUTO_LINEA = {
+  tipos: ['sedan', 'hatch'],   // carrocerías que usan estas imágenes (las demás usan su dibujo)
+  izq:    { src: 'img/auto/lado-izq.webp', zonas: { 'fijo-del': [[27.6,33.6],[30.8,29.8],[33.2,28.6],[33.2,33.8]], 'puerta-del': [[31.5,34.2],[40.0,14.0],[52.0,10.3],[51.5,32.8]], 'puerta-tra': [[55.6,10.0],[67.5,11.4],[68.0,29.0],[55.4,31.6]], 'fijo-tra': [[69.5,12.0],[73.0,15.0],[77.5,24.5],[77.5,28.0],[70.0,30.5]] } },   // lado del conductor
+  der:    { src: 'img/auto/lado-der.webp', zonas: { 'fijo-del': [[72.4,33.6],[69.2,29.8],[66.8,28.6],[66.8,33.8]], 'puerta-del': [[68.5,34.2],[60.0,14.0],[48.0,10.3],[48.5,32.8]], 'puerta-tra': [[44.4,10.0],[32.5,11.4],[32.0,29.0],[44.6,31.6]], 'fijo-tra': [[30.5,12.0],[27.0,15.0],[22.5,24.5],[22.5,28.0],[30.0,30.5]] } },   // lado del acompañante
+  frente: { src: 'img/auto/frente.webp',   zonas: { 'parabrisas': [[15,29.5],[25.3,9.5],[74.7,9.5],[85,29.5],[80,31.3],[20,31.3]] } },
+  atras:  { src: 'img/auto/atras.webp',     zonas: { 'luneta': [[15.7,28],[24.8,9.6],[75.2,9.6],[84,28],[82,30],[18,30]] } },
+};

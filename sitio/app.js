@@ -178,8 +178,11 @@
     prev.classList.remove('foto');
     prev.classList.toggle('vacio', !tipo);
     const insignia = marca() && modelo() ? `<span class="veh-badge">${logoMarca(marca())}<b>${nombreAuto()}</b></span>` : '';
+    const AL = window.AUTO_LINEA || {};
+    const imagen = (!tipo || (AL.tipos || []).includes(kDe(tipo))) && AL.izq;
+    prev.classList.toggle('linea', !!imagen);
     prev.classList.remove('foto');
-    prev.innerHTML = Cars.side(kDe(tipo), '') + insignia;
+    prev.innerHTML = (imagen ? `<img src="${AL.izq.src}" alt="">` : Cars.side(kDe(tipo), '')) + insignia;
     if (dir.length > 1) hayFoto(dir, 'lado').then(u => {
       if (u && ultimaVista === clave) { prev.innerHTML = fotoHTML(u, 'lado', dir) + insignia; prev.classList.add('foto'); prev.classList.remove('vacio'); }
     });
@@ -190,6 +193,17 @@
   let vista = 'lado', lado = 'izq', enfocar = null;   // el dibujo muestra el lado del conductor (izquierdo)
   const orden = c => ['parabrisas', 'luneta', 'puerta-del', 'puerta-tra', 'fijo-del', 'fijo-tra'].indexOf(c.split(':')[0]) * 3 + (c.endsWith(':izq') ? 0 : 1);
   const claveDe = z => (z === 'parabrisas' || z === 'luneta') ? z : z + ':' + lado;
+
+  /* Imagen en línea del auto con los vidrios tocables encima (ver catalogo.js -> AUTO_LINEA) */
+  function imagenPicker(v, activos, k) {
+    const AL = window.AUTO_LINEA || {};
+    if (!(AL.tipos || []).includes(k)) return null;
+    const cfg = AL[v === 'lado' ? lado : v];
+    if (!cfg) return null;
+    const polys = Object.entries(cfg.zonas).map(([z, p]) =>
+      `<polygon class="z${activos.has(z) ? ' on' : ''}" data-z="${z}" tabindex="0" role="button" aria-pressed="${activos.has(z)}" aria-label="${Cars.nombre(z)}" points="${p.map(q => q.join(',')).join(' ')}"/>`).join('');
+    return `<div class="foto-picker"><img src="${cfg.src}" alt="" draggable="false"><svg viewBox="0 0 100 100" preserveAspectRatio="none">${polys}</svg></div>`;
+  }
 
   function pintarLista() {
     const l = $('#selLista');
@@ -205,8 +219,10 @@
     $('#vehResumen').innerHTML = logoMarca(marca()) + [nombreAuto(), val('anio')].filter(Boolean).join(' ') + (tipo ? ' · ' + tipo : '');
     const deLado = new Set([...sel].filter(c => c.endsWith(':' + lado)).map(c => c.split(':')[0]));
     const o = { sel: vista === 'lado' ? deLado : sel };
-    $('#picker').innerHTML = vista === 'frente' ? Cars.front('', o) : vista === 'atras' ? Cars.rear('', o) : Cars.side(k, '', o);
-    $('#picker').classList.toggle('espejo', vista === 'lado' && lado !== 'izq');
+    const img = imagenPicker(vista, o.sel, k);
+    $('#picker').innerHTML = img || (vista === 'frente' ? Cars.front('', o) : vista === 'atras' ? Cars.rear('', o) : Cars.side(k, '', o));
+    $('#picker').classList.toggle('con-foto', !!img);
+    $('#picker').classList.toggle('espejo', !img && vista === 'lado' && lado !== 'izq');
     $('#ladoBox').hidden = vista !== 'lado';
     $$('.vista').forEach(b => b.classList.toggle('on', b.dataset.v === vista));
     $$('.lado').forEach(b => b.classList.toggle('on', b.dataset.l === lado));

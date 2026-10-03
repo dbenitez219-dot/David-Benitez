@@ -740,3 +740,18 @@ select{background-repeat:no-repeat;background-position:right 14px center;backgro
 .car .z.on{filter:none}
 .veh-prev .car{max-width:520px;filter:drop-shadow(0 12px 16px rgba(0,0,0,.45))}
 .svc-car .car{filter:drop-shadow(0 10px 12px rgba(0,0,0,.4))}
+
+/* Imágenes en línea sobre fondo claro (como el ejemplo) */
+.picker.con-foto{background:#f6f4f0;padding:14px 10px;box-shadow:inset 0 0 0 1px rgba(255,59,47,.35)}
+.picker.con-foto .foto-picker{max-width:720px}
+.foto-picker img{filter:none;border-radius:0}
+.foto-picker polygon{fill:rgba(224,36,27,.07);stroke:rgba(224,36,27,.55);stroke-width:1.6;stroke-dasharray:5 4;vector-effect:non-scaling-stroke}
+.foto-picker polygon:not(.on){animation:fpulse3 2.2s ease-in-out infinite}
+@keyframes fpulse3{50%{fill:rgba(224,36,27,.26)}}
+.foto-picker polygon:hover{fill:rgba(224,36,27,.45)}
+.foto-picker polygon.on{fill:rgba(224,36,27,.62);stroke:#8d0f08;stroke-width:2.4;stroke-dasharray:none;animation:none}
+.veh-prev.linea{background:#f6f4f0;padding:44px 14px 10px;aspect-ratio:auto}
+.veh-prev.linea>img{width:100%;max-width:520px;height:auto;display:block;margin:0 auto;object-fit:contain}
+.veh-prev.linea .veh-badge{background:#0b0b0d}
+.foto-picker img,.veh-prev.linea>img{mix-blend-mode:multiply}
+.foto-picker polygon.on{mix-blend-mode:multiply}
