@@ -729,4 +729,4 @@ select{background-repeat:no-repeat;background-position:right 14px center;backgro
 .picker.con-foto{background:radial-gradient(ellipse at 50% 100%,rgba(255,59,47,.3) 0,rgba(20,8,10,.92) 64%)}
 .veh-prev.foto{aspect-ratio:auto;padding:46px 18px 14px;overflow:visible}
 .veh-prev.foto>img{width:100%;max-width:520px;height:auto;object-fit:contain;filter:drop-shadow(0 16px 20px rgba(0,0,0,.55))}
-.foto-picker polygon{fill:rgba(255,59,47,.10)}
+.foto-picker polygon{fill:rgba(255,59,47,.22);stroke:rgba(255,255,255,.55)}
