@@ -23,5 +23,7 @@ window.SITE = {
     total: null,         // ej: 57    (cantidad total de reseñas en Google)
   },
   resenas: [],           // ej: [{ nombre: 'Juan P.', fecha: 'hace 2 semanas', estrellas: 5, texto: 'Excelente atención' }]
+  // Marcas de vidrio con las que trabajan. Agregá o quitá nombres de esta lista.
+  marcasVidrio: ['Pilkington', 'Saint-Gobain Sekurit', 'XYG'],
   redes: { facebook: 'https://www.facebook.com/Parabrisascristalauto', instagram: 'https://www.instagram.com/cristalauto_', tiktok: 'https://www.tiktok.com/@cristalauto' },
 };

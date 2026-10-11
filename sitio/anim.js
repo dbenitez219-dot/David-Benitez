@@ -14,7 +14,7 @@
   $('#tilesB').innerHTML = fila(marcas.slice(mitad));
 
   /* Aparecer al hacer scroll */
-  const targets = $$('.sec-head, #cotizador, .svc, .steps li, .why-list li, .info li, .map, .contact .cta, .gallery figure, .badges, .g-head, .rev-wrap, .gar-col, .gar-nota, .gar-cta');
+  const targets = $$('.sec-head, #cotizador, .svc, .steps li, .why-list li, .info li, .map, .contact .cta, .gallery figure, .badges, .g-head, .rev-wrap, .gar-col, .gar-nota, .gar-cta, .cal-card, .vmarcas li, .vm-t, .vm-nota, .vm-cta');
   targets.forEach((el, i) => {
     el.classList.add('reveal');
     const sib = el.parentElement ? [...el.parentElement.children].indexOf(el) : 0;

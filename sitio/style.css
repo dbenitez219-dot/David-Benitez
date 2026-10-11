@@ -816,3 +816,18 @@ footer ul a{display:inline-block;padding:6px 0}
 .gar-nota strong{color:#fff}
 .gar-cta{justify-content:center;margin-top:22px}
 @media (min-width:760px){.gar-grid{grid-template-columns:1fr 1fr;gap:20px}}
+
+/* ===== Vidrios y marcas de vidrio ===== */
+.cal-grid{display:grid;gap:16px;grid-template-columns:1fr;max-width:980px;margin:0 auto}
+.cal-card{padding:26px 24px;clip-path:var(--cut);background:var(--diag) right top/22px 22px no-repeat,var(--diag) left bottom/22px 22px no-repeat,var(--card);box-shadow:inset 0 0 0 1px rgba(255,59,47,.3)}
+.cal-card h3{margin:0 0 10px;font-size:22px;font-weight:800;letter-spacing:-.01em}
+.cal-card p{margin:0;color:#d9cfcf;font-size:15.5px;line-height:1.6}
+.vm-t{text-align:center;margin:44px 0 20px;font-size:14px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.vmarcas{list-style:none;margin:0 auto;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:12px;max-width:980px}
+.vmarcas li{flex:1 1 220px;max-width:300px;display:grid;place-items:center;min-height:76px;padding:0 24px;transform:skewX(-14deg);background:linear-gradient(135deg,rgba(190,16,12,.32),rgba(30,8,10,.88));border:1px solid rgba(255,59,47,.28);box-shadow:inset 0 0 22px rgba(255,59,47,.08)}
+.vmarcas li b{transform:skewX(14deg);font-size:20px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;text-align:center}
+.vm-nota{text-align:center;color:var(--mut);margin:26px auto 0;max-width:560px}
+.vm-cta{justify-content:center;margin-top:20px}
+@media (min-width:760px){.cal-grid{grid-template-columns:1fr 1fr;gap:20px}}
+.vmarcas li{transform:none!important;border:0;clip-path:polygon(18px 0,100% 0,calc(100% - 18px) 100%,0 100%);box-shadow:none;background:linear-gradient(135deg,rgba(210,24,16,.42),rgba(30,8,10,.92))}
+.vmarcas li b{transform:none}

@@ -60,6 +60,9 @@
     $('#menuOpiniones').hidden = false;
   }
 
+  $('#vmarcas').innerHTML = (C.marcasVidrio || []).map(m => `<li><b>${m}</b></li>`).join('');
+  if (!(C.marcasVidrio || []).length) $('#vmarcas').hidden = true;
+
   /* Menú del celular */
   const burger = $('#burger'), menu = $('#menu');
   const cerrar = () => { menu.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); };
