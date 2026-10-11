@@ -23,5 +23,5 @@ window.SITE = {
     total: null,         // ej: 57    (cantidad total de reseñas en Google)
   },
   resenas: [],           // ej: [{ nombre: 'Juan P.', fecha: 'hace 2 semanas', estrellas: 5, texto: 'Excelente atención' }]
-  redes: { facebook: '', instagram: '', tiktok: '' },
+  redes: { facebook: 'https://www.facebook.com/Parabrisascristalauto', instagram: 'https://www.instagram.com/cristalauto_', tiktok: 'https://www.tiktok.com/@cristalauto' },
 };
