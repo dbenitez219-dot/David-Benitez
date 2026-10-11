@@ -15,7 +15,7 @@
   $('#anio').textContent = new Date().getFullYear();
   const q = encodeURIComponent(C.mapaQuery);
   $('#mapa').src = 'https://www.google.com/maps?q=' + q + '&hl=es&output=embed';
-  $('#maplink').href = 'https://www.google.com/maps/search/?api=1&query=' + q;
+  $('#maplink').href = C.mapaEnlace || ('https://www.google.com/maps/search/?api=1&query=' + q);
   const nombres = { facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok' };
   $('#redes').innerHTML = Object.entries(C.redes || {})
     .filter(([, url]) => url)

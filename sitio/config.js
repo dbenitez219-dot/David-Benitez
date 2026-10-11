@@ -5,6 +5,7 @@ window.SITE = {
   telefonoVisible: '0984 102 671',
   telefonoLink: '+595984102671',
   direccion: 'Calle Nicanor Ríos, San Lorenzo, Paraguay',
+  mapaEnlace: 'https://maps.app.goo.gl/JNM4VwWQ8xu85ftQ7?g_st=ic',   // abre la ubicación exacta en Google Maps
   mapaQuery: 'Nicanor Ríos, San Lorenzo, Paraguay',
   // días: 0=domingo ... 6=sábado; horas en minutos desde las 00:00
   horarios: {
@@ -17,7 +18,7 @@ window.SITE = {
   galeria: [],                    // ej: [{ src: 'img/trabajo1.jpg', alt: 'Cambio de parabrisas' }]
   // Reseñas de Google Maps. Solo opiniones REALES (no inventar). La sección aparece sola cuando hay al menos una.
   google: {
-    enlace: '',          // link de CristalAuto en Google Maps (para el botón "Ver todas las reseñas")
+    enlace: 'https://maps.app.goo.gl/JNM4VwWQ8xu85ftQ7?g_st=ic',          // link de CristalAuto en Google Maps (para el botón "Ver todas las reseñas")
     calificacion: null,  // ej: 4.8   (la que muestra Google)
     total: null,         // ej: 57    (cantidad total de reseñas en Google)
   },
