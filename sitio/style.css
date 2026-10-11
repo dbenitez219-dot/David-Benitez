@@ -841,3 +841,5 @@ footer ul a{display:inline-block;padding:6px 0}
 .hero h1 em{display:block}
 @media (min-width:900px){.hero h1{font-size:clamp(48px,5.4vw,84px)}}
 .lead{font-size:clamp(15px,2vw,17px)}
+@media (min-width:900px){#revPrev{left:-56px}#revNext{right:-56px}.rev-wrap{margin-inline:0}}
+@media (min-width:900px) and (max-width:1300px){#revPrev{left:-12px}#revNext{right:-12px}.rev-track{padding-inline:30px}}
