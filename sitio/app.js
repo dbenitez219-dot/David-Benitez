@@ -60,6 +60,7 @@
     $('#menuOpiniones').hidden = false;
   }
 
+  $$('[data-polar]').forEach(a => { a.href = waUrl('Hola CristalAuto, quiero cotizar polarizado para mi vehículo.\n\n• Vehículo (marca, modelo y año): '); });
   $('#vmarcas').innerHTML = (C.marcasVidrio || []).map(m => `<li><b>${m}</b></li>`).join('');
   if (!(C.marcasVidrio || []).length) $('#vmarcas').hidden = true;
 
