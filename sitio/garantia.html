@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Garantía CristalAuto | Verificar sticker</title>
+<meta name="description" content="Verificá tu garantía de 1 año por la instalación de CristalAuto Parabrisas.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="icon" href="/img/icon-192.png">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="gar-page">
+<header class="top"><div class="wrap top-in">
+  <a class="brand" href="/" aria-label="CristalAuto Parabrisas, inicio"><span class="brand-name"><b>CRISTAL</b><b class="r">AUTO</b></span><span class="brand-sub">PARABRISAS</span></a>
+  <div class="top-actions"><a class="btn btn-sm btn-call" href="/#cotizar">Cotizar</a></div>
+</div></header>
+
+<main>
+<section class="sec sec-dark gv">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="kicker">Garantía</span>
+      <h1 class="gv-h">Verificá tu garantía</h1>
+      <p class="sub">Escribí el código que figura en el sticker de tu vidrio, o escaneá su código QR.</p>
+    </div>
+
+    <form id="gvForm" class="gv-form" novalidate>
+      <label for="gvCodigo">Código del sticker</label>
+      <div class="gv-row">
+        <input id="gvCodigo" name="codigo" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CA-XXXX-XXXX" maxlength="14">
+        <button class="btn btn-red" type="submit">Verificar</button>
+      </div>
+    </form>
+
+    <div id="gvOk" class="gv-res ok" hidden role="status">
+      <h2>Garantía original de CristalAuto</h2>
+      <p class="gv-cod"></p>
+      <p>Este sticker es original. Cubre <strong>1 año por la instalación</strong>, desde la fecha escrita en el sticker.</p>
+    </div>
+    <div id="gvNo" class="gv-res no" hidden role="status">
+      <h2>Código no válido</h2>
+      <p>No encontramos ese código. Revisalo con cuidado, o escribinos por WhatsApp para consultarlo.</p>
+    </div>
+
+    <div class="gar-grid gv-grid">
+      <article class="gar-col si">
+        <h3><span class="gar-ic" aria-hidden="true">✓</span> Qué cubre</h3>
+        <ul>
+          <li><b>Filtraciones.</b> Si entra agua o aire por la zona del vidrio por un problema de la instalación.</li>
+          <li><b>Instalación mal hecha.</b> Vidrio mal asentado, mal pegado o mal colocado.</li>
+          <li><b>Ruidos por la instalación.</b> Silbidos o ruidos de viento por cómo quedó colocado.</li>
+        </ul>
+      </article>
+      <article class="gar-col no">
+        <h3><span class="gar-ic" aria-hidden="true">✕</span> Qué no cubre</h3>
+        <ul>
+          <li><b>Rotura del vidrio</b> por una piedra, un golpe o un accidente.</li>
+          <li><b>Daños por mal uso</b> o golpes en la zona del vidrio después de la instalación.</li>
+          <li><b>Trabajos hechos por otra persona</b> sobre el vidrio que instalamos.</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="cta gar-cta">
+      <a class="btn btn-wa" id="gvWa" target="_blank" rel="noopener" href="#">Reclamar o consultar por WhatsApp</a>
+    </div>
+    <p class="gar-nota">Dirección: Calle Nicanor Ríos, San Lorenzo. Lunes a viernes de 7:30 a 17:30 y sábados de 7:30 a 12:30.</p>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap foot-bottom" style="padding-bottom:40px"><span>© CristalAuto Parabrisas. Todos los derechos reservados.</span><a href="/">Volver a la página principal</a></div></footer>
+
+<script src="/config.js"></script>
+<script src="/garantia/codigos.js"></script>
+<script>
+(function () {
+  'use strict';
+  var C = window.SITE, $ = function (s) { return document.querySelector(s); };
+  var wa = function (t) { return 'https://wa.me/' + C.whatsapp + '?text=' + encodeURIComponent(t); };
+  var norm = function (s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+  var formato = function (n) { return n.length === 10 && n.slice(0, 2) === 'CA' ? 'CA-' + n.slice(2, 6) + '-' + n.slice(6) : null; };
+  function sha256(txt) {
+    if (!window.crypto || !crypto.subtle) return Promise.resolve(null);
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt)).then(function (b) {
+      return Array.prototype.map.call(new Uint8Array(b), function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+    });
+  }
+  function mostrar(ok, codigo) {
+    $('#gvOk').hidden = ok !== true; $('#gvNo').hidden = ok !== false;
+    if (ok === true) $('#gvOk .gv-cod').textContent = 'Código ' + codigo;
+    $('#gvWa').href = wa('Hola CristalAuto, quiero consultar por mi garantía.' + (codigo ? '\n\n• Código del sticker: ' + codigo : ''));
+    var el = ok === true ? $('#gvOk') : ok === false ? $('#gvNo') : null; if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function verificar(txt) {
+    var cod = formato(norm(txt));
+    if (!cod) { mostrar(false, ''); return; }
+    sha256(cod).then(function (h) {
+      if (h === null) { mostrar(null, cod); return; }
+      mostrar(window.CODIGOS_GARANTIA.has(h), cod);
+    });
+  }
+  $('#gvForm').addEventListener('submit', function (e) { e.preventDefault(); verificar($('#gvCodigo').value); });
+  var q = new URLSearchParams(location.search).get('c');
+  var m = location.pathname.match(/\/g\/([^\/]+)/);
+  var inicial = q || (m && decodeURIComponent(m[1]));
+  $('#gvWa').href = wa('Hola CristalAuto, quiero consultar por mi garantía.');
+  if (inicial) { $('#gvCodigo').value = inicial; verificar(inicial); }
+})();
+</script>
+</body>
+</html>

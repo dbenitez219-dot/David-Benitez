@@ -863,3 +863,22 @@ footer ul a{display:inline-block;padding:6px 0}
 .pol-cta{justify-content:center;margin-top:16px}
 @media (min-width:760px){.pol-tipos{grid-template-columns:1fr 1fr;gap:20px}}
 @media (min-width:900px){#polarizado .pol-list{grid-template-columns:repeat(4,1fr)}}
+
+/* ===== Página de verificación de garantía ===== */
+.gv{padding-top:60px}
+.gv-h{font-size:clamp(30px,6vw,52px)}
+.gv-form{max-width:560px;margin:0 auto 26px}
+.gv-form label{display:block;margin-bottom:8px}
+.gv-row{display:flex;gap:10px;flex-wrap:wrap}
+.gv-row input{flex:1 1 220px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;font-size:18px}
+.gv-res{max-width:560px;margin:0 auto 34px;padding:22px 24px;clip-path:var(--cut)}
+.gv-res h2{font-size:22px;margin:0 0 8px;text-transform:none;letter-spacing:-.01em;line-height:1.2}
+.gv-res h2::after{display:none}
+.gv-res p{margin:0 0 6px;color:#e6dcdc}
+.gv-res.ok{background:rgba(46,230,107,.12);box-shadow:inset 0 0 0 1px rgba(46,230,107,.5)}
+.gv-res.ok h2{color:#86f0ad}
+.gv-res.no{background:rgba(255,59,47,.14);box-shadow:inset 0 0 0 1px rgba(255,59,47,.55)}
+.gv-res.no h2{color:#ff9d94}
+.gv-cod{font-family:'Courier New',monospace;font-weight:700;letter-spacing:.08em;color:#fff!important}
+.gv-grid{margin-top:10px}
+.gar-page .gv-grid{max-width:980px}
