@@ -60,7 +60,6 @@
     $('#menuOpiniones').hidden = false;
   }
 
-  $$('[data-polar]').forEach(a => { a.href = waUrl('Hola CristalAuto, quiero cotizar polarizado para mi vehículo.\n\n• Vehículo (marca, modelo y año): '); });
   $('#vmarcas').innerHTML = (C.marcasVidrio || []).map(m => `<li><b>${m}</b></li>`).join('');
   if (!(C.marcasVidrio || []).length) $('#vmarcas').hidden = true;
 
@@ -263,6 +262,8 @@
     const cp = sel.has('parabrisas') ? codigos('parabrisas') : [], cl = sel.has('luneta') ? codigos('luneta') : [];
     if (cp.length) l.push('• Código del parabrisas: ' + cp.join(' o '));
     if (cl.length) l.push('• Código de la luneta: ' + cl.join(' o '));
+    const pol = val('polarizado');
+    if (pol) l.push('• Polarizado: ' + (pol === 'asesoramiento' ? 'quiero que me asesoren sobre cuál conviene' : pol));
     if (form.elements.domicilio.checked) l.push('• Quiero el servicio a domicilio' + (val('zona') ? ' en ' + val('zona') : ''));
     if (val('nota')) l.push('• Detalle: ' + val('nota'));
     if (val('nombre')) l.push('', 'Mi nombre: ' + val('nombre'));
@@ -345,7 +346,7 @@
     ['luneta', 'Lunetas', 'Cambio del vidrio trasero.'],
     ['lateral', 'Vidrios laterales', 'Puertas delanteras y traseras.'],
     ['fijo', 'Vidrios fijos', 'Los vidrios fijos laterales y traseros.'],
-    ['polar', 'Polarizado', 'Más privacidad y menos calor dentro del vehículo.'],
+    ['polar', 'Polarizado', 'Polarizado nanocarbón y nanocerámico. Más privacidad y menos calor dentro del vehículo.'],
     ['pulida', 'Pulida de vidrios', 'Recuperamos la transparencia de tus vidrios.'],
     ['faro', 'Pulida de faros', 'Faros opacos o amarillentos, como nuevos.'],
   ];
@@ -369,7 +370,7 @@
   }
   $('#servicios-lista').innerHTML = SERVICIOS.map(([k, t, d], i) => {
     const link = ['polar', 'pulida', 'faro'].includes(k)
-      ? waUrl(`Hola CristalAuto, quiero consultar por ${t.toLowerCase()}.`) : '#cotizar';
+      ? waUrl(k === 'polar' ? 'Hola CristalAuto, quiero cotizar polarizado para mi vehículo.\n\n• Tipo (nanocarbón, nanocerámico o quiero asesoramiento): \n• Vehículo (marca, modelo y año): ' : `Hola CristalAuto, quiero consultar por ${t.toLowerCase()}.`) : '#cotizar';
     const ext = link[0] === 'h' ? ' target="_blank" rel="noopener"' : '';
     return `<article class="svc${i === 0 ? ' big' : ''}">
       <div class="svc-top"><div class="svc-car">${svcImg(k)}</div><span class="svc-n">0${i + 1}</span></div>

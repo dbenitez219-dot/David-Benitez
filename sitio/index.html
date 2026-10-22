@@ -56,7 +56,6 @@
       <a href="#cotizar">Cotizar</a>
       <a href="#servicios">Servicios</a>
       <a href="#proceso">Cómo trabajamos</a>
-      <a href="#polarizado">Polarizado</a>
       <a href="#garantia">Garantía</a>
       <a href="#nosotros">Por qué elegirnos</a>
       <a href="#opiniones" id="menuOpiniones" hidden>Opiniones</a>
@@ -197,6 +196,14 @@
             <input name="nombre" autocomplete="name" placeholder="Ej: Juan">
           </label>
         </div>
+        <label>¿Querés cotizar también polarizado?
+          <select name="polarizado" id="fPolar">
+            <option value="">No, solo el vidrio</option>
+            <option value="nanocarbón">Sí, polarizado nanocarbón</option>
+            <option value="nanocerámico">Sí, polarizado nanocerámico</option>
+            <option value="asesoramiento">Sí, quiero que me asesoren</option>
+          </select>
+        </label>
         <label class="check"><input type="checkbox" name="domicilio"> Quiero el servicio a domicilio</label>
         <label class="block" id="zonaBox" hidden>¿En qué zona o barrio estás?
           <input name="zona" autocomplete="off" placeholder="Ej: Luque, centro">
@@ -262,25 +269,6 @@
     <ul class="vmarcas" id="vmarcas" aria-label="Marcas de vidrio"></ul>
     <p class="vm-nota">Consultanos qué marca hay disponible para tu vehículo y te cotizamos.</p>
     <div class="cta vm-cta"><a class="btn btn-red" href="#cotizar">Pedir cotización</a></div>
-  </div>
-</section>
-
-<section id="polarizado" class="sec sec-dark">
-  <div class="wrap pol">
-    <div class="sec-head">
-      <span class="kicker">Polarizado</span>
-      <h2>Polarizado para tu vehículo</h2>
-      <p class="sub">También hacemos polarizado de vidrios, con instalación prolija en nuestro taller de San Lorenzo.</p>
-      <div class="cta">
-        <a class="btn btn-wa" data-polar target="_blank" rel="noopener" href="#">Cotizar polarizado por WhatsApp</a>
-      </div>
-    </div>
-    <ul class="pol-list">
-      <li><b>Más privacidad</b><span>Los de afuera ven menos lo que hay dentro del vehículo.</span></li>
-      <li><b>Menos calor</b><span>El interior se calienta menos con el sol.</span></li>
-      <li><b>Menos encandilamiento</b><span>Te molesta menos la luz fuerte del sol y de otros vehículos.</span></li>
-      <li><b>Mejor aspecto</b><span>Le da a tu vehículo un acabado más prolijo.</span></li>
-    </ul>
   </div>
 </section>
 
@@ -426,7 +414,7 @@
       <ul>
         <li><a href="#servicios">Parabrisas y lunetas</a></li>
         <li><a href="#servicios">Vidrios laterales y fijos</a></li>
-        <li><a href="#polarizado">Polarizado</a></li>
+        <li><a href="#servicios">Polarizado</a></li>
         <li><a href="#servicios">Pulida de vidrios y faros</a></li>
         <li><a href="#vidrios">Marcas de vidrio</a></li>
         <li><a href="#garantia">Garantía de 1 año</a></li>
