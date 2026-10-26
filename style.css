@@ -108,3 +108,9 @@ tr.click:hover{background:rgba(100,116,139,.08)}
 .cnt-n{flex:1 1 auto;min-width:0;font-size:14px}.cnt-s{flex:0 0 58px;text-align:center;font-size:14px}
 .cnt-i{flex:0 0 96px;display:flex;align-items:center;gap:6px}.cnt-i input{width:64px;text-align:center;font-size:18px;font-weight:700;padding:8px 4px}
 .cnt-d{font-weight:700;font-size:14px;min-width:26px}.cnt-d.ok{color:#16a34a}.cnt-d.bad{color:#dc2626}
+
+.camp{border:1px solid var(--bd);border-left:5px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--card)}
+.camp.ok{border-left-color:#16a34a}.camp.bad{border-left-color:#dc2626}
+.camp-g{display:flex;gap:8px;margin:10px 0}.camp-g>div{flex:1;background:rgba(100,116,139,.1);border-radius:10px;padding:8px;text-align:center}
+.camp-g span{display:block;font-size:12px;color:var(--mut,#64748b)}.camp-g b{display:block;font-size:16px}.camp-g small{display:block;font-size:11px;color:var(--mut,#64748b)}
+.camp-t{display:flex;justify-content:space-between;padding:3px 0}.camp-t.big{font-size:18px;font-weight:700;border-top:1px solid var(--bd);margin-top:4px;padding-top:6px}

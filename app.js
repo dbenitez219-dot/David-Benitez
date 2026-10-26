@@ -657,10 +657,13 @@ function campStats(c) {
   return { gasto, n: L.length, g: G.length, ventas, gan, neto: gan - gasto, cpl: L.length ? gasto / L.length : 0 };
 }
 function listaCampanas() {
-  const C = db.campaigns.slice().sort((a, b) => (b.start || '').localeCompare(a.start || ''));
-  $('#cp_list').innerHTML = C.length ? tabla(['Campaña', 'Gasto', 'Consultas', 'Ganadas', 'Ventas', 'Ganancia − gasto', ''], C.map(c => { const s = campStats(c);
-    return `<tr><td class="wrap"><b>${esc(c.name)}</b><br><span class="mut">${esc(c.platform)}</span></td><td class="n">${gs(s.gasto)}</td><td class="n">${s.n}${s.n && s.gasto ? `<br><span class="mut">${gs(s.cpl)} c/u</span>` : ''}</td><td class="n">${s.g}</td><td class="n">${gs(s.ventas)}</td>
-    <td class="n"><b style="color:var(${s.neto >= 0 ? '--ok' : '--bad'})">${gs(s.neto)}</b></td><td><button class="btn sec sm" data-cp="${c.id}">Editar</button></td></tr>`; }).join(''), [1, 2, 3, 4, 5]) : '<p class="mut">Todavía no creaste campañas.</p>';
+  const C = db.campaigns.slice().sort((a, b) => (b.start || '').localeCompare(a.start || '')), B = boss();
+  $('#cp_list').innerHTML = C.length ? C.map(c => { const s = campStats(c), ok = s.neto >= 0, sinDatos = !s.gasto && !s.n;
+    const veredicto = sinDatos ? '' : !s.g ? '⏳ Todavía sin ventas de esta campaña' : ok ? '✅ Dejó ganancia' : '🔴 Gastaste más de lo que ganaste';
+    return `<div class="camp ${sinDatos ? '' : ok && s.g ? 'ok' : s.g ? 'bad' : ''}"><div class="row" style="align-items:center"><div style="flex:1"><b>${esc(c.name)}</b><br><span class="mut">${esc(c.platform)}${c.start ? ' · desde ' + dmy(c.start) : ''}</span></div><button class="btn sec sm" data-cp="${c.id}" style="flex:0 0 auto">Editar</button></div>
+      <div class="camp-g"><div><span>Gastaste</span><b>${gs(s.gasto)}</b></div><div><span>Consultas</span><b>${s.n}</b>${s.n && s.gasto ? `<small>${gs(s.cpl)} c/u</small>` : ''}</div><div><span>Compraron</span><b>${s.g}</b>${s.g && s.gasto ? `<small>${gs(s.gasto / s.g)} c/u</small>` : ''}</div></div>
+      ${B ? `<div class="camp-t"><span>Ganancia de esas ventas</span><b>${gs(s.gan)}</b></div><div class="camp-t big"><span>Te quedó</span><b style="color:var(${ok ? '--ok' : '--bad'})">${gs(s.neto)}</b></div>` : `<div class="camp-t"><span>Ventas logradas</span><b>${gs(s.ventas)}</b></div>`}
+      ${veredicto ? `<div class="mut" style="margin-top:4px">${veredicto}</div>` : ''}</div>`; }).join('') : '<p class="mut">Todavía no creaste campañas.</p>';
   document.querySelectorAll('[data-cp]').forEach(b => b.onclick = () => formCampana(b.dataset.cp));
 }
 function formCampana(id) {
