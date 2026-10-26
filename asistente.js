@@ -24,7 +24,7 @@ function contextoAsistente(texto) {
     hoy, dia_semana: new Date(hoy + 'T12:00:00').toLocaleDateString('es', { weekday: 'long' }),
     colocadores: db.cfg.staff, categorias_gasto: GASTOS,
     servicios: db.services.map(s => ({ id: s.id, nombre: s.name, precio: s.price })),
-    productos: prods.map(p => ({ id: p.id, codigo: p.code, nombre: p.name, stock: p.stock, precio_mayorista: p.mayorista, precio_colocado: p.colocado || null })),
+    productos: prods.map(p => ({ id: p.id, codigo: p.code, nombre: p.name, stock: p.stock, precio_mayorista: p.mayorista, precio_colocado: p.colocado || null, precio_sugerido: p.colocado || p.mayorista || null })),
     clientes: clis.map(c => ({ nombre: c.name, tipo: c.type, tel: c.phone })),
     deudas: deudas.filter(s => nombres.has(s.clientId) || deudas.length <= 20).slice(0, 20).map(s => ({ cliente: s.clientName, venta: s.n, saldo: saldoOf(s), vence: s.due })),
     total_por_cobrar: deudas.reduce((a, s) => a + saldoOf(s), 0),
@@ -39,13 +39,21 @@ function contextoAsistente(texto) {
 
 /* ---- Ejecutores: cada uno valida y lanza Error con un mensaje claro si algo no cierra ---- */
 const num = v => Number(v) || 0;
+/* Reglas del negocio para el asistente (van al principio de cada pedido: se cambian acá, sin tocar Supabase) */
+const INSTRUCCIONES = `SÉ ÁGIL: el usuario quiere cargar rápido, con pocas preguntas.
+- Si el vidrio está en DATOS, usá su precio sin preguntar: en venta "colocado" usá precio_sugerido (precio_colocado, o el mayorista si no hay colocado); en venta "mayorista" usá precio_mayorista. Solo poné precio_unitario si el usuario dijo un precio distinto. Decí brevemente qué precio usaste.
+- NUNCA pidas el costo de un vidrio que está en DATOS (el costo ya está en el stock). El costo solo se pide para vidrios de proveedor que no están en DATOS.
+- Si no dice cliente: dejalo vacío (cliente ocasional). Si no dice forma de pago: contado en Efectivo. Si no dice colocador, vehículo, fecha o tipo de venta: dejá vacío, hoy y "colocado".
+- "Parabrisas" sin más = parabrisas delantero. Los modelos pueden venir abreviados o con errores de tipeo (Corsa, Corola, Hilux Surf, Vitz): elegí el más parecido en DATOS y proponelo igual.
+- Preguntá SOLO si hay dos o más vidrios distintos igual de posibles, o si no hay nada parecido en DATOS. En ese caso listá las 2 o 3 opciones con su código para que elija con una palabra.
+- Si dice cliente, vehículo o servicios extra (polarizado, reinstalación), incluilos en la misma venta.`;
 const EJEC = {
   venta(a) {
     if (!(a.lineas || []).length) throw new Error('La venta no tiene productos ni servicios');
     const kind = a.tipo_venta || 'colocado', items = [];
     for (const l of a.lineas) {
       const qty = num(l.cantidad) || 1;
-      if (l.kind === 'producto') { const p = prod(l.id); if (!p) throw new Error('No encontré ese vidrio en el stock'); const unit = num(l.precio_unitario) || (kind === 'mayorista' ? p.mayorista : p.colocado) || 0;
+      if (l.kind === 'producto') { const p = prod(l.id); if (!p) throw new Error('No encontré ese vidrio en el stock'); const unit = num(l.precio_unitario) || (kind === 'mayorista' ? p.mayorista : (p.colocado || p.mayorista)) || 0;
         items.push({ type: 'prod', id: p.id, name: p.code + ' — ' + p.name, qty, unit, cost: p.compra || 0 }); }
       else if (l.kind === 'servicio') { const s = db.services.find(x => x.id === l.id); if (!s) throw new Error('No encontré ese servicio'); items.push({ type: 'srv', id: s.id, name: s.name, qty, unit: num(l.precio_unitario) || s.price, cost: 0 }); }
       else items.push({ type: 'ext', name: String(l.nombre || '').trim(), qty, unit: num(l.precio_unitario), cost: num(l.costo), supplierId: '', via: 'Efectivo' });
@@ -102,12 +110,18 @@ const EJEC = {
 };
 
 const TITULO = { venta: '🧾 Venta', gasto: '💸 Gasto', cobro: '💰 Cobro', abrir_caja: '🟢 Abrir caja', cerrar_caja: '🔒 Cerrar caja', agendar: '📅 Agendar', consulta: '💬 Consulta', entrada_stock: '📦 Entrada de stock' };
+function precioLinea(l, a) {
+  if (num(l.precio_unitario)) return num(l.precio_unitario);
+  if (l.kind === 'producto') { const p = prod(l.id); return p ? (a.tipo_venta === 'mayorista' ? p.mayorista : (p.colocado || p.mayorista)) || 0 : 0; }
+  if (l.kind === 'servicio') { const s = db.services.find(x => x.id === l.id); return s ? s.price : 0; }
+  return 0;
+}
 function detalleAccion(a) {
   const L = [];
   if (a.cliente) L.push('Cliente: ' + esc(a.cliente)); if (a.vehiculo) L.push('Vehículo: ' + esc(a.vehiculo));
   for (const l of a.lineas || []) {
     const nombre = l.kind === 'producto' ? (prod(l.id) ? prod(l.id).code + ' ' + prod(l.id).name : '⚠ vidrio no encontrado') : l.kind === 'servicio' ? ((db.services.find(s => s.id === l.id) || {}).name || '⚠ servicio no encontrado') : (l.nombre || 'Vidrio de proveedor');
-    L.push(`${esc(nombre)} × ${fmt(l.cantidad || 1)}${l.precio_unitario ? ' · ' + gs(l.precio_unitario) : ''}${l.costo ? ' · costo ' + gs(l.costo) : ''}`);
+    L.push(`${esc(nombre)} × ${fmt(l.cantidad || 1)}${precioLinea(l, a) ? ' · ' + gs(precioLinea(l, a)) : ''}${l.costo ? ' · costo ' + gs(l.costo) : ''}`);
   }
   if (a.descuento_pct) L.push('Descuento ' + a.descuento_pct + '%');
   if (a.tipo === 'venta') L.push(a.pago === 'credito' ? `A crédito${a.abono ? ', abona ' + gs(a.abono) : ''}${a.vence ? ', vence ' + dmy(a.vence) : ''}` : 'Contado · ' + esc(a.metodo || 'Efectivo'));
@@ -153,7 +167,7 @@ async function enviarAsistente(texto) {
   const historial = asi.msgs.slice(-8).map(m => ({ rol: m.rol, texto: m.texto }));
   asi.msgs.push({ rol: 'user', texto }); asi.draft = ''; asi.busy = true; vAsistente();
   try {
-    const r = await Sync.call('preguntar', { mensaje: texto, historial, contexto: contextoAsistente(texto) }, (window.SB_CONFIG || {}).fnAsistente || 'asistente');
+    const r = await Sync.call('preguntar', { mensaje: 'INSTRUCCIONES DEL NEGOCIO (tienen prioridad sobre preguntar):\n' + INSTRUCCIONES + '\n\nPEDIDO DEL USUARIO:\n' + texto.slice(0, 2000), historial, contexto: contextoAsistente(texto) }, (window.SB_CONFIG || {}).fnAsistente || 'asistente');
     const ids = (r.acciones || []).map(a => asi.acts.push({ a, estado: 'pend', msg: '' }) - 1);
     asi.msgs.push({ rol: 'assistant', texto: r.respuesta || (ids.length ? 'Te lo dejo listo para confirmar:' : 'No entendí, ¿me lo repetís?'), acciones: ids });
   } catch (e) {
