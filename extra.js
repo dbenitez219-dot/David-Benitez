@@ -3,7 +3,18 @@
 let ag = { date: hoyISO() };
 const agendaDe = date => db.appts.filter(a => a.date === date && a.status !== 'cancelado').sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 const diaTxt = iso => new Date(iso + 'T12:00:00').toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
-const citaWA = a => `Hola ${a.clientName}! Te confirmamos tu colocación en ${db.cfg.empresa.nombre} el ${diaTxt(a.date)} a las ${a.time}.${a.domicilio ? ' Vamos a tu domicilio' + (a.address ? ' (' + a.address + ')' : '') + '.' : ''} ¡Te esperamos!`;
+const citaWA = a => `Hola ${a.clientName}! Te confirmamos tu colocación con ${db.cfg.empresa.nombre} el ${diaTxt(a.date)} a las ${a.time}. ` +
+  (a.domicilio ? `Nuestro equipo irá a tu domicilio${a.address ? ' (' + a.address + ')' : ''}. Te avisamos cuando estemos en camino. ¡Gracias!` : `Te esperamos en nuestro local${db.cfg.empresa.direccion ? ' (' + db.cfg.empresa.direccion + ')' : ''}. ¡Gracias!`);
+const ubicLink = a => !a.address ? '' : /^https?:\/\//i.test(a.address.trim()) ? a.address.trim() : mapsLink(a.address);
+/* Mensaje para el grupo de colocadores (WhatsApp deja elegir el grupo al enviar) */
+const citaGrupo = a => {
+  const vidrio = a.items.filter(i => i.type === 'prod').map(i => i.name), serv = a.items.filter(i => i.type !== 'prod').map(i => i.name);
+  return [`🔧 *TRABAJO ${a.domicilio ? 'A DOMICILIO 🚗' : 'EN EL LOCAL'}*`, `📅 ${diaTxt(a.date)} · ⏰ ${a.time}`, `👤 ${a.clientName}${a.phone ? ' · ' + a.phone : ''}`, a.vehicle ? `🚙 ${a.vehicle}` : '',
+    vidrio.length ? `🪟 Vidrio: ${vidrio.join(' + ')}` : '', serv.length ? `✨ Servicio: ${serv.join(' + ')}` : '',
+    a.domicilio ? `📍 ${a.address ? ubicLink(a) : 'Ubicación: a confirmar'}` : '', a.tech ? `🛠 Colocador: ${a.tech}` : '', a.note ? `📝 ${a.note}` : ''].filter(Boolean).join('\n');
+};
+const diaGrupo = date => { const L = agendaDe(date); return L.length ? `📋 *AGENDA · ${diaTxt(date).toUpperCase()}* (${L.length})\n\n` + L.map(citaGrupo).join('\n\n──────────\n\n') : ''; };
+const waGrupo = text => 'https://wa.me/?text=' + encodeURIComponent(text);
 const mapsLink = t => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(t);
 
 function vAgenda() {
@@ -16,7 +27,7 @@ function vAgenda() {
       <button class="btn sec" id="a_hoy" style="flex:0 0 70px">Hoy</button><button class="btn sec" id="a_man" style="flex:0 0 80px">Mañana</button></div>
     <h3 style="text-transform:capitalize">${diaTxt(ag.date)}</h3>
     <div class="grid" style="margin:0"><div class="kpi ${cls}"><b>${n} de ${capMax}</b><span>colocaciones${n >= capMax ? ' · DÍA COMPLETO' : n < capMin ? ` · pocas (lo normal es ${capMin}–${capMax})` : ''}</span></div></div>
-    <button class="btn block" id="a_new">+ Agendar colocación</button></div>
+    <button class="btn block" id="a_new">+ Agendar colocación</button>${L.length ? `<a class="btn sec block" id="a_grp" style="text-align:center;text-decoration:none;margin-top:8px" href="${waGrupo(diaGrupo(ag.date))}" target="_blank" rel="noopener">👥 Enviar la agenda del día al grupo de colocadores</a>` : ''}</div>
   <div class="card"><h2>Próximos 7 días</h2><div class="row">${semana.map(d => { const c = agendaDe(d).length; return `<button class="btn ${d === ag.date ? '' : 'sec'} sm" data-d="${d}" style="flex:1 1 70px">${d.slice(8)}/${d.slice(5, 7)}<br>${c}</button>`; }).join('')}</div></div>
   <div class="card"><h2>Agenda del día</h2>${L.length ? L.map(a => `<div style="border-top:1px solid var(--bd);padding:10px 0">
     <div><b style="font-size:18px">${esc(a.time)}</b> · <b>${esc(a.clientName)}</b> ${a.domicilio ? '<span class="tag warn">🚗 domicilio</span>' : ''} ${a.status === 'hecho' ? '<span class="tag ok">Hecho</span>' : ''}</div>
@@ -24,7 +35,8 @@ function vAgenda() {
     ${a.items.length ? `<div class="mut">${a.items.map(i => esc(i.name)).join(' · ')}</div>` : ''}
     ${a.address ? `<div><a href="${mapsLink(a.address)}" target="_blank" rel="noopener">📍 ${esc(a.address)}</a></div>` : ''}${a.note ? `<div class="mut">📝 ${esc(a.note)}</div>` : ''}
     <div class="row" style="margin-top:6px">${a.status === 'agendado' ? `<button class="btn ok sm" data-done="${a.id}">Completar y cobrar</button>` : `<button class="btn sec sm" data-sale="${a.saleId}">Ver venta</button>`}
-      ${waLink(a.phone) ? `<a class="btn sm" href="${waLink(a.phone, citaWA(a))}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">WhatsApp</a>` : ''}
+      ${waLink(a.phone) ? `<a class="btn sm" href="${waLink(a.phone, citaWA(a))}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">WhatsApp al cliente</a>` : ''}
+      <a class="btn sec sm" href="${waGrupo(citaGrupo(a))}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">👥 Al grupo</a>
       <button class="btn sec sm" data-ed="${a.id}">Editar</button>${a.status === 'agendado' ? `<button class="btn sec sm" data-cx="${a.id}">Cancelar</button>` : ''}</div></div>`).join('') : '<p class="mut">No hay colocaciones agendadas este día.</p>'}
     ${cancel.length ? `<p class="mut">Canceladas: ${cancel.map(a => esc(a.time + ' ' + a.clientName)).join(', ')}</p>` : ''}</div>`;
   const go = d => { ag.date = d || hoyISO(); vAgenda(); };
