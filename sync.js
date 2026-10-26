@@ -139,9 +139,9 @@ const Sync = (() => {
   }
 
   /* ---- Función del servidor (correos, avisos) ---- */
-  async function call(action, body = {}) {
+  async function call(action, body = {}, fn) {
     const { data } = await sb.auth.getSession(); if (!data.session) throw new Error('Sesión vencida');
-    const r = await fetch(CFG.url + '/functions/v1/' + (CFG.fn || 'cristalauto'), { method: 'POST',
+    const r = await fetch(CFG.url + '/functions/v1/' + (fn || CFG.fn || 'cristalauto'), { method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: CFG.key, Authorization: 'Bearer ' + data.session.access_token }, body: JSON.stringify({ action, ...body }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error((j.error || j.message || j.msg || 'Error') + ' (código ' + r.status + ')');

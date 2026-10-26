@@ -88,3 +88,13 @@ tr.click:hover{background:rgba(100,116,139,.08)}
 #login[hidden]{display:none}
 #login .card{width:100%;max-width:380px}
 #login img.logo{display:block;width:100%;max-width:280px;margin:0 auto 6px;border-radius:14px}
+
+/* Asistente */
+.chat{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.msg{max-width:88%;padding:10px 12px;border-radius:14px;font-size:15px;white-space:pre-wrap;word-break:break-word}
+.msg.u{align-self:flex-end;background:var(--pri);color:#fff;border-bottom-right-radius:4px}
+.msg.a{align-self:flex-start;background:var(--card);border:1px solid var(--bd);border-bottom-left-radius:4px}
+.act{border:1px solid var(--bd);border-left:4px solid var(--pri);border-radius:10px;padding:10px 12px;background:var(--card)}
+.act.hecho{border-left-color:#16a34a;opacity:.75}.act.error{border-left-color:#dc2626}
+.act ul{margin:6px 0 8px 18px;padding:0}
+#as_txt{width:100%;min-height:70px;resize:vertical;font-size:16px}

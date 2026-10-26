@@ -82,7 +82,7 @@ function cerrar() { $('#modal').hidden = true; }
 $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') cerrar(); });
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; tab = b.dataset.tab; render(); });
 $('#hoy').textContent = new Date().toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
-const VIEWS = { resumen: () => vResumen(), ventas: () => vVentas(), agenda: () => vAgenda(), stock: () => vStock(), clientes: () => vClientes(), caja: () => vCaja(), consultas: () => vConsultas(), ajustes: () => vAjustes() };
+const VIEWS = { asistente: () => vAsistente(), resumen: () => vResumen(), ventas: () => vVentas(), agenda: () => vAgenda(), stock: () => vStock(), clientes: () => vClientes(), caja: () => vCaja(), consultas: () => vConsultas(), ajustes: () => vAjustes() };
 function render(keepScroll) {
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   const y = window.scrollY; lockUI(); VIEWS[tab](); window.scrollTo(0, keepScroll ? y : 0);
@@ -234,7 +234,7 @@ function vVentas() {
   });
   $('#v_srv').onchange = e => { const s = db.services.find(x => x.id === e.target.value); if (s) { cart.items.push({ type: 'srv', id: s.id, name: s.name, qty: 1, unit: s.price, cost: 0 }); items(); } e.target.value = ''; };
   $('#v_ext').onclick = () => { cart.items.push({ type: 'ext', name: '', qty: 1, unit: 0, cost: 0, supplierId: '', via: 'Efectivo' }); items(); };
-  $('#v_save').onclick = cot ? guardarCotizacion : guardarVenta;
+  $('#v_save').onclick = cot ? () => guardarCotizacion() : () => guardarVenta();
   const lista = () => { vf.from = $('#f_from').value; vf.to = $('#f_to').value; listaVentas(); };
   $('#f_from').onchange = lista; $('#f_to').onchange = lista;
   $('#f_mes').onclick = () => { vf = { from: hoyISO().slice(0, 8) + '01', to: hoyISO() }; vVentas(); };
@@ -264,10 +264,11 @@ function totales() {
     <div class="big"><span>TOTAL</span><span>${gs(t.total)}</span></div><div class="mut"><span>IVA 10% incluido</span><span>${gs(t.total / 11)}</span></div>
     ${boss() && t.cost ? `<div class="mut"><span>Costo de vidrios</span><span>${gs(t.cost)}</span></div><div class="mut"><span>Ganancia bruta</span><span>${gs(g)} (${t.total ? Math.round(g / t.total * 100) : 0}%)</span></div>` : ''}</div>` : '';
 }
-function validarCart() {
-  const c = cart; if (!c.items.length) { toast('Agregá al menos un producto o servicio'); return false; }
-  if (c.items.some(i => !i.unit || !i.qty)) { toast('Hay líneas sin precio o cantidad'); return false; }
-  if (c.items.some(i => i.type === 'ext' && !i.name.trim())) { toast('Poné el nombre del vidrio de proveedor'); return false; }
+function validarCart(c = cart, silencioso = false) {
+  const no = m => { if (silencioso) throw new Error(m); toast(m); return false; };
+  if (!c.items.length) return no('Agregá al menos un producto o servicio');
+  if (c.items.some(i => !i.unit || !i.qty)) return no('Hay líneas sin precio o cantidad');
+  if (c.items.some(i => i.type === 'ext' && !i.name.trim())) return no('Poné el nombre del vidrio de proveedor');
   return true;
 }
 function clienteDe(c) {
@@ -276,12 +277,14 @@ function clienteDe(c) {
   else if (client && c.phone.trim() && !client.phone) client.phone = c.phone.trim();
   return client;
 }
-function guardarVenta() {
-  const c = cart; if (!validarCart()) return;
+/* silencioso = lo usa el asistente: no pregunta ni cambia de pantalla; si algo está mal lanza un Error */
+function guardarVenta(c = cart, silencioso = false) {
+  if (!validarCart(c, silencioso)) return;
+  const no = m => { if (silencioso) throw new Error(m); toast(m); };
   const t = saleTotals(c), name = c.clientName.trim();
-  if (c.pay === 'credito' && !name) return toast('Para vender a crédito indicá el cliente');
-  if (c.pay === 'credito' && c.abono > t.total) return toast('El abono no puede superar el total');
-  for (const i of c.items.filter(i => i.type === 'prod')) { const p = prod(i.id);
+  if (c.pay === 'credito' && !name) return no('Para vender a crédito indicá el cliente');
+  if (c.pay === 'credito' && c.abono > t.total) return no('El abono no puede superar el total');
+  if (!silencioso) for (const i of c.items.filter(i => i.type === 'prod')) { const p = prod(i.id);
     if (p && i.qty > p.stock && !confirm(`Solo hay ${fmt(p.stock)} de ${p.code}. ¿Vender ${fmt(i.qty)} igualmente?`)) return; }
   const client = clienteDe(c);
   const n = Math.max(0, ...db.sales.map(x => x.n || 0)) + 1;
@@ -298,6 +301,7 @@ function guardarVenta() {
   if (c.apptId) { const a = db.appts.find(x => x.id === c.apptId); if (a) { a.status = 'hecho'; a.saleId = s.id; } }
   if (c.leadId) { const l = db.leads.find(x => x.id === c.leadId); if (l) { l.status = 'ganado'; l.saleId = s.id; l.follow = ''; } }
   db.sales.push(s); guardar(); Sync.notifySale(s.id);
+  if (silencioso) return s;
   cart = nuevoCart(); vf = { from: s.date, to: s.date };
   toast(`Venta #${n} registrada · ${gs(s.total)}`); vVentas(); verVenta(s.id);
 }

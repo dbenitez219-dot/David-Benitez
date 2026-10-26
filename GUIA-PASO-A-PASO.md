@@ -57,3 +57,12 @@ Todo se hace con el correo `cristalauto95@gmail.com`. Cada paso termina con algo
 | Recordatorio de colocación | 1 hora antes de la hora agendada |
 | Aviso de la mañana (créditos por vencer en 5 días, stock bajo, colocaciones y consultas del día) | 07:30 (hora de Paraguay) |
 | Resumen del día | 20:00 (hora de Paraguay) |
+
+## Paso H · Activar el Asistente 🤖 (escribís o dictás, vos confirmás)
+1. **Claude Console** (platform.claude.com): crear cuenta → **Billing** → cargar crédito chico (unos 10 USD) → poner un **límite de gasto mensual**.
+2. **API Keys** → crear una clave. **No la pegues en el chat con nadie**: se copia directo en el paso 3.
+3. Supabase → **Edge Functions → Secrets** → agregar `ANTHROPIC_API_KEY` = la clave.
+4. Supabase → **Edge Functions → Deploy a new function** → nombre exacto **`asistente`** (minúsculas) → pegar el contenido de `supabase/functions/asistente/index.ts` → **desactivar “Verify JWT”** → Deploy.
+5. Subir de nuevo la app a Netlify (el ZIP `publicar/CristalAuto.zip`).
+6. En la app: pestaña **Asistente** → escribir, por ejemplo: *“vendí un parabrisas Vitz 2008 a Juan, 900 mil, efectivo”*. En el iPhone podés dictar con el 🎤 del teclado.
+7. El asistente te muestra una tarjeta con lo que va a guardar: **Confirmar** o **Descartar**. Sin tu confirmación no se guarda nada.
