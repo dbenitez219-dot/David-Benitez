@@ -98,3 +98,8 @@ tr.click:hover{background:rgba(100,116,139,.08)}
 .act.hecho{border-left-color:#16a34a;opacity:.75}.act.error{border-left-color:#dc2626}
 .act ul{margin:6px 0 8px 18px;padding:0}
 #as_txt{width:100%;min-height:70px;resize:vertical;font-size:16px}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chip{border:1px solid var(--bd);background:var(--card);border-radius:999px;padding:7px 12px;font-size:13px;cursor:pointer;min-height:36px}
+.chip:active{background:var(--pri);color:#fff}
+.bar{height:8px;border-radius:6px;background:rgba(100,116,139,.2);overflow:hidden}.bar i{display:block;height:100%;background:var(--pri)}

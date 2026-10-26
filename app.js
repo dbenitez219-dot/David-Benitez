@@ -35,7 +35,7 @@ const METODOS = ['Efectivo', 'Transferencia', 'Tarjeta', 'Cheque'];
 const VIAS = ['Efectivo', 'Itaú'];
 const PLATAFORMAS = ['Meta (Facebook/Instagram)', 'TikTok', 'Google', 'Otro'];
 const CFG0 = () => ({ empresa: { nombre: 'CristalAuto Parabrisas', ruc: '', direccion: '', tel: '', email: '', timbrado: '', vigencia: '' },
-  staff: ['Jefe', 'Colocador 2', 'Colocador 3', 'Colocador 4'], pin: '', minDefault: 50, capMin: 4, capMax: 12, cotizDias: 3, vendedor: '', condiciones: '', seeded: false });
+  staff: ['Jefe', 'Colocador 2', 'Colocador 3', 'Colocador 4'], pin: '', fijos: [], minDefault: 50, capMin: 4, capMax: 12, cotizDias: 3, vendedor: '', condiciones: '', seeded: false });
 const normalizarCfg = c => { const b = CFG0(); return { ...b, ...(c || {}), empresa: { ...b.empresa, ...((c || {}).empresa || {}) } }; };
 
 /* ---------- Datos ---------- */
@@ -134,7 +134,7 @@ const hoyVencida = s => saldoOf(s) > 0 && s.due && s.due < hoyISO();
 /* ================= INICIO ================= */
 function vResumen() {
   const hoy = hoyISO(), mes = hoy.slice(0, 7);
-  const S = db.sales, ventasHoy = S.filter(s => s.date === hoy), ventasMes = S.filter(s => s.date.startsWith(mes));
+  const S = db.sales.filter(s => !s.prev), ventasHoy = S.filter(s => s.date === hoy), ventasMes = S.filter(s => s.date.startsWith(mes));
   const cobrosHoy = S.flatMap(s => s.pays).filter(p => p.date === hoy).reduce((a, p) => a + p.amount, 0);
   const gastosHoy = db.expenses.filter(g => g.date === hoy).reduce((a, g) => a + g.amount, 0);
   const pend = S.filter(s => saldoOf(s) > 0);
@@ -181,6 +181,11 @@ function vResumen() {
 let cart = nuevoCart();
 function nuevoCart() { return { mode: 'venta', kind: 'colocado', clientName: '', phone: '', ctype: 'particular', vehicle: '', tech: '', items: [], pct: 0, date: hoyISO(), pay: 'contado', method: 'Efectivo', abono: 0, due: addDays(hoyISO(), 30), invType: '', invNo: '', note: '', apptId: '', leadId: '', formato: 'detalle', concepto: '', totalManual: 0, vendedor: db.cfg.vendedor || '' }; }
 let vf = { from: hoyISO(), to: hoyISO() };
+/* Clientes que más compran (para elegirlos con un toque) */
+function frecuentes(n = 6) {
+  const cnt = {}; db.sales.forEach(s => { if (s.clientId && !s.prev) cnt[s.clientId] = (cnt[s.clientId] || 0) + 1; });
+  return Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, n).map(([id]) => cli(id)).filter(Boolean);
+}
 function vVentas() {
   const cot = cart.mode === 'cotiz';
   const abiertas = db.leads.filter(l => !['ganado', 'perdido'].includes(l.status));
@@ -191,11 +196,13 @@ function vVentas() {
     <div class="seg" id="k_seg">${[['colocado', '🔧 Cambio / colocado'], ['mayorista', '📦 Mayorista'], ['servicio', '✨ Servicio']].map(([k, l]) => `<button data-k="${k}">${l}</button>`).join('')}</div>
     <div class="row"><div><label>Cliente</label><input id="v_cli" list="clis" placeholder="Cliente ocasional" autocomplete="off" value="${esc(cart.clientName)}"></div>
       <div><label>Teléfono / WhatsApp</label><input id="v_tel" inputmode="tel" value="${esc(cart.phone)}"></div></div>
+    <div class="chips" id="v_freq">${frecuentes().map(c => `<button type="button" class="chip" data-fc="${c.id}">${esc(c.name)}</button>`).join('')}</div>
     <datalist id="clis">${db.clients.map(c => `<option value="${esc(c.name)}">`).join('')}</datalist>
-    <div class="row"><div><label>Tipo (si es cliente nuevo)</label><select id="v_ctype">${optsKV([['particular', 'Particular'], ['taller', 'Taller'], ['empresa', 'Empresa / flota']], cart.ctype)}</select></div>
-      <div><label>Colocador</label><select id="v_tech"><option value="">—</option>${opts(db.cfg.staff, cart.tech)}</select></div></div>
+    <div class="row"><div><label>Colocador</label><select id="v_tech"><option value="">—</option>${opts(db.cfg.staff, cart.tech)}</select></div>
+      <div><label>Tipo (si es cliente nuevo)</label><select id="v_ctype">${optsKV([['particular', 'Particular'], ['taller', 'Taller'], ['empresa', 'Empresa / flota']], cart.ctype)}</select></div></div>
     <label>Vehículo / chapa</label><input id="v_veh" placeholder="Toyota Vitz 2008 · ABC123" value="${esc(cart.vehicle)}">
     <label>Buscar vidrio en stock (código o modelo del vehículo)</label><input id="v_q" placeholder="Ej: vitz 2005  ·  hilux  ·  NCP10" autocomplete="off"><div id="v_res" class="sugs"></div>
+    <div class="chips" id="v_srvq">${db.services.filter(x => x.price).slice(0, 6).map(x => `<button type="button" class="chip" data-sq="${x.id}">＋ ${esc(x.name.replace(/ de parabrisas| de vidrio automotriz| – parabrisas delantero/, ''))}</button>`).join('')}</div>
     <div class="row"><div><label>Agregar servicio</label><select id="v_srv"><option value="">— elegir servicio —</option>${db.services.map(s => `<option value="${s.id}">${esc(s.name)}${s.price ? ' · ' + gs(s.price) : ''}</option>`).join('')}</select></div>
       <div><label>&nbsp;</label><button class="btn sec" id="v_ext" style="width:100%">＋ Vidrio de proveedor (no está en stock)</button></div></div>
     <div id="v_items"></div>
@@ -238,6 +245,8 @@ function vVentas() {
     const price = cart.kind === 'mayorista' ? p.mayorista : (p.colocado || 0);
     cart.items.push({ type: 'prod', id: p.id, name: p.code + ' — ' + p.name, qty: 1, unit: price, cost: p.compra || 0 }); items();
   });
+  document.querySelectorAll('[data-fc]').forEach(b => b.onclick = () => { const c = cli(b.dataset.fc); if (!c) return; cart.clientName = c.name; cart.phone = c.phone || ''; cart.ctype = c.type; $('#v_cli').value = c.name; $('#v_tel').value = cart.phone; $('#v_ctype').value = c.type; $('#v_q').focus(); });
+  document.querySelectorAll('[data-sq]').forEach(b => b.onclick = () => { const x = db.services.find(y => y.id === b.dataset.sq); if (x) { cart.items.push({ type: 'srv', id: x.id, name: x.name, qty: 1, unit: x.price, cost: 0 }); items(); } });
   $('#v_srv').onchange = e => { const s = db.services.find(x => x.id === e.target.value); if (s) { cart.items.push({ type: 'srv', id: s.id, name: s.name, qty: 1, unit: s.price, cost: 0 }); items(); } e.target.value = ''; };
   $('#v_ext').onclick = () => { cart.items.push({ type: 'ext', name: '', qty: 1, unit: 0, cost: 0, supplierId: '', via: 'Efectivo' }); items(); };
   $('#v_save').onclick = cot ? () => guardarCotizacion() : () => guardarVenta();
@@ -493,11 +502,31 @@ function vClientes() {
   $('#c_q').oninput = lista; $('#c_new').onclick = () => formCliente(); lista();
   document.querySelectorAll('#view [data-v]').forEach(r => r.onclick = () => verVenta(r.dataset.v));
 }
+const deudaTotal = id => db.sales.filter(s => s.clientId === id).reduce((a, s) => a + Math.max(0, saldoOf(s)), 0);
+function textoCobro(c) {
+  const P = db.sales.filter(s => s.clientId === c.id && saldoOf(s) > 0), tot = P.reduce((a, s) => a + saldoOf(s), 0), venc = P.filter(hoyVencida).reduce((a, s) => a + saldoOf(s), 0), prox = P.filter(s => s.due).map(s => s.due).sort()[0];
+  return `Hola ${c.name}, te escribimos de ${db.cfg.empresa.nombre}. Tu saldo pendiente es de ${gs(tot)}${venc ? ` (de los cuales ${gs(venc)} ya vencieron)` : prox ? `, con vencimiento el ${dmy(prox)}` : ''}. Cualquier consulta estamos a las órdenes. ¡Gracias!`;
+}
+/* Deuda de antes de usar la app: queda como una venta marcada "anterior" (no mueve stock ni cuenta como venta del mes) */
+function formDeudaAnterior(id) {
+  const c = cli(id);
+  modal(`<h2>Deuda anterior · ${esc(c.name)}</h2><p class="mut">Para cargar lo que este cliente ya te debía antes de usar la app.</p>
+    <label>Monto que debe</label><input id="d_m" inputmode="numeric" placeholder="Ej: 1500000"><label>Detalle</label><input id="d_d" placeholder="Ej: Parabrisas Hilux de agosto">
+    <div class="row"><div><label>Fecha de la deuda</label><input type="date" id="d_f" value="${hoyISO()}"></div><div><label>Vence</label><input type="date" id="d_v" value="${addDays(hoyISO(), 30)}"></div></div>
+    <div class="row" style="margin-top:12px"><button class="btn ok" id="d_ok">Cargar deuda</button><button class="btn sec" id="d_no">Cancelar</button></div>`);
+  $('#d_no').onclick = () => formCliente(id);
+  $('#d_ok').onclick = () => { const m = numGs($('#d_m').value); if (m <= 0) return toast('Ingresá el monto');
+    const n = Math.max(0, ...db.sales.map(x => x.n || 0)) + 1, f = $('#d_f').value || hoyISO();
+    db.sales.push({ id: uid(), n, date: f, ts: Date.now(), kind: 'servicio', prev: true, clientId: id, clientName: c.name, vehicle: '', tech: '', items: [{ type: 'srv', name: $('#d_d').value.trim() || 'Saldo anterior', qty: 1, unit: m, cost: 0 }],
+      pct: 0, total: m, cost: 0, pay: 'credito', due: $('#d_v').value || '', pays: [], inv: { type: '', no: '', cdc: '' }, note: 'Deuda anterior', apptId: '', leadId: '' });
+    guardar(); cerrar(); render(); toast('Deuda cargada'); };
+}
 function formCliente(id) {
   const c = id ? cli(id) : { name: '', type: 'particular', ruc: '', phone: '', note: '' };
   modal(`<h2>${id ? 'Cliente' : 'Nuevo cliente'}</h2><label>Nombre / razón social</label><input id="k_n" value="${esc(c.name)}">
     <div class="row"><div><label>Tipo</label><select id="k_t">${optsKV([['particular', 'Particular'], ['taller', 'Taller'], ['empresa', 'Empresa / flota']], c.type)}</select></div><div><label>RUC / C.I.</label><input id="k_r" value="${esc(c.ruc)}"></div></div>
     <label>Teléfono / WhatsApp</label><input id="k_p" value="${esc(c.phone)}"><label>Nota</label><input id="k_o" value="${esc(c.note)}">
+    ${id ? `<div class="row" style="margin-top:10px"><button class="btn sec sm" id="k_prev">＋ Deuda anterior</button><button class="btn sm" id="k_pdf">📄 Estado de cuenta</button>${deudaTotal(id) > 0 ? '<button class="btn sm" id="k_rec">💬 Recordar cobro</button>' : ''}</div>` : ''}
     ${id ? `<h3>Historial</h3>${db.sales.filter(s => s.clientId === id).slice(-8).reverse().map(s => `<div class="mut">#${s.n} · ${dmy(s.date)} · ${gs(s.total)}${saldoOf(s) > 0 ? ' · debe ' + gs(saldoOf(s)) : ''}</div>`).join('') || '<div class="mut">Sin compras.</div>'}` : ''}
     <div class="row" style="margin-top:12px"><button class="btn" id="ok">Guardar</button>${waLink(c.phone) ? `<a class="btn sec" href="${waLink(c.phone)}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">WhatsApp</a>` : ''}<button class="btn sec" id="no">Cancelar</button>${id ? '<button class="btn bad" id="del">Eliminar</button>' : ''}</div>`);
   $('#no').onclick = cerrar;
@@ -505,6 +534,11 @@ function formCliente(id) {
     const d = { name, type: $('#k_t').value, ruc: $('#k_r').value.trim(), phone: $('#k_p').value.trim(), note: $('#k_o').value.trim() };
     if (id) { Object.assign(c, d); db.sales.filter(s => s.clientId === id).forEach(s => s.clientName = name); } else db.clients.push({ id: uid(), ...d });
     guardar(); cerrar(); render(); };
+  if (id) {
+    $('#k_prev').onclick = () => formDeudaAnterior(id);
+    $('#k_pdf').onclick = () => compartirEstadoCuenta(cli(id));
+    if ($('#k_rec')) $('#k_rec').onclick = () => { const l = waLink(c.phone, textoCobro(c)); if (l) window.open(l, '_blank'); else toast('Este cliente no tiene teléfono'); };
+  }
   if (id) $('#del').onclick = () => { if (db.sales.some(s => s.clientId === id)) return toast('Tiene ventas: no se puede eliminar'); if (confirm('¿Eliminar cliente?')) { db.clients = db.clients.filter(x => x.id !== id); guardar(); cerrar(); render(); } };
 }
 
@@ -529,11 +563,14 @@ function vCaja() {
       <div class="big"><span>Diferencia</span><span>${cd.counted - cd.expected === 0 ? '✔ ' : ''}${gs(cd.counted - cd.expected)}</span></div>${cd.note ? `<div class="mut">${esc(cd.note)}</div>` : ''}</div>
       <p class="mut">Las transferencias (${gs(tr)}) compará con el extracto del Itaú.</p><button class="btn sec" id="j_reabrir" style="margin-top:8px">Reabrir caja</button>`}
     <h3>Cobros</h3>${cobros.length ? tabla(['Venta', 'Cliente', 'Forma', 'Monto'], cobros.map(p => `<tr class="click" data-v="${p.s.id}"><td>#${p.s.n}</td><td>${esc(p.s.clientName)}</td><td>${esc(p.method)}</td><td class="n">${gs(p.amount)}</td></tr>`).join(''), [3]) : '<p class="mut">—</p>'}
-    <h3>Gastos</h3>${gastos.length ? tabla(['Categoría', 'Detalle', 'Desde', 'Monto', ''], gastos.map(g => `<tr><td>${esc(g.cat)}</td><td class="wrap">${esc(g.desc)}${g.supplierId && sup(g.supplierId) ? ' · ' + esc(sup(g.supplierId).name) : ''}${g.campaignId && camp(g.campaignId) ? ' · ' + esc(camp(g.campaignId).name) : ''}</td><td>${esc(g.via || 'Efectivo')}</td><td class="n">${gs(g.amount)}</td><td>${g.saleId ? '' : `<button class="btn sec sm" data-g="${g.id}">✕</button>`}</td></tr>`).join(''), [3]) : '<p class="mut">—</p>'}</div>
-  <div class="card"><h2>Registrar gasto</h2><div class="row"><div><label>Categoría</label><select id="g_c">${opts(GASTOS)}</select></div><div><label>Monto</label><input id="g_m" inputmode="numeric"></div><div><label>Pagado desde</label><select id="g_v">${opts(VIAS)}</select></div></div>
+    <h3>Gastos</h3>${gastos.length ? tabla(['Categoría', 'Detalle', 'Desde', 'Monto', ''], gastos.map(g => `<tr><td>${esc(g.cat)}</td><td class="wrap">${esc(g.desc)}${g.supplierId && sup(g.supplierId) ? ' · ' + esc(sup(g.supplierId).name) : ''}${g.campaignId && camp(g.campaignId) ? ' · ' + esc(camp(g.campaignId).name) : ''}</td><td>${esc(g.via || 'Efectivo')}</td><td class="n">${gs(g.amount)}</td><td>${g.photo ? `<button class="btn sec sm" data-ph="${g.id}">📎</button> ` : ''}${g.saleId ? '' : `<button class="btn sec sm" data-g="${g.id}">✕</button>`}</td></tr>`).join(''), [3]) : '<p class="mut">—</p>'}</div>
+  <div class="card"><h2>Registrar gasto</h2><div class="chips" id="g_freq">${gastosFrecuentes().map((g, k) => `<button type="button" class="chip" data-gf="${k}">${esc(g.desc || g.cat)}${g.amount ? ' · ' + gs(g.amount) : ''}</button>`).join('')}</div><div class="row"><div><label>Categoría</label><select id="g_c">${opts(GASTOS)}</select></div><div><label>Monto</label><input id="g_m" inputmode="numeric"></div><div><label>Pagado desde</label><select id="g_v">${opts(VIAS)}</select></div></div>
     <div class="row"><div id="g_sw" hidden><label>Proveedor</label><select id="g_s"><option value="">—</option>${db.suppliers.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></div>
       <div id="g_cw"><label>Campaña de publicidad</label><select id="g_cp"><option value="">—</option>${db.campaigns.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></div></div>
-    <label>Detalle</label><input id="g_d" placeholder="Ej: pauta Meta septiembre, sueldo Juan, vidrio Mercedes…"><button class="btn block" id="g_add">Agregar gasto</button></div>
+    <label>Detalle</label><input id="g_d" placeholder="Ej: pauta Meta septiembre, sueldo Juan, vidrio Mercedes…">
+    <label>📷 Foto del comprobante (opcional)</label><input type="file" id="g_ph" accept="image/*"><div id="g_phv" class="mut"></div>
+    <button class="btn block" id="g_add">Agregar gasto</button></div>
+  <div class="card"><h2>🔁 Gastos fijos del mes</h2><div id="g_fijos"></div></div>
   <div id="j_mes"></div>`;
   $('#j_d').onchange = e => { cj.date = e.target.value || hoyISO(); vCaja(); };
   if ($('#j_abrir')) $('#j_abrir').onclick = () => { db.cashdays.push({ id: 'cd-' + cj.date, date: cj.date, open: numGs($('#j_open').value), openedAt: Date.now(), closed: false }); guardar(); vCaja(); toast('Caja abierta'); };
@@ -542,15 +579,43 @@ function vCaja() {
   if ($('#j_reabrir')) $('#j_reabrir').onclick = () => needBoss(() => { cd.closed = false; guardar(); vCaja(); });
   const cat = () => { const c = $('#g_c').value; $('#g_sw').hidden = c !== 'Compra a proveedor'; $('#g_cw').hidden = c !== 'Publicidad'; $('#g_v').value = c === 'Publicidad' ? 'Itaú' : 'Efectivo'; };
   $('#g_c').onchange = cat; cat();
+  const GF = gastosFrecuentes(); let foto = '';
+  document.querySelectorAll('[data-gf]').forEach(b => b.onclick = () => { const g = GF[b.dataset.gf]; $('#g_c').value = g.cat; cat(); $('#g_v').value = g.via || 'Efectivo'; $('#g_d').value = g.desc || ''; $('#g_m').value = g.amount || ''; $('#g_m').focus(); });
+  $('#g_ph').onchange = async e => { const f = e.target.files[0]; if (!f) { foto = ''; return; } try { foto = await comprimirFoto(f); $('#g_phv').textContent = '✔ Foto lista (' + Math.round(foto.length / 1024) + ' KB)'; } catch (er) { foto = ''; toast('No se pudo leer la foto'); } };
   $('#g_add').onclick = () => { const m = numGs($('#g_m').value); if (m <= 0) return toast('Ingresá el monto'); const c = $('#g_c').value;
-    db.expenses.push({ id: uid(), date: cj.date, cat: c, desc: $('#g_d').value.trim(), amount: m, via: $('#g_v').value, supplierId: c === 'Compra a proveedor' ? $('#g_s').value : '', campaignId: c === 'Publicidad' ? $('#g_cp').value : '' });
+    db.expenses.push({ id: uid(), date: cj.date, cat: c, desc: $('#g_d').value.trim(), amount: m, via: $('#g_v').value, supplierId: c === 'Compra a proveedor' ? $('#g_s').value : '', campaignId: c === 'Publicidad' ? $('#g_cp').value : '', ...(foto ? { photo: foto } : {}) });
     guardar(); vCaja(); toast('Gasto registrado'); };
+  document.querySelectorAll('[data-ph]').forEach(b => b.onclick = () => { const g = db.expenses.find(x => x.id === b.dataset.ph); if (g) { modal(`<h2>Comprobante</h2><p class="mut">${esc(g.cat)} · ${gs(g.amount)}</p><img src="${g.photo}" style="width:100%;border-radius:10px"><button class="btn block" id="no" style="margin-top:10px">Cerrar</button>`); $('#no').onclick = cerrar; } });
+  fijosUI();
   document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { if (confirm('¿Borrar este gasto?')) { db.expenses = db.expenses.filter(g => g.id !== b.dataset.g); guardar(); vCaja(); } });
   document.querySelectorAll('#view [data-v]').forEach(r => r.onclick = () => verVenta(r.dataset.v));
   resumenMes();
 }
+/* Gastos que más repetís (últimos 90 días) para cargarlos con un toque */
+function gastosFrecuentes(n = 6) {
+  const desde = addDays(hoyISO(), -90), m = {};
+  db.expenses.filter(g => !g.saleId && !g.inCost && g.date >= desde).forEach(g => { const k = g.cat + '|' + (g.desc || '').toLowerCase() + '|' + (g.via || 'Efectivo'); const o = m[k] || (m[k] = { n: 0, cat: g.cat, desc: g.desc, via: g.via || 'Efectivo', amount: g.amount }); o.n++; o.amount = g.amount; });
+  const L = Object.values(m).sort((a, b) => b.n - a.n).slice(0, n);
+  return L.length ? L : [{ cat: 'Combustible', desc: 'Combustible', via: 'Efectivo', amount: 0 }, { cat: 'Insumos', desc: 'Insumos', via: 'Efectivo', amount: 0 }, { cat: 'Publicidad', desc: 'Publicidad', via: 'Itaú', amount: 0 }];
+}
+function comprimirFoto(file, max = 900) {
+  return new Promise((res, rej) => { const im = new Image(), u = URL.createObjectURL(file); im.onload = () => { const r = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas');
+    c.width = Math.round(im.naturalWidth * r); c.height = Math.round(im.naturalHeight * r); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', 0.6)); };
+    im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('foto')); }; im.src = u; });
+}
+/* Gastos fijos: se definen una vez y se cargan con un botón cada mes */
+function fijosUI() {
+  const mes = hoyISO().slice(0, 7), F = db.cfg.fijos || [], hecho = f => db.expenses.some(g => g.fijoId === f.id && g.date.startsWith(mes)), pend = F.filter(f => !hecho(f));
+  $('#g_fijos').innerHTML = `${F.length ? tabla(['Gasto', 'Monto', 'Este mes', ''], F.map(f => `<tr><td class="wrap">${esc(f.desc || f.cat)}<br><span class="mut">${esc(f.cat)} · ${esc(f.via)}</span></td><td class="n">${gs(f.amount)}</td><td>${hecho(f) ? '<span class="tag ok">Cargado</span>' : '<span class="tag warn">Falta</span>'}</td><td><button class="btn sec sm" data-fx="${f.id}">✕</button></td></tr>`).join(''), [1]) : '<p class="mut">Cargá acá lo que pagás todos los meses (alquiler, sueldos, internet…) y lo registrás con un solo botón.</p>'}
+    ${pend.length ? `<button class="btn ok block" id="f_all">Cargar los ${pend.length} fijos que faltan este mes (${gs(pend.reduce((a, f) => a + f.amount, 0))})</button>` : ''}
+    <h3>Agregar gasto fijo</h3><div class="row"><div><label>Categoría</label><select id="f_c">${opts(GASTOS)}</select></div><div><label>Monto</label><input id="f_m" inputmode="numeric"></div><div><label>Desde</label><select id="f_v">${opts(VIAS)}</select></div></div>
+    <label>Detalle</label><input id="f_d" placeholder="Ej: Alquiler del local"><button class="btn sec block" id="f_add">+ Guardar como gasto fijo</button>`;
+  $('#f_add').onclick = () => { const m = numGs($('#f_m').value); if (m <= 0) return toast('Ingresá el monto'); (db.cfg.fijos ||= []).push({ id: uid(), cat: $('#f_c').value, desc: $('#f_d').value.trim(), amount: m, via: $('#f_v').value }); guardar(); fijosUI(); };
+  document.querySelectorAll('[data-fx]').forEach(b => b.onclick = () => { if (confirm('¿Sacar de los gastos fijos?')) { db.cfg.fijos = F.filter(x => x.id !== b.dataset.fx); guardar(); fijosUI(); } });
+  if ($('#f_all')) $('#f_all').onclick = () => { pend.forEach(f => db.expenses.push({ id: uid(), date: hoyISO(), cat: f.cat, desc: f.desc, amount: f.amount, via: f.via, supplierId: '', campaignId: '', fijoId: f.id })); guardar(); vCaja(); toast('Gastos fijos cargados'); };
+}
 function resumenMes() {
-  const m = cj.month, V = db.sales.filter(s => s.date.startsWith(m)), G = db.expenses.filter(g => g.date.startsWith(m) && !g.inCost);
+  const m = cj.month, V = db.sales.filter(s => s.date.startsWith(m) && !s.prev), G = db.expenses.filter(g => g.date.startsWith(m) && !g.inCost);
   const tv = V.reduce((a, s) => a + s.total, 0), gan = V.reduce((a, s) => a + s.total - s.cost, 0), tg = G.reduce((a, g) => a + g.amount, 0);
   const cobrado = db.sales.flatMap(s => s.pays).filter(p => p.date.startsWith(m)).reduce((a, p) => a + p.amount, 0);
   const cat = {}; G.forEach(g => cat[g.cat] = (cat[g.cat] || 0) + g.amount);
@@ -558,7 +623,7 @@ function resumenMes() {
   $('#j_mes').innerHTML = `<div class="card"><h2>Resumen del mes</h2><input type="month" id="j_m" value="${m}" style="max-width:200px">
     <div class="grid" style="margin-top:10px"><div class="kpi"><b>${gs(tv)}</b><span>Ventas (${V.length})</span></div><div class="kpi ok"><b>${gs(cobrado)}</b><span>Cobrado</span></div><div class="kpi"><b>${gs(tg)}</b><span>Gastos</span></div>
     ${boss() ? `<div class="kpi"><b>${gs(gan)}</b><span>Ganancia bruta</span></div><div class="kpi ${gan - tg < 0 ? 'bad' : 'ok'}"><b>${gs(gan - tg)}</b><span>Resultado (ganancia − gastos)</span></div>` : ''}</div>
-    ${Object.keys(cat).length ? `<h3>Gastos por categoría</h3>${Object.entries(cat).map(([k, v]) => `<div class="mut">${esc(k)}: ${gs(v)}</div>`).join('')}` : ''}
+    ${Object.keys(cat).length ? `<h3>¿A dónde se va la plata?</h3>${Object.entries(cat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div style="margin:8px 0"><div style="display:flex;justify-content:space-between"><span>${esc(k)}</span><b>${gs(v)} · ${tg ? Math.round(v / tg * 100) : 0}%</b></div><div class="bar"><i style="width:${tg ? Math.round(v / tg * 100) : 0}%"></i></div></div>`).join('')}` : ''}
     <h3>Trabajos por colocador</h3>${Object.entries(tec).map(([k, v]) => `<div class="mut">${esc(k)}: ${v}</div>`).join('') || '<div class="mut">—</div>'}
     <p class="mut">Ganancia bruta = precio de venta − costo de los vidrios (de stock o de proveedor). Las compras a proveedor ligadas a una venta ya están en ese costo, por eso no se suman otra vez a los gastos.</p></div>`;
   $('#j_m').onchange = e => { cj.month = e.target.value || hoyISO().slice(0, 7); resumenMes(); };
