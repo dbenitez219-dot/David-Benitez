@@ -34,8 +34,8 @@ const GASTOS = ['Publicidad', 'Sueldos', 'Herramientas', 'Compra a proveedor', '
 const METODOS = ['Efectivo', 'Transferencia', 'Tarjeta', 'Cheque'];
 const VIAS = ['Efectivo', 'Itaú'];
 const PLATAFORMAS = ['Meta (Facebook/Instagram)', 'TikTok', 'Google', 'Otro'];
-const CFG0 = () => ({ empresa: { nombre: 'CristalAuto Parabrisas', ruc: '', direccion: '', tel: '', timbrado: '', vigencia: '' },
-  staff: ['Jefe', 'Colocador 2', 'Colocador 3', 'Colocador 4'], pin: '', minDefault: 50, capMin: 4, capMax: 12, cotizDias: 3, condiciones: '', seeded: false });
+const CFG0 = () => ({ empresa: { nombre: 'CristalAuto Parabrisas', ruc: '', direccion: '', tel: '', email: '', timbrado: '', vigencia: '' },
+  staff: ['Jefe', 'Colocador 2', 'Colocador 3', 'Colocador 4'], pin: '', minDefault: 50, capMin: 4, capMax: 12, cotizDias: 3, vendedor: '', condiciones: '', seeded: false });
 const normalizarCfg = c => { const b = CFG0(); return { ...b, ...(c || {}), empresa: { ...b.empresa, ...((c || {}).empresa || {}) } }; };
 
 /* ---------- Datos ---------- */
@@ -179,7 +179,7 @@ function vResumen() {
 
 /* ================= VENTAS y COTIZACIONES ================= */
 let cart = nuevoCart();
-function nuevoCart() { return { mode: 'venta', kind: 'colocado', clientName: '', phone: '', ctype: 'particular', vehicle: '', tech: '', items: [], pct: 0, date: hoyISO(), pay: 'contado', method: 'Efectivo', abono: 0, due: addDays(hoyISO(), 30), invType: '', invNo: '', note: '', apptId: '', leadId: '' }; }
+function nuevoCart() { return { mode: 'venta', kind: 'colocado', clientName: '', phone: '', ctype: 'particular', vehicle: '', tech: '', items: [], pct: 0, date: hoyISO(), pay: 'contado', method: 'Efectivo', abono: 0, due: addDays(hoyISO(), 30), invType: '', invNo: '', note: '', apptId: '', leadId: '', formato: 'concepto', concepto: '', totalManual: 0, vendedor: db.cfg.vendedor || '' }; }
 let vf = { from: hoyISO(), to: hoyISO() };
 function vVentas() {
   const cot = cart.mode === 'cotiz';
@@ -210,6 +210,12 @@ function vVentas() {
     <div class="row"><div><label>Factura</label><select id="v_inv"><option value="">Aún sin factura</option><option value="fisica" ${cart.invType === 'fisica' ? 'selected' : ''}>Física (talonario)</option><option value="electronica" ${cart.invType === 'electronica' ? 'selected' : ''}>Electrónica</option></select></div>
       <div><label>N° de factura</label><input id="v_invno" placeholder="001-001-0000000" value="${esc(cart.invNo)}"></div></div>
     <label>¿Viene de una consulta? (para medir la publicidad)</label><select id="v_lead"><option value="">— no / no sé —</option>${abiertas.map(l => `<option value="${l.id}" ${l.id === cart.leadId ? 'selected' : ''}>${esc(l.name)} · ${esc(l.interest)} · ${esc(l.source)}</option>`).join('')}</select>`}
+    ${cot ? `<div class="card" style="background:rgba(100,116,139,.08)"><h3 style="margin-top:0">📄 Cómo sale en el PDF</h3>
+      <div class="seg" id="f_seg"><button data-f="concepto">Concepto y total</button><button data-f="detalle">Detallado (con precios)</button></div>
+      <label>Concepto de la cotización</label><textarea id="v_conc" rows="3" placeholder="Ej: Parabrisas Toyota Hilux GR con sensor de lluvia, incluye colocación y polarizado">${esc(cart.concepto)}</textarea>
+      <button class="btn sec sm" id="v_conc_auto" type="button">Usar lo que elegí arriba</button>
+      <div class="row"><div><label>Total a cotizar (vacío = suma de arriba)</label><input id="v_tman" inputmode="numeric" value="${cart.totalManual || ''}" placeholder="Ej: 2000000"></div>
+      <div><label>Vendedor</label><input id="v_vend" value="${esc(cart.vendedor)}" placeholder="Ej: David Benitez"></div></div></div>` : ''}
     <label>Nota</label><input id="v_note" value="${esc(cart.note)}">
     <button class="btn block ${cot ? '' : 'ok'}" id="v_save">${cot ? 'Guardar y enviar PDF por WhatsApp' : 'Registrar venta'}</button>
   </div>
@@ -238,6 +244,12 @@ function vVentas() {
   const lista = () => { vf.from = $('#f_from').value; vf.to = $('#f_to').value; listaVentas(); };
   $('#f_from').onchange = lista; $('#f_to').onchange = lista;
   $('#f_mes').onclick = () => { vf = { from: hoyISO().slice(0, 8) + '01', to: hoyISO() }; vVentas(); };
+  if (cot) {
+    const fs = () => document.querySelectorAll('#f_seg button').forEach(b => b.classList.toggle('on', b.dataset.f === cart.formato));
+    $('#f_seg').onclick = e => { const b = e.target.closest('button'); if (b) { cart.formato = b.dataset.f; fs(); } };
+    bind('#v_conc', 'concepto'); bind('#v_tman', 'totalManual', numGs); bind('#v_vend', 'vendedor'); fs();
+    $('#v_conc_auto').onclick = () => { cart.concepto = cart.items.map(i => i.name.replace(/^\S+ — /, '')).filter(Boolean).join(' + '); $('#v_conc').value = cart.concepto; };
+  }
   seg(); items(); listaVentas(); listaCotiz();
 }
 function items() {
@@ -308,14 +320,17 @@ function guardarVenta(c = cart, silencioso = false) {
 function cotizTexto(q) {
   const e = db.cfg.empresa;
   return `Hola${q.clientName ? ' ' + q.clientName : ''}! Te paso la cotización de ${e.nombre}:\n${q.vehicle ? 'Vehículo: ' + q.vehicle + '\n' : ''}\n` +
-    q.items.map(i => `• ${i.name}${i.qty !== 1 ? ' x' + fmt(i.qty) : ''}: ${gs(i.qty * i.unit)}`).join('\n') +
+    (q.formato === 'concepto' ? `• ${q.concepto}\n` : '') + (q.formato === 'concepto' ? [] : q.items).map(i => `• ${i.name}${i.qty !== 1 ? ' x' + fmt(i.qty) : ''}: ${gs(i.qty * i.unit)}`).join('\n') +
     `${q.pct ? `\nDescuento ${q.pct}%` : ''}\n*TOTAL: ${gs(q.total)}* (IVA incluido)\nVálida por 3 días. ¿Querés que te agendemos la colocación?`;
 }
 function guardarCotizacion() {
-  const c = cart; if (!validarCart()) return; const t = saleTotals(c), client = clienteDe(c);
-  const n = Math.max(0, ...db.quotes.map(x => x.n || 0)) + 1;
+  const c = cart, t = saleTotals(c), total = c.totalManual > 0 ? c.totalManual : t.total;
+  if (c.formato === 'detalle') { if (!validarCart()) return; }
+  else { if (!c.concepto.trim() && !c.items.length) return toast('Escribí el concepto de la cotización'); if (!(total > 0)) return toast('Falta el total: elegí productos con precio o escribí el total'); }
+  const client = clienteDe(c), n = Math.max(0, ...db.quotes.map(x => x.n || 0)) + 1;
   const q = { id: uid(), n, date: c.date || hoyISO(), ts: Date.now(), kind: c.kind, clientId: client ? client.id : '', clientName: c.clientName.trim(), phone: c.phone.trim(), vehicle: c.vehicle.trim(),
-    items: c.items.map(i => ({ ...i, name: i.name.trim() })), pct: c.pct || 0, total: t.total, cost: t.cost, status: 'enviada', note: c.note.trim() };
+    items: c.items.map(i => ({ ...i, name: i.name.trim() })), pct: c.pct || 0, total, cost: t.cost, status: 'enviada', note: c.note.trim(),
+    formato: c.formato, concepto: c.concepto.trim() || c.items.map(i => i.name.replace(/^\S+ — /, '')).join(' + '), vendedor: c.vendedor.trim() };
   db.quotes.push(q); guardar();
   cart = nuevoCart(); vVentas(); toast(`Presupuesto N° ${numPres(n)} guardado`);
   compartirPresupuesto(q);
@@ -618,6 +633,7 @@ function vAjustes() {
     <label>Dirección</label><input id="e_d" value="${esc(e.direccion)}"><div class="row"><div><label>N° de timbrado</label><input id="e_ti" value="${esc(e.timbrado)}"></div><div><label>Vigencia</label><input id="e_v" value="${esc(e.vigencia)}" placeholder="dd/mm/aaaa"></div></div>
     <label>Colocadores (uno por línea)</label><textarea id="e_s" rows="4">${esc(db.cfg.staff.join('\n'))}</textarea>
     <div class="row"><div><label>Stock mínimo por defecto</label><input id="e_m" inputmode="numeric" value="${db.cfg.minDefault}"></div><div><label>Colocaciones por día: mínimo</label><input id="e_cmin" inputmode="numeric" value="${db.cfg.capMin}"></div><div><label>máximo</label><input id="e_cmax" inputmode="numeric" value="${db.cfg.capMax}"></div></div>
+    <div class="row"><div><label>Correo de la empresa (sale en el PDF)</label><input id="e_em" value="${esc(e.email || '')}"></div><div><label>Vendedor por defecto</label><input id="e_ve" value="${esc(db.cfg.vendedor || '')}"></div></div>
     <div class="row"><div style="flex:0 0 140px"><label>Validez presupuesto (días)</label><input id="e_cd" inputmode="numeric" value="${db.cfg.cotizDias || 3}"></div></div>
     <label>Condiciones del presupuesto (una por línea)</label><textarea id="e_co" rows="5">${esc(db.cfg.condiciones || COND0)}</textarea>
     <button class="btn block" id="e_ok">Guardar</button></div>
@@ -651,7 +667,7 @@ function vAjustes() {
     $('#no').onclick = cerrar;
   };
   $('#e_ok').onclick = () => { Object.assign(db.cfg.empresa, { nombre: $('#e_n').value.trim(), ruc: $('#e_r').value.trim(), tel: $('#e_t').value.trim(), direccion: $('#e_d').value.trim(), timbrado: $('#e_ti').value.trim(), vigencia: $('#e_v').value.trim() });
-    db.cfg.cotizDias = Math.max(1, numGs($('#e_cd').value) || 3); db.cfg.condiciones = $('#e_co').value.trim(); db.cfg.staff = $('#e_s').value.split('\n').map(x => x.trim()).filter(Boolean); db.cfg.minDefault = numGs($('#e_m').value) || 50; db.cfg.capMin = numGs($('#e_cmin').value) || 4; db.cfg.capMax = numGs($('#e_cmax').value) || 12; guardar(); toast('Guardado'); };
+    Object.assign(db.cfg.empresa, { email: $('#e_em').value.trim() }); db.cfg.vendedor = $('#e_ve').value.trim(); db.cfg.cotizDias = Math.max(1, numGs($('#e_cd').value) || 3); db.cfg.condiciones = $('#e_co').value.trim(); db.cfg.staff = $('#e_s').value.split('\n').map(x => x.trim()).filter(Boolean); db.cfg.minDefault = numGs($('#e_m').value) || 50; db.cfg.capMin = numGs($('#e_cmin').value) || 4; db.cfg.capMax = numGs($('#e_cmax').value) || 12; guardar(); toast('Guardado'); };
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => formProveedor(b.dataset.sp)); $('#sp_new').onclick = () => formProveedor();
   document.querySelectorAll('[data-sn]').forEach(i => i.onchange = () => { db.services.find(s => s.id === i.dataset.sn).name = i.value.trim(); guardar(); });
   document.querySelectorAll('[data-spr]').forEach(i => i.onchange = () => { db.services.find(s => s.id === i.dataset.spr).price = numGs(i.value); guardar(); toast('Precio guardado'); });
