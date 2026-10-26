@@ -34,8 +34,8 @@ async function armarPDF(q) {
   fila('Cotización N°', numPres(q.n)); fila('Nombre del cliente', q.clientName || 'Sin nombre');
   if (q.phone) fila('Teléfono', q.phone, false); if (q.vehicle) fila('Vehículo', q.vehicle);
   fila('Fecha de expiración', fechaHora(exp)); if (q.vendedor) fila('Vendedor', q.vendedor);
-  const concepto = q.concepto || (q.items || []).map(i => i.name).join(' + ');
-  if (concepto) fila('Concepto de la cotización', concepto);
+  const concepto = q.concepto || (q.formato === 'detalle' ? '' : (q.items || []).map(i => i.name).join(' + '));
+  if (concepto) fila(q.formato === 'detalle' ? 'Aclaración' : 'Concepto de la cotización', concepto);
   y -= 2; doc.setDrawColor(215); doc.line(M, y, R, y); y += 4;
   // Detallado: tabla con precios
   if (q.formato === 'detalle' && (q.items || []).length) {

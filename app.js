@@ -179,7 +179,7 @@ function vResumen() {
 
 /* ================= VENTAS y COTIZACIONES ================= */
 let cart = nuevoCart();
-function nuevoCart() { return { mode: 'venta', kind: 'colocado', clientName: '', phone: '', ctype: 'particular', vehicle: '', tech: '', items: [], pct: 0, date: hoyISO(), pay: 'contado', method: 'Efectivo', abono: 0, due: addDays(hoyISO(), 30), invType: '', invNo: '', note: '', apptId: '', leadId: '', formato: 'concepto', concepto: '', totalManual: 0, vendedor: db.cfg.vendedor || '' }; }
+function nuevoCart() { return { mode: 'venta', kind: 'colocado', clientName: '', phone: '', ctype: 'particular', vehicle: '', tech: '', items: [], pct: 0, date: hoyISO(), pay: 'contado', method: 'Efectivo', abono: 0, due: addDays(hoyISO(), 30), invType: '', invNo: '', note: '', apptId: '', leadId: '', formato: 'detalle', concepto: '', totalManual: 0, vendedor: db.cfg.vendedor || '' }; }
 let vf = { from: hoyISO(), to: hoyISO() };
 function vVentas() {
   const cot = cart.mode === 'cotiz';
@@ -211,8 +211,8 @@ function vVentas() {
       <div><label>N° de factura</label><input id="v_invno" placeholder="001-001-0000000" value="${esc(cart.invNo)}"></div></div>
     <label>¿Viene de una consulta? (para medir la publicidad)</label><select id="v_lead"><option value="">— no / no sé —</option>${abiertas.map(l => `<option value="${l.id}" ${l.id === cart.leadId ? 'selected' : ''}>${esc(l.name)} · ${esc(l.interest)} · ${esc(l.source)}</option>`).join('')}</select>`}
     ${cot ? `<div class="card" style="background:rgba(100,116,139,.08)"><h3 style="margin-top:0">📄 Cómo sale en el PDF</h3>
-      <div class="seg" id="f_seg"><button data-f="concepto">Concepto y total</button><button data-f="detalle">Detallado (con precios)</button></div>
-      <label>Concepto de la cotización</label><textarea id="v_conc" rows="3" placeholder="Ej: Parabrisas Toyota Hilux GR con sensor de lluvia, incluye colocación y polarizado">${esc(cart.concepto)}</textarea>
+      <div class="seg" id="f_seg"><button data-f="detalle">Detallado (cada precio y total)</button><button data-f="concepto">Solo concepto y total</button></div>
+      <label>Concepto / aclaración (en el detallado es opcional)</label><textarea id="v_conc" rows="3" placeholder="Ej: Parabrisas Toyota Hilux GR con sensor de lluvia, incluye colocación y polarizado">${esc(cart.concepto)}</textarea>
       <button class="btn sec sm" id="v_conc_auto" type="button">Usar lo que elegí arriba</button>
       <div class="row"><div><label>Total a cotizar (vacío = suma de arriba)</label><input id="v_tman" inputmode="numeric" value="${cart.totalManual || ''}" placeholder="Ej: 2000000"></div>
       <div><label>Vendedor</label><input id="v_vend" value="${esc(cart.vendedor)}" placeholder="Ej: David Benitez"></div></div></div>` : ''}
@@ -330,7 +330,7 @@ function guardarCotizacion() {
   const client = clienteDe(c), n = Math.max(0, ...db.quotes.map(x => x.n || 0)) + 1;
   const q = { id: uid(), n, date: c.date || hoyISO(), ts: Date.now(), kind: c.kind, clientId: client ? client.id : '', clientName: c.clientName.trim(), phone: c.phone.trim(), vehicle: c.vehicle.trim(),
     items: c.items.map(i => ({ ...i, name: i.name.trim() })), pct: c.pct || 0, total, cost: t.cost, status: 'enviada', note: c.note.trim(),
-    formato: c.formato, concepto: c.concepto.trim() || c.items.map(i => i.name.replace(/^\S+ — /, '')).join(' + '), vendedor: c.vendedor.trim() };
+    formato: c.formato, concepto: c.concepto.trim() || (c.formato === 'concepto' ? c.items.map(i => i.name.replace(/^\S+ — /, '')).join(' + ') : ''), vendedor: c.vendedor.trim() };
   db.quotes.push(q); guardar();
   cart = nuevoCart(); vVentas(); toast(`Presupuesto N° ${numPres(n)} guardado`);
   compartirPresupuesto(q);
