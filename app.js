@@ -131,6 +131,12 @@ const paidOf = s => s.pays.reduce((a, p) => a + p.amount, 0);
 const saldoOf = s => s.total - paidOf(s);
 const hoyVencida = s => saldoOf(s) > 0 && s.due && s.due < hoyISO();
 
+/* Recordatorio de copia de seguridad (cada 7 días, por dispositivo) */
+const RESP_KEY = 'cristalauto.respaldo';
+const ultimoRespaldo = () => { try { return localStorage.getItem(RESP_KEY) || ''; } catch (e) { return ''; } };
+const marcarRespaldo = () => { try { localStorage.setItem(RESP_KEY, hoyISO()); } catch (e) { } };
+const diasSinRespaldo = () => { const u = ultimoRespaldo(); return u ? Math.round((new Date(hoyISO()) - new Date(u)) / 86400000) : null; };
+
 /* ================= INICIO ================= */
 function vResumen() {
   const hoy = hoyISO(), mes = hoy.slice(0, 7);
@@ -150,6 +156,7 @@ function vResumen() {
   const max = Math.max(1, ...serie.map(x => x.v));
   view.innerHTML = `
   ${!db.products.length ? '<div class="banner">Todavía no cargaste tu inventario. Andá a <b>Ajustes → Importar Excel</b> y subí tu planilla de stock.</div>' : ''}
+  ${db.products.length && boss() && (diasSinRespaldo() === null || diasSinRespaldo() >= 7) ? `<div class="banner">💾 ${diasSinRespaldo() === null ? 'Todavía no bajaste ninguna copia de seguridad en este dispositivo.' : `Hace ${diasSinRespaldo()} días que no bajás una copia de seguridad.`} <a href="#" id="go_resp">Bajar copia ahora</a></div>` : ''}
   ${!cd || cd.closed ? `<div class="banner">${!cd ? '💵 La caja de hoy todavía no está abierta.' : '💵 La caja de hoy ya está cerrada.'} <a href="#" id="go_caja">Ir a Caja</a></div>` : ''}
   <div class="grid">
     <div class="kpi"><b>${gs(ventasHoy.reduce((a, s) => a + s.total, 0))}</b><span>Ventas de hoy (${ventasHoy.length})</span></div>
@@ -174,6 +181,7 @@ function vResumen() {
   <div class="card"><h2>⚠️ Stock para reponer</h2>${bajos.length ? tabla(['Código', 'Descripción', 'Stock'], bajos.slice(0, 15).map(p => `<tr><td>${esc(p.code)}</td><td class="wrap">${esc(p.name)}</td><td class="n">${stockDot(p)}${fmt(p.stock)}</td></tr>`).join(''), [2]) + (bajos.length > 15 ? `<p class="mut">…y ${bajos.length - 15} más en Stock.</p>` : '') : '<p class="mut">Todo con stock suficiente.</p>'}</div>`;
   document.querySelectorAll('#view [data-v]').forEach(r => r.onclick = () => verVenta(r.dataset.v));
   document.querySelectorAll('#view [data-ag]').forEach(r => r.onclick = () => { tab = 'agenda'; ag.date = hoy; render(); });
+  const gr = $('#go_resp'); if (gr) gr.onclick = e => { e.preventDefault(); bajar(`respaldo-cristalauto-${hoyISO()}.json`, JSON.stringify(db), 'application/json'); marcarRespaldo(); toast('Copia descargada'); vResumen(); };
   const gc = $('#go_caja'); if (gc) gc.onclick = e => { e.preventDefault(); tab = 'caja'; cj.date = hoy; render(); };
 }
 
@@ -426,10 +434,10 @@ function vStock() {
     ${boss() ? `<div class="kpi"><b>${gs(valorCompra)}</b><span>Valor a precio de compra</span></div>` : ''}<div class="kpi ${db.products.some(p => p.stock <= p.min) ? 'bad' : ''}"><b>${db.products.filter(p => p.stock <= p.min).length}</b><span>Para reponer</span></div></div>
   <div class="card"><div class="row"><div style="flex:2 1 220px"><input id="s_q" type="search" placeholder="Buscar código o modelo…" value="${esc(sf.q)}"></div>
     <select id="s_b"><option value="">Todos</option><option value="1" ${sf.bajo ? 'selected' : ''}>Solo stock bajo</option></select>
-    <button class="btn" id="s_in">+ Entrada / conteo</button><button class="btn sec" id="s_new">Nuevo modelo</button></div></div>
+    <button class="btn" id="s_in">+ Entrada de stock</button><button class="btn ok" id="s_cnt">📋 Contar inventario</button><button class="btn sec" id="s_new">Nuevo modelo</button></div></div>
   <div class="card" id="s_list"></div>`;
   $('#s_q').oninput = e => { sf.q = e.target.value; listaStock(); }; $('#s_b').onchange = e => { sf.bajo = e.target.value; listaStock(); };
-  $('#s_in').onclick = () => formMov(); $('#s_new').onclick = () => formProducto(); listaStock();
+  $('#s_in').onclick = () => formMov(); $('#s_cnt').onclick = () => vConteo(); $('#s_new').onclick = () => formProducto(); listaStock();
 }
 function listaStock() {
   const w = norm(sf.q).split(' ').filter(Boolean);
@@ -714,7 +722,7 @@ function vAjustes() {
     <div class="row"><input id="pin" type="password" inputmode="numeric" placeholder="Nuevo PIN (vacío = sin PIN)" autocomplete="off"><button class="btn" id="pin_ok">Guardar PIN</button></div></div>
   <div class="card"><h2>📤 Exportar</h2><div class="row"><button class="btn sec" id="x_inv">Inventario (CSV)</button><button class="btn sec" id="x_ven">Ventas (CSV)</button><button class="btn sec" id="x_cli">Clientes (CSV)</button></div></div>
   <div class="card"><h2>💾 Copia de seguridad</h2>
-    <p class="mut">Los datos ya se guardan en la nube. Igual podés bajar una copia por las dudas.</p>
+    <p class="mut">Los datos ya se guardan en la nube. Igual podés bajar una copia por las dudas. ${ultimoRespaldo() ? 'Última copia en este dispositivo: <b>' + dmy(ultimoRespaldo()) + '</b>.' : 'Todavía no bajaste ninguna acá.'} La app te lo recuerda cada 7 días.</p>
     <div class="row"><button class="btn" id="bk">Descargar respaldo</button><button class="btn sec" id="rs">Restaurar respaldo</button></div><input type="file" id="rfile" accept=".json,application/json" hidden></div>`;
   const stTxt = { ok: '✅ al día', sync: '🔄 sincronizando…', pend: '⏳ cambios por subir', err: '⚠️ sin conexión / error', local: 'sin nube' };
   const pintar = () => { const el = $('#sy_st'); if (el) el.textContent = (stTxt[Sync.status] || Sync.status) + (Sync.detail && Sync.status === 'err' ? ' (' + Sync.detail + ')' : ''); }; pintar();
@@ -744,7 +752,7 @@ function vAjustes() {
   $('#x_inv').onclick = () => needBoss(() => bajar(`inventario-${hoyISO()}.csv`, csv([CS.split(','), ...db.products.map(p => [p.code, p.name, p.contenedor, p.stock, p.min, p.compra, p.mayorista, p.colocado])]), 'text/csv'));
   $('#x_ven').onclick = () => bajar(`ventas-${hoyISO()}.csv`, csv([['n', 'fecha', 'cliente', 'tipo', 'detalle', 'total', 'cobrado', 'saldo', 'factura'], ...db.sales.map(s => [s.n, s.date, s.clientName, s.kind, s.items.map(i => i.qty + 'x ' + i.name).join(' | '), s.total, paidOf(s), saldoOf(s), s.inv.no])]), 'text/csv');
   $('#x_cli').onclick = () => bajar(`clientes-${hoyISO()}.csv`, csv([['nombre', 'tipo', 'ruc', 'telefono'], ...db.clients.map(c => [c.name, c.type, c.ruc, c.phone])]), 'text/csv');
-  $('#bk').onclick = () => needBoss(() => bajar(`respaldo-cristalauto-${hoyISO()}.json`, JSON.stringify(db), 'application/json'));
+  $('#bk').onclick = () => needBoss(() => { bajar(`respaldo-cristalauto-${hoyISO()}.json`, JSON.stringify(db), 'application/json'); marcarRespaldo(); vAjustes(); });
   $('#rs').onclick = () => $('#rfile').click();
   $('#rfile').onchange = async ev => { const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
     try { const d = JSON.parse(await f.text()); if (!Array.isArray(d.products) || !Array.isArray(d.moves)) throw 0;
