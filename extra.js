@@ -53,14 +53,15 @@ function completarCita(a) {
   tab = 'ventas'; render();
 }
 function formCita(id) {
-  const a = id ? db.appts.find(x => x.id === id) : { date: ag.date, time: '09:00', clientName: '', phone: '', vehicle: '', domicilio: false, address: '', tech: '', items: [], note: '', status: 'agendado' };
+  const a = id ? db.appts.find(x => x.id === id) : { date: ag.date, time: '09:00', clientName: '', phone: '', vehicle: '', domicilio: true, address: '', tech: '', items: [], note: '', status: 'agendado' };
   const items = a.items.map(i => ({ ...i }));
   modal(`<h2>${id ? 'Editar' : 'Agendar'} colocación</h2>
     <div class="row"><div><label>Fecha</label><input type="date" id="a_fecha" value="${a.date}"></div><div><label>Hora</label><input type="time" id="a_hora" value="${a.time}"></div></div>
     <div id="a_cap" class="mut"></div>
     <div class="row"><div><label>Cliente</label><input id="a_cli" list="a_clis" autocomplete="off" value="${esc(a.clientName)}"><datalist id="a_clis">${db.clients.map(c => `<option value="${esc(c.name)}">`).join('')}</datalist></div><div><label>Teléfono / WhatsApp</label><input id="a_tel" inputmode="tel" value="${esc(a.phone)}"></div></div>
     <label>Vehículo / chapa</label><input id="a_veh" value="${esc(a.vehicle)}" placeholder="Toyota Vitz 2008 · ABC123">
-    <label style="display:flex;gap:8px;align-items:center;color:inherit;font-size:16px"><input type="checkbox" id="a_dom" style="width:22px;min-height:22px" ${a.domicilio ? 'checked' : ''}> Trabajo a domicilio</label>
+    <label style="display:flex;gap:8px;align-items:center;color:inherit;font-size:16px"><input type="checkbox" id="a_dom" style="width:22px;min-height:22px" ${a.domicilio ? 'checked' : ''}> 🚗 Trabajo a domicilio</label>
+    <div id="a_hint" class="banner" ${a.domicilio ? 'hidden' : ''}>En el local atendemos por <b>orden de llegada</b>. Agendá en el local solo <b>pulida de vidrios, polarizado o pulida de faros</b>.</div>
     <div id="a_addrw" ${a.domicilio ? '' : 'hidden'}><label>Dirección (o link de Google Maps)</label><input id="a_addr" value="${esc(a.address)}"></div>
     <label>Colocador</label><select id="a_tech"><option value="">—</option>${opts(db.cfg.staff, a.tech)}</select>
     <label>Vidrio de stock (código o modelo)</label><input id="a_q" autocomplete="off" placeholder="Buscar…"><div id="a_res" class="sugs"></div>
@@ -73,7 +74,7 @@ function formCita(id) {
   const cap = () => { const d = $('#a_fecha').value, n = agendaDe(d).filter(x => x.id !== id).length + 1;
     $('#a_cap').innerHTML = `Ese día tendrías <b>${n}</b> colocaciones (máximo ${db.cfg.capMax}).${n > db.cfg.capMax ? ' <b style="color:var(--bad)">⚠ Pasás el límite.</b>' : ''}`; };
   $('#a_fecha').onchange = cap; cap(); pintar();
-  $('#a_dom').onchange = e => $('#a_addrw').hidden = !e.target.checked;
+  $('#a_dom').onchange = e => { $('#a_addrw').hidden = !e.target.checked; $('#a_hint').hidden = e.target.checked; };
   $('#a_cli').onchange = e => { const c = db.clients.find(x => norm(x.name) === norm(e.target.value)); if (c && c.phone && !$('#a_tel').value) $('#a_tel').value = c.phone; };
   picker($('#a_q'), $('#a_res'), p => { items.push({ type: 'prod', id: p.id, name: p.code + ' — ' + p.name, qty: 1, unit: p.colocado || 0, cost: p.compra || 0 }); pintar(); });
   $('#a_srv').onchange = e => { const s = db.services.find(x => x.id === e.target.value); if (s) { items.push({ type: 'srv', id: s.id, name: s.name, qty: 1, unit: s.price, cost: 0 }); pintar(); } e.target.value = ''; };
@@ -82,6 +83,7 @@ function formCita(id) {
     const d = { date: $('#a_fecha').value, time: $('#a_hora').value, clientName: $('#a_cli').value.trim(), phone: $('#a_tel').value.trim(), vehicle: $('#a_veh').value.trim(), domicilio: $('#a_dom').checked,
       address: $('#a_dom').checked ? $('#a_addr').value.trim() : '', tech: $('#a_tech').value, items, note: $('#a_note').value.trim() };
     if (!d.date || !d.time) return toast('Elegí fecha y hora'); if (!d.clientName) return toast('Falta el nombre del cliente');
+    if (!d.domicilio && items.some(i => i.type === 'prod' || !/pulid|polariz/i.test(i.name)) && !confirm('En el local se atiende por orden de llegada y solo se agenda pulida, polarizado o pulida de faros. ¿Agendar igual?')) return;
     const otros = agendaDe(d.date).filter(x => x.id !== id);
     if (otros.length >= db.cfg.capMax && !confirm(`Ese día ya hay ${otros.length} colocaciones (máximo ${db.cfg.capMax}). ¿Agendar igual?`)) return;
     if (otros.filter(x => x.time === d.time).length >= db.cfg.staff.length && !confirm(`A las ${d.time} ya hay ${otros.filter(x => x.time === d.time).length} trabajos y tenés ${db.cfg.staff.length} colocadores. ¿Agendar igual?`)) return;
