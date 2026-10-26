@@ -35,7 +35,7 @@ const METODOS = ['Efectivo', 'Transferencia', 'Tarjeta', 'Cheque'];
 const VIAS = ['Efectivo', 'Itaú'];
 const PLATAFORMAS = ['Meta (Facebook/Instagram)', 'TikTok', 'Google', 'Otro'];
 const CFG0 = () => ({ empresa: { nombre: 'CristalAuto Parabrisas', ruc: '', direccion: '', tel: '', timbrado: '', vigencia: '' },
-  staff: ['Jefe', 'Colocador 2', 'Colocador 3', 'Colocador 4'], pin: '', minDefault: 50, capMin: 4, capMax: 12, seeded: false });
+  staff: ['Jefe', 'Colocador 2', 'Colocador 3', 'Colocador 4'], pin: '', minDefault: 50, capMin: 4, capMax: 12, cotizDias: 3, condiciones: '', seeded: false });
 const normalizarCfg = c => { const b = CFG0(); return { ...b, ...(c || {}), empresa: { ...b.empresa, ...((c || {}).empresa || {}) } }; };
 
 /* ---------- Datos ---------- */
@@ -211,7 +211,7 @@ function vVentas() {
       <div><label>N° de factura</label><input id="v_invno" placeholder="001-001-0000000" value="${esc(cart.invNo)}"></div></div>
     <label>¿Viene de una consulta? (para medir la publicidad)</label><select id="v_lead"><option value="">— no / no sé —</option>${abiertas.map(l => `<option value="${l.id}" ${l.id === cart.leadId ? 'selected' : ''}>${esc(l.name)} · ${esc(l.interest)} · ${esc(l.source)}</option>`).join('')}</select>`}
     <label>Nota</label><input id="v_note" value="${esc(cart.note)}">
-    <button class="btn block ${cot ? '' : 'ok'}" id="v_save">${cot ? 'Guardar y enviar por WhatsApp' : 'Registrar venta'}</button>
+    <button class="btn block ${cot ? '' : 'ok'}" id="v_save">${cot ? 'Guardar y enviar PDF por WhatsApp' : 'Registrar venta'}</button>
   </div>
   <div class="card"><h2>Ventas registradas</h2>
     <div class="row"><div><label>Desde</label><input type="date" id="f_from" value="${vf.from}"></div><div><label>Hasta</label><input type="date" id="f_to" value="${vf.to}"></div>
@@ -317,16 +317,16 @@ function guardarCotizacion() {
   const q = { id: uid(), n, date: c.date || hoyISO(), ts: Date.now(), kind: c.kind, clientId: client ? client.id : '', clientName: c.clientName.trim(), phone: c.phone.trim(), vehicle: c.vehicle.trim(),
     items: c.items.map(i => ({ ...i, name: i.name.trim() })), pct: c.pct || 0, total: t.total, cost: t.cost, status: 'enviada', note: c.note.trim() };
   db.quotes.push(q); guardar();
-  const link = waLink(q.phone, cotizTexto(q));
-  cart = nuevoCart(); vVentas();
-  if (link) { window.open(link, '_blank'); toast(`Cotización #${n} guardada`); } else toast(`Cotización #${n} guardada (sin teléfono para WhatsApp)`);
+  cart = nuevoCart(); vVentas(); toast(`Presupuesto N° ${numPres(n)} guardado`);
+  compartirPresupuesto(q);
 }
 function listaCotiz() {
   const L = db.quotes.slice().sort((a, b) => b.ts - a.ts).slice(0, 15);
   $('#q_list').innerHTML = L.length ? tabla(['N°', 'Cliente', 'Total', 'Estado', ''], L.map(q => `<tr><td>#${q.n}<br><span class="mut">${dmy(q.date)}</span></td><td class="wrap">${esc(q.clientName || 'Sin nombre')}<br><span class="mut">${esc(q.vehicle)}</span></td><td class="n">${gs(q.total)}</td>
     <td><select data-qs="${q.id}" style="min-height:34px">${optsKV([['enviada', 'Enviada'], ['aceptada', 'Aceptada'], ['rechazada', 'Rechazada']], q.status)}</select></td>
-    <td>${waLink(q.phone) ? `<a class="btn sm" href="${waLink(q.phone, cotizTexto(q))}" target="_blank" rel="noopener">WhatsApp</a> ` : ''}<button class="btn sec sm" data-qc="${q.id}">→ Venta</button> <button class="btn sec sm" data-qd="${q.id}">✕</button></td></tr>`).join(''), [2]) : '<p class="mut">Todavía no hiciste cotizaciones.</p>';
+    <td>${waLink(q.phone) ? `<a class="btn sm" href="${waLink(q.phone, cotizTexto(q))}" target="_blank" rel="noopener">WhatsApp</a> ` : ''}<button class="btn sm" data-qp="${q.id}">📄 PDF</button> <button class="btn sec sm" data-qc="${q.id}">→ Venta</button> <button class="btn sec sm" data-qd="${q.id}">✕</button></td></tr>`).join(''), [2]) : '<p class="mut">Todavía no hiciste cotizaciones.</p>';
   document.querySelectorAll('[data-qs]').forEach(s => s.onchange = () => { db.quotes.find(q => q.id === s.dataset.qs).status = s.value; guardar(); });
+  document.querySelectorAll('[data-qp]').forEach(b => b.onclick = () => compartirPresupuesto(db.quotes.find(x => x.id === b.dataset.qp)));
   document.querySelectorAll('[data-qd]').forEach(b => b.onclick = () => { if (confirm('¿Borrar cotización?')) { db.quotes = db.quotes.filter(q => q.id !== b.dataset.qd); guardar(); listaCotiz(); } });
   document.querySelectorAll('[data-qc]').forEach(b => b.onclick = () => { const q = db.quotes.find(x => x.id === b.dataset.qc);
     cart = { ...nuevoCart(), kind: q.kind || 'colocado', clientName: q.clientName, phone: q.phone, vehicle: q.vehicle, items: q.items.map(i => ({ ...i })), pct: q.pct }; q.status = 'aceptada'; guardar(); vVentas(); window.scrollTo(0, 0); });
@@ -618,6 +618,8 @@ function vAjustes() {
     <label>Dirección</label><input id="e_d" value="${esc(e.direccion)}"><div class="row"><div><label>N° de timbrado</label><input id="e_ti" value="${esc(e.timbrado)}"></div><div><label>Vigencia</label><input id="e_v" value="${esc(e.vigencia)}" placeholder="dd/mm/aaaa"></div></div>
     <label>Colocadores (uno por línea)</label><textarea id="e_s" rows="4">${esc(db.cfg.staff.join('\n'))}</textarea>
     <div class="row"><div><label>Stock mínimo por defecto</label><input id="e_m" inputmode="numeric" value="${db.cfg.minDefault}"></div><div><label>Colocaciones por día: mínimo</label><input id="e_cmin" inputmode="numeric" value="${db.cfg.capMin}"></div><div><label>máximo</label><input id="e_cmax" inputmode="numeric" value="${db.cfg.capMax}"></div></div>
+    <div class="row"><div style="flex:0 0 140px"><label>Validez presupuesto (días)</label><input id="e_cd" inputmode="numeric" value="${db.cfg.cotizDias || 3}"></div></div>
+    <label>Condiciones del presupuesto (una por línea)</label><textarea id="e_co" rows="5">${esc(db.cfg.condiciones || COND0)}</textarea>
     <button class="btn block" id="e_ok">Guardar</button></div>
   <div class="card"><h2>🏭 Proveedores de vidrio</h2>${db.suppliers.length ? db.suppliers.map(s => `<div class="row" style="margin-bottom:6px"><div style="flex:3 1 160px">${esc(s.name)} <span class="mut">${esc(s.phone)}</span></div><div style="flex:0 0 90px"><button class="btn sec sm" data-sp="${s.id}">Editar</button></div></div>`).join('') : '<p class="mut">Sin proveedores todavía.</p>'}
     <button class="btn sec" id="sp_new">+ Agregar proveedor</button></div>
@@ -649,7 +651,7 @@ function vAjustes() {
     $('#no').onclick = cerrar;
   };
   $('#e_ok').onclick = () => { Object.assign(db.cfg.empresa, { nombre: $('#e_n').value.trim(), ruc: $('#e_r').value.trim(), tel: $('#e_t').value.trim(), direccion: $('#e_d').value.trim(), timbrado: $('#e_ti').value.trim(), vigencia: $('#e_v').value.trim() });
-    db.cfg.staff = $('#e_s').value.split('\n').map(x => x.trim()).filter(Boolean); db.cfg.minDefault = numGs($('#e_m').value) || 50; db.cfg.capMin = numGs($('#e_cmin').value) || 4; db.cfg.capMax = numGs($('#e_cmax').value) || 12; guardar(); toast('Guardado'); };
+    db.cfg.cotizDias = Math.max(1, numGs($('#e_cd').value) || 3); db.cfg.condiciones = $('#e_co').value.trim(); db.cfg.staff = $('#e_s').value.split('\n').map(x => x.trim()).filter(Boolean); db.cfg.minDefault = numGs($('#e_m').value) || 50; db.cfg.capMin = numGs($('#e_cmin').value) || 4; db.cfg.capMax = numGs($('#e_cmax').value) || 12; guardar(); toast('Guardado'); };
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => formProveedor(b.dataset.sp)); $('#sp_new').onclick = () => formProveedor();
   document.querySelectorAll('[data-sn]').forEach(i => i.onchange = () => { db.services.find(s => s.id === i.dataset.sn).name = i.value.trim(); guardar(); });
   document.querySelectorAll('[data-spr]').forEach(i => i.onchange = () => { db.services.find(s => s.id === i.dataset.spr).price = numGs(i.value); guardar(); toast('Precio guardado'); });
