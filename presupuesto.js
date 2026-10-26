@@ -31,8 +31,8 @@ async function armarPDF(q) {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90); doc.text(label, M, y);
     doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setTextColor(25);
     const ls = doc.splitTextToSize(String(valor), 115); doc.text(ls, R, y, { align: 'right' }); y += Math.max(1, ls.length) * 5 + 4; };
-  fila('Cotización N°', numPres(q.n)); fila('Nombre del cliente', q.clientName || 'Sin nombre');
-  if (q.phone) fila('Teléfono', q.phone, false); if (q.vehicle) fila('Vehículo', q.vehicle);
+  if (q.n) fila('Cotización N°', numPres(q.n)); fila('Nombre del cliente', q.clientName || 'Sin nombre');
+  if (q.ruc) fila('RUC / C.I.', q.ruc, false); if (q.phone) fila('Teléfono', q.phone, false); if (q.vehicle) fila('Vehículo', q.vehicle);
   fila('Fecha de expiración', fechaHora(exp)); if (q.vendedor) fila('Vendedor', q.vendedor);
   const concepto = q.concepto || (q.formato === 'detalle' ? '' : (q.items || []).map(i => i.name).join(' + '));
   if (concepto) fila(q.formato === 'detalle' ? 'Aclaración' : 'Concepto de la cotización', concepto);

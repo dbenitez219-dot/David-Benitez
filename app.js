@@ -339,7 +339,7 @@ function guardarCotizacion() {
   const client = clienteDe(c), n = Math.max(0, ...db.quotes.map(x => x.n || 0)) + 1;
   const q = { id: uid(), n, date: c.date || hoyISO(), ts: Date.now(), kind: c.kind, clientId: client ? client.id : '', clientName: c.clientName.trim(), phone: c.phone.trim(), vehicle: c.vehicle.trim(),
     items: c.items.map(i => ({ ...i, name: i.name.trim() })), pct: c.pct || 0, total, cost: t.cost, status: 'enviada', note: c.note.trim(),
-    formato: c.formato, concepto: c.concepto.trim() || (c.formato === 'concepto' ? c.items.map(i => i.name.replace(/^\S+ — /, '')).join(' + ') : ''), vendedor: c.vendedor.trim() };
+    ruc: (client && client.ruc) || '', formato: c.formato, concepto: c.concepto.trim() || (c.formato === 'concepto' ? c.items.map(i => i.name.replace(/^\S+ — /, '')).join(' + ') : ''), vendedor: c.vendedor.trim() };
   db.quotes.push(q); guardar();
   cart = nuevoCart(); vVentas(); toast(`Presupuesto N° ${numPres(n)} guardado`);
   compartirPresupuesto(q);
