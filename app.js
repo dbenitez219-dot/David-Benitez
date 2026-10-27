@@ -406,7 +406,7 @@ function formFactura(s) {
     items: s.items.map(i => ({ descripcion: i.name, cantidad: i.qty, precioUnitario: i.unit, iva: 10 })), descuentoPorcentaje: s.pct, total: s.total, ivaIncluido10: Math.round(s.total / 11) }, null, 2), 'application/json'); };
 }
 function imprimir(s) {
-  const e = db.cfg.empresa, cl = cli(s.clientId) || {}, t = saleTotals(s);
+  const e = db.cfg.empresa, cl = cli(s.clientId) || {}, t = saleTotals(s), saldo = saldoOf(s);
   const w = window.open('', '_blank'); if (!w) return toast('Permití las ventanas emergentes para imprimir');
   w.document.write(`<!doctype html><meta charset="utf-8"><title>Venta ${s.n}</title><style>body{font:14px sans-serif;max-width:720px;margin:20px auto}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #ccc;padding:6px;text-align:left}.r{text-align:right}h1{margin:0}.s{color:#555;font-size:12px}</style>
   <img src="${location.origin}/icons/logo.png" style="height:90px;background:#000;border-radius:8px"><h1>${esc(e.nombre)}</h1><div class="s">${esc(e.direccion)} ${e.tel ? '· Tel. ' + esc(e.tel) : ''}<br>${e.ruc ? 'RUC ' + esc(e.ruc) : ''} ${e.timbrado ? '· Timbrado ' + esc(e.timbrado) + (e.vigencia ? ' vigente hasta ' + esc(e.vigencia) : '') : ''}</div><hr>
@@ -414,6 +414,8 @@ function imprimir(s) {
   <p>Fecha: ${dmy(s.date)} · Condición: ${s.pay === 'credito' ? 'Crédito' + (s.due ? ' (vence ' + dmy(s.due) + ')' : '') : 'Contado'}<br>Cliente: <b>${esc(s.clientName)}</b> ${cl.ruc ? '· RUC ' + esc(cl.ruc) : ''}<br>${s.vehicle ? 'Vehículo: ' + esc(s.vehicle) : ''}</p>
   <table><tr><th>Descripción</th><th class="r">Cant.</th><th class="r">Precio</th><th class="r">Total</th></tr>${s.items.map(i => `<tr><td>${esc(i.name)}</td><td class="r">${fmt(i.qty)}</td><td class="r">${gs(i.unit)}</td><td class="r">${gs(i.qty * i.unit)}</td></tr>`).join('')}</table>
   <p class="r">${s.pct ? 'Descuento ' + s.pct + '%: −' + gs(t.d) + '<br>' : ''}<b style="font-size:18px">TOTAL ${gs(s.total)}</b><br>IVA 10% incluido: ${gs(s.total / 11)}</p>
+  ${s.pays.length ? `<h3>Pagos recibidos</h3><table><tr><th>Fecha</th><th>Forma de pago</th><th class="r">Monto</th></tr>${s.pays.map(p => `<tr><td>${dmy(p.date)}</td><td>${esc(p.method)}</td><td class="r">${gs(p.amount)}</td></tr>`).join('')}</table>` : ''}
+  ${s.pays.length || saldo > 0 ? `<p class="r">Cobrado: ${gs(paidOf(s))}<br>${saldo > 0 ? `<b style="font-size:16px">Saldo pendiente ${gs(saldo)}</b>${s.due ? ' · vence ' + dmy(s.due) : ''}` : '<b>Pagado en su totalidad</b>'}</p>` : ''}
   ${s.inv.no ? '' : '<p class="s">Documento sin validez tributaria. La factura legal se emite por talonario o factura electrónica.</p>'}<script>onload=()=>print()<\/script>`);
   w.document.close();
 }
