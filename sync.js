@@ -147,6 +147,10 @@ const Sync = (() => {
     if (!r.ok) throw new Error((j.error || j.message || j.msg || 'Error') + ' (código ' + r.status + ')');
     return j;
   }
+  async function token() {
+    if (!sb) throw new Error('Iniciá sesión en la app'); const { data } = await sb.auth.getSession(); if (!data.session) throw new Error('Sesión vencida');
+    return data.session.access_token;
+  }
   async function notifySale(id) {
     try { await flush(); await call('sale', { id }); }
     catch (e) { const q = JSON.parse(localStorage.getItem('cristalauto.notifq') || '[]'); if (!q.includes(id)) q.push(id); localStorage.setItem('cristalauto.notifq', JSON.stringify(q)); }
@@ -169,6 +173,6 @@ const Sync = (() => {
     if (error) throw error;
   }
 
-  return { loadLocal, init, signIn, signOut, start, save, schedule, flush, pull, push, call, notifySale, retryNotifs, enablePush, pushActive, pushSupported,
+  return { loadLocal, init, signIn, signOut, start, save, schedule, flush, pull, push, call, token, notifySale, retryNotifs, enablePush, pushActive, pushSupported,
     onStatus: f => listeners.push(f), get status() { return status; }, get detail() { return detail; }, get email() { return email; }, pending, get enabled() { return !!sb; } };
 })();
