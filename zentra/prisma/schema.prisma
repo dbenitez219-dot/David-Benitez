@@ -240,6 +240,9 @@ model AdAccount {
   tokenExpiresAt DateTime?
   lastSyncAt     DateTime?
   lastError      String?
+  metaUserId     String? // id de usuario de Meta que autorizó (para deauthorize / eliminación de datos)
+  syncEnabled    Boolean          @default(false) // el usuario elige qué cuentas sincronizar (límite por plan)
+  syncLockedUntil DateTime? // arrendamiento para evitar sincronizaciones simultáneas
   isDemo         Boolean          @default(false) // datos de demostración claramente marcados
   createdAt      DateTime         @default(now())
   organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -255,7 +258,8 @@ model Campaign {
   adAccountId    String
   externalId     String
   name           String
-  objective      String?
+  objective      String? // objetivo de resultado de ZENTRA: MESSAGES | LEADS | SALES
+  rawObjective   String? // objetivo original de la plataforma (p. ej. OUTCOME_SALES)
   status         String
   dailyBudget    Decimal?  @db.Decimal(14, 2)
   startTime      DateTime?
@@ -434,4 +438,14 @@ model AuditLog {
 
   @@index([organizationId, createdAt])
   @@index([userId])
+}
+
+// Solicitudes de eliminación de datos iniciadas desde Meta (requisito de App Review).
+model DataDeletionRequest {
+  code       String   @id
+  metaUserId String
+  status     String   @default("COMPLETED")
+  createdAt  DateTime @default(now())
+
+  @@index([metaUserId])
 }

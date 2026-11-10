@@ -8,7 +8,7 @@ import { Logo } from "./Logo";
 const NAV = [
   { href: "/dashboard", label: "Panel", phase: 0 },
   { href: "/ads", label: "Anuncios", phase: 0 },
-  { href: "#", label: "Conexiones", phase: 3 },
+  { href: "/connections", label: "Conexiones", phase: 0 },
   { href: "#", label: "ZENTRA AI", phase: 4 },
   { href: "#", label: "Automatizaciones", phase: 5 },
   { href: "#", label: "Notificaciones", phase: 5 },

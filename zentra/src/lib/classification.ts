@@ -19,3 +19,9 @@ export const CLASS_STYLE: Record<AdClassification, string> = {
 };
 
 export const OBJECTIVE_LABEL: Record<string, string> = { MESSAGES: "Mensajes", LEADS: "Leads", SALES: "Ventas" };
+
+export const STATUS_LABEL: Record<string, string> = {
+  ACTIVE: "Activo", PAUSED: "Pausado", DISAPPROVED: "Rechazado", ARCHIVED: "Archivado", DELETED: "Eliminado",
+  WITH_ISSUES: "Con problemas", PENDING_REVIEW: "En revisión", IN_PROCESS: "En revisión", PENDING_BILLING_INFO: "Falta método de pago",
+};
+export const statusLabel = (s: string) => STATUS_LABEL[s] ?? "Sin estado claro";

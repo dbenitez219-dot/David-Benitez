@@ -23,3 +23,6 @@ Docs en `docs/`.
 - **Reglas de honestidad**: sin datos no se inventan métricas (se muestra "—"); ROAS solo con ingresos informados; "resultado" depende del objetivo de la campaña (un mensaje no es una venta).
 - **Clasificación básica** (`src/server/analytics/classify.ts`): costo por resultado relativo a la mediana de su objetivo; no juzga con datos insuficientes. El motor configurable por cliente llega en las Fases 4–5.
 - Agregaciones hechas en memoria: suficiente para la demo; con datos reales de Meta (Fase 3) se pasarán a SQL/vistas materializadas.
+
+## Fase 3 — Integración Meta (hecha, pendiente de credenciales)
+Ver `docs/04-META-ADS.md`: OAuth, sincronización, manejo de tokens/límites, deauthorize y eliminación de datos. Probado con respuestas simuladas de la Graph API; requiere crear la app en Meta para usarse con cuentas reales.

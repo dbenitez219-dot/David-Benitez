@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { OBJECTIVE_LABEL } from "@/lib/classification";
+import { OBJECTIVE_LABEL, statusLabel } from "@/lib/classification";
 import { parseFilters } from "@/lib/filters";
 import { dateLong, money, num, pct, ratio } from "@/lib/format";
 import { requireOrg } from "@/server/tenancy/context";
@@ -23,7 +23,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
   type Row = [string, (a: (typeof ads)[number]) => React.ReactNode];
   const rows: Row[] = [
     ["Campaña", (a) => a.campaignName], ["Objetivo", (a) => OBJECTIVE_LABEL[a.objective]], ["Clasificación", (a) => <ClassBadge c={a.classification} />],
-    ["Estado", (a) => (a.status === "ACTIVE" ? "Activo" : "Pausado")], ["Inicio", (a) => (a.startTime ? dateLong(a.startTime) : "—")],
+    ["Estado", (a) => statusLabel(a.status)], ["Inicio", (a) => (a.startTime ? dateLong(a.startTime) : "—")],
     ["Gasto", (a) => money(a.totals.spend, cur)], ["Resultados", (a) => num(a.totals.results)],
     ["Costo por resultado", (a) => <span className={a.derived.costPerResult === bestCpr && ads.length > 1 ? "font-bold text-emerald-300" : ""}>{a.derived.costPerResult !== null ? money(a.derived.costPerResult, cur) : "—"}</span>],
     ["CTR", (a) => (a.derived.ctr !== null ? pct(a.derived.ctr) : "—")], ["CPC", (a) => (a.derived.cpc !== null ? money(a.derived.cpc, cur) : "—")],

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdClassification } from "@prisma/client";
-import { CLASS_LABEL, OBJECTIVE_LABEL } from "@/lib/classification";
+import { CLASS_LABEL, OBJECTIVE_LABEL, statusLabel } from "@/lib/classification";
 import { parseFilters } from "@/lib/filters";
 import { dateLong, money, num, pct, ratio } from "@/lib/format";
 import { requireOrg } from "@/server/tenancy/context";
@@ -92,7 +92,7 @@ export default async function AdsPage({ searchParams }: { searchParams: SP }) {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <ClassBadge c={a.classification} />
-                    <span className={`text-xs ${a.status === "ACTIVE" ? "text-emerald-400" : "text-muted"}`}>{a.status === "ACTIVE" ? "● Activo" : "❚❚ Pausado"}</span>
+                    <span className={`text-xs ${a.status === "ACTIVE" ? "text-emerald-400" : "text-muted"}`}>{a.status === "ACTIVE" ? "● " : a.status === "PAUSED" ? "❚❚ " : "⚠ "}{statusLabel(a.status)}</span>
                     <span className="text-xs text-muted">{OBJECTIVE_LABEL[a.objective]}</span>
                   </div>
                   <dl className="grid grid-cols-3 gap-x-3 gap-y-2 text-sm">
