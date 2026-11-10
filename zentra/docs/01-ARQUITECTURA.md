@@ -31,4 +31,4 @@
 ## Decisiones de producto
 - Prueba de 7 días sin tarjeta; el cobro solo con autorización explícita (Fase 6).
 - Precios por país en `PlanPrice` (independientes, sin conversión automática).
-- ® no se usa hasta verificar el registro de marca. El logo en `src/components/Logo.tsx` es **provisional**: falta el archivo del logo aprobado.
+- ® no se usa hasta verificar el registro de marca. Logo oficial en `public/logo.png` (se retiró el ® de la imagen entregada hasta confirmar el registro de marca).

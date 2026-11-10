@@ -22,11 +22,11 @@ export function Sidebar({ orgName, userName, logout }: { orgName: string; userNa
   return (
     <>
       <div className="flex items-center justify-between border-b border-line px-4 py-3 lg:hidden">
-        <Logo size={24} />
+        <Logo width={150} />
         <button className="btn btn-ghost" aria-expanded={open} aria-label="Menú" onClick={() => setOpen(!open)}>☰</button>
       </div>
       <aside className={`${open ? "block" : "hidden"} border-b border-line bg-panel p-4 lg:fixed lg:inset-y-0 lg:block lg:w-64 lg:border-b-0 lg:border-r`}>
-        <div className="mb-6 hidden lg:block"><Logo /></div>
+        <div className="mb-6 hidden lg:block"><Logo width={200} /></div>
         <p className="mb-4 truncate text-xs uppercase tracking-wider text-muted">{orgName}</p>
         <nav className="space-y-1">
           {NAV.map((n) => {

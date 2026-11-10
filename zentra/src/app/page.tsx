@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-5xl flex-col px-5">
       <header className="flex items-center justify-between py-5">
-        <Logo />
+        <Logo width={170} />
         <nav className="flex gap-2">
           <Link href="/login" className="btn btn-ghost">Entrar</Link>
           <Link href="/register" className="btn">Probar gratis</Link>
