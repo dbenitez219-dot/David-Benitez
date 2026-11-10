@@ -373,10 +373,10 @@ function verVenta(id) {
       <div class="mut"><span>Cobrado</span><span>${gs(paidOf(s))}</span></div>${saldo > 0 ? `<div class="mut"><span>Saldo${s.due ? ' (vence ' + dmy(s.due) + ')' : ''}</span><span><b>${gs(saldo)}</b></span></div>` : ''}
       ${boss() && s.cost ? `<div class="mut"><span>Ganancia bruta</span><span>${gs(s.total - s.cost)}</span></div>` : ''}</div>
     ${s.pays.length ? `<h3>Pagos</h3>${s.pays.map(p => `<div class="mut">${dmy(p.date)} · ${esc(p.method)} · ${gs(p.amount)}</div>`).join('')}` : ''}
-    <p class="mut">Factura: ${s.inv.type ? (s.inv.type === 'fisica' ? 'Física' : 'Electrónica') + (s.inv.no ? ' N° ' + esc(s.inv.no) : ' (sin número)') : 'aún sin factura'}${s.note ? '<br>Nota: ' + esc(s.note) : ''}</p>
+    <p class="mut">Factura: ${feEmitida(s) ? `Electrónica N° ${esc(s.inv.no)}${s.inv.ambiente === 'test' ? ' (prueba)' : ''}${s.inv.anulada ? ' · ANULADA' : ''}` : s.inv.type ? (s.inv.type === 'fisica' ? 'Física' : 'Electrónica') + (s.inv.no ? ' N° ' + esc(s.inv.no) : ' (sin número)') : 'aún sin factura'}${s.note ? '<br>Nota: ' + esc(s.note) : ''}</p>
     <div class="row" style="margin-top:10px">${saldo > 0 ? '<button class="btn ok" id="m_cobrar">Cobrar</button>' : ''}<button class="btn" id="m_fac">Factura</button><button class="btn sec" id="m_print">Imprimir</button>
       <button class="btn sec" id="m_close">Cerrar</button><button class="btn bad" id="m_del">Anular</button></div>`);
-  $('#m_close').onclick = cerrar; $('#m_print').onclick = () => imprimir(s);
+  $('#m_close').onclick = cerrar; $('#m_print').onclick = () => feEmitida(s) ? feImprimir(s) : imprimir(s);
   $('#m_fac').onclick = () => formFactura(s); if (saldo > 0) $('#m_cobrar').onclick = () => formCobro(s);
   $('#m_del').onclick = () => needBoss(() => {
     if (!confirm(`¿Anular la venta #${s.n}? Se devuelve el stock y se borran sus cobros y compras a proveedor.`)) return;
@@ -394,16 +394,39 @@ function formCobro(s) {
     s.pays.push({ id: uid(), date: $('#c_d').value || hoyISO(), amount: m, method: $('#c_f').value }); guardar(); toast('Cobro registrado'); render(); verVenta(s.id); };
 }
 function formFactura(s) {
+  if (feEmitida(s)) {
+    const f = s.inv, horas = (Date.now() - new Date(f.fecha + '-03:00').getTime()) / 36e5;
+    modal(`<h2>Factura electrónica ${esc(f.no)}</h2>
+      ${f.ambiente === 'test' ? '<div class="banner">Factura de <b>prueba</b>: no tiene validez.</div>' : ''}
+      <p>${f.anulada ? '<b style="color:#b00">ANULADA</b>' : '✅ <b>Aprobada por la DNIT</b>'} · ${dmy(f.fecha.slice(0, 10))} ${f.fecha.slice(11, 16)}<br><span class="mut">CDC: ${esc(cdc4(f.cdc))}</span></p>
+      <p><a href="${esc(f.qrUrl)}" target="_blank" rel="noopener">Ver en e-Kuatia (DNIT)</a></p>
+      <div class="row"><button class="btn" id="i_kp">Imprimir</button><button class="btn ok" id="i_ks">Compartir PDF (WhatsApp / correo)</button>
+        ${!f.anulada && horas < 48 ? '<button class="btn bad" id="i_an">Anular</button>' : ''}<button class="btn sec" id="i_no">Volver</button></div>`);
+    $('#i_no').onclick = () => verVenta(s.id); $('#i_kp').onclick = () => feImprimir(s); $('#i_ks').onclick = () => feCompartir(s);
+    if ($('#i_an')) $('#i_an').onclick = () => needBoss(() => feAnular(s));
+    return;
+  }
   modal(`<h2>Factura · Venta #${s.n}</h2>
+    <button class="btn ok block" id="i_fe">🧾 Emitir factura electrónica</button>
+    <p class="mut" style="margin-top:14px">O registrá a mano una factura hecha en otro lado:</p>
     <label>Tipo</label><select id="i_t"><option value="">Sin factura</option><option value="fisica" ${s.inv.type === 'fisica' ? 'selected' : ''}>Física (talonario)</option><option value="electronica" ${s.inv.type === 'electronica' ? 'selected' : ''}>Electrónica</option></select>
     <label>Número de factura</label><input id="i_n" value="${esc(s.inv.no)}" placeholder="001-001-0000000">
     <label>CDC (solo factura electrónica)</label><input id="i_c" value="${esc(s.inv.cdc)}">
-    <div class="banner" style="margin-top:12px">La app <b>todavía no envía facturas a la DNIT (SIFEN)</b>. Podés registrar el número y el CDC emitidos, e imprimir el comprobante. Para emitir desde acá hace falta habilitarse como facturador electrónico y conectar un facturador autorizado.</div>
-    <div class="row"><button class="btn" id="i_ok">Guardar</button><button class="btn sec" id="i_json">Descargar datos (JSON)</button><button class="btn sec" id="i_no">Volver</button></div>`);
+    ${s.inv.cdc ? `<p><a href="https://ekuatia.set.gov.py/consultas/qr?cdc=${encodeURIComponent(s.inv.cdc)}" target="_blank" rel="noopener">Ver esta factura en e-Kuatia (DNIT)</a></p>` : ''}
+    <div class="row"><button class="btn" id="i_ok">Guardar</button><button class="btn sec" id="i_cp">Copiar datos</button><button class="btn sec" id="i_no">Volver</button></div>`);
+  $('#i_fe').onclick = () => feEmitir(s);
+  $('#i_cp').onclick = () => { const txt = textoFacturador(s);
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast('Datos copiados'), () => { modal(`<h2>Datos de la venta</h2><p class="mut">Seleccioná el texto y copialo.</p><textarea style="width:100%;min-height:260px">${esc(txt)}</textarea><div class="row"><button class="btn sec" id="i_bk">Volver</button></div>`); $('#i_bk').onclick = () => formFactura(s); }); };
   $('#i_no').onclick = () => verVenta(s.id);
   $('#i_ok').onclick = () => { s.inv = { type: $('#i_t').value, no: $('#i_n').value.trim(), cdc: $('#i_c').value.trim() }; guardar(); toast('Factura guardada'); verVenta(s.id); };
-  $('#i_json').onclick = () => { const cl = cli(s.clientId) || {}; bajar(`venta-${s.n}.json`, JSON.stringify({ emisor: db.cfg.empresa, receptor: { nombre: s.clientName, ruc: cl.ruc || '' }, fecha: s.date, moneda: 'PYG', condicion: s.pay === 'credito' ? 'Crédito' : 'Contado',
-    items: s.items.map(i => ({ descripcion: i.name, cantidad: i.qty, precioUnitario: i.unit, iva: 10 })), descuentoPorcentaje: s.pct, total: s.total, ivaIncluido10: Math.round(s.total / 11) }, null, 2), 'application/json'); };
+}
+/* Resumen de la venta listo para cargar en el facturador electrónico (todo con IVA 10% incluido) */
+function textoFacturador(s) {
+  const cl = cli(s.clientId) || {}, t = saleTotals(s);
+  return [`Cliente: ${s.clientName || 'Sin nombre'}`, `RUC / C.I.: ${cl.ruc || '(sin RUC: consumidor final)'}`, `Fecha: ${dmy(s.date)}`,
+    `Condición: ${s.pay === 'credito' ? 'Crédito' + (s.due ? ' (vence ' + dmy(s.due) + ')' : '') : 'Contado'}`, 'Moneda: Guaraníes (PYG)', '', 'Ítems (precio con IVA 10% incluido):',
+    ...s.items.map(i => `• ${i.name} | Cant. ${fmt(i.qty)} | Precio unit. ${gs(i.unit)} | Total ${gs(i.qty * i.unit)}`), '',
+    ...(s.pct ? [`Descuento ${s.pct}%: −${gs(t.d)}`] : []), `TOTAL: ${gs(s.total)}`, `IVA 10% incluido: ${gs(s.total / 11)}`, `Gravado 10%: ${gs(s.total - Math.round(s.total / 11))}`].join('\n');
 }
 function imprimir(s) {
   const e = db.cfg.empresa, cl = cli(s.clientId) || {}, t = saleTotals(s), saldo = saldoOf(s);
@@ -524,16 +547,16 @@ function formDeudaAnterior(id) {
     guardar(); cerrar(); render(); toast('Deuda cargada'); };
 }
 function formCliente(id) {
-  const c = id ? cli(id) : { name: '', type: 'particular', ruc: '', phone: '', note: '' };
+  const c = id ? cli(id) : { name: '', type: 'particular', ruc: '', phone: '', email: '', note: '' };
   modal(`<h2>${id ? 'Cliente' : 'Nuevo cliente'}</h2><label>Nombre / razón social</label><input id="k_n" value="${esc(c.name)}">
-    <div class="row"><div><label>Tipo</label><select id="k_t">${optsKV([['particular', 'Particular'], ['taller', 'Taller'], ['empresa', 'Empresa / flota']], c.type)}</select></div><div><label>RUC / C.I.</label><input id="k_r" value="${esc(c.ruc)}"></div></div>
-    <label>Teléfono / WhatsApp</label><input id="k_p" value="${esc(c.phone)}"><label>Nota</label><input id="k_o" value="${esc(c.note)}">
+    <div class="row"><div><label>Tipo</label><select id="k_t">${optsKV([['particular', 'Particular'], ['taller', 'Taller'], ['empresa', 'Empresa / flota']], c.type)}</select></div><div><label>RUC / C.I.</label><input id="k_r" value="${esc(c.ruc)}" placeholder="80012345-6"></div><div style="flex:0 0 auto;align-self:end"><button class="btn sec sm" id="k_dnit">Buscar en DNIT</button></div></div>
+    <div class="row"><div><label>Teléfono / WhatsApp</label><input id="k_p" value="${esc(c.phone)}"></div><div><label>Correo (para la factura)</label><input id="k_e" type="email" value="${esc(c.email || '')}"></div></div><label>Nota</label><input id="k_o" value="${esc(c.note)}">
     ${id ? `<div class="row" style="margin-top:10px"><button class="btn sec sm" id="k_prev">＋ Deuda anterior</button><button class="btn sm" id="k_pdf">📄 Estado de cuenta</button>${deudaTotal(id) > 0 ? '<button class="btn sm" id="k_rec">💬 Recordar cobro</button>' : ''}</div>` : ''}
     ${id ? `<h3>Historial</h3>${db.sales.filter(s => s.clientId === id).slice(-8).reverse().map(s => `<div class="mut">#${s.n} · ${dmy(s.date)} · ${gs(s.total)}${saldoOf(s) > 0 ? ' · debe ' + gs(saldoOf(s)) : ''}</div>`).join('') || '<div class="mut">Sin compras.</div>'}` : ''}
     <div class="row" style="margin-top:12px"><button class="btn" id="ok">Guardar</button>${waLink(c.phone) ? `<a class="btn sec" href="${waLink(c.phone)}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">WhatsApp</a>` : ''}<button class="btn sec" id="no">Cancelar</button>${id ? '<button class="btn bad" id="del">Eliminar</button>' : ''}</div>`);
-  $('#no').onclick = cerrar;
+  $('#no').onclick = cerrar; $('#k_dnit').onclick = () => feBuscarRuc($('#k_r'), $('#k_n'));
   $('#ok').onclick = () => { const name = $('#k_n').value.trim(); if (!name) return toast('Falta el nombre');
-    const d = { name, type: $('#k_t').value, ruc: $('#k_r').value.trim(), phone: $('#k_p').value.trim(), note: $('#k_o').value.trim() };
+    const d = { name, type: $('#k_t').value, ruc: $('#k_r').value.trim(), phone: $('#k_p').value.trim(), email: $('#k_e').value.trim(), note: $('#k_o').value.trim() };
     if (id) { Object.assign(c, d); db.sales.filter(s => s.clientId === id).forEach(s => s.clientName = name); } else db.clients.push({ id: uid(), ...d });
     guardar(); cerrar(); render(); };
   if (id) {
@@ -707,6 +730,7 @@ function vAjustes() {
     <div class="row"><div style="flex:0 0 140px"><label>Validez presupuesto (días)</label><input id="e_cd" inputmode="numeric" value="${db.cfg.cotizDias || 3}"></div></div>
     <label>Condiciones del presupuesto (una por línea)</label><textarea id="e_co" rows="5">${esc(db.cfg.condiciones || COND0)}</textarea>
     <button class="btn block" id="e_ok">Guardar</button></div>
+  ${feCardAjustes()}
   <div class="card"><h2>🏭 Proveedores de vidrio</h2>${db.suppliers.length ? db.suppliers.map(s => `<div class="row" style="margin-bottom:6px"><div style="flex:3 1 160px">${esc(s.name)} <span class="mut">${esc(s.phone)}</span></div><div style="flex:0 0 90px"><button class="btn sec sm" data-sp="${s.id}">Editar</button></div></div>`).join('') : '<p class="mut">Sin proveedores todavía.</p>'}
     <button class="btn sec" id="sp_new">+ Agregar proveedor</button></div>
   <div class="card"><h2>✨ Servicios y precios</h2><p class="mut">Editá el precio de cada servicio. En la venta siempre podés cambiarlo.</p>
@@ -722,6 +746,7 @@ function vAjustes() {
     <p class="mut">Los datos ya se guardan en la nube. Igual podés bajar una copia por las dudas.</p>
     <div class="row"><button class="btn" id="bk">Descargar respaldo</button><button class="btn sec" id="rs">Restaurar respaldo</button></div><input type="file" id="rfile" accept=".json,application/json" hidden></div>`;
   const stTxt = { ok: '✅ al día', sync: '🔄 sincronizando…', pend: '⏳ cambios por subir', err: '⚠️ sin conexión / error', local: 'sin nube' };
+  feBindAjustes();
   const pintar = () => { const el = $('#sy_st'); if (el) el.textContent = (stTxt[Sync.status] || Sync.status) + (Sync.detail && Sync.status === 'err' ? ' (' + Sync.detail + ')' : ''); }; pintar();
   if ($('#sy_now')) { $('#sy_now').onclick = async () => { await Sync.pull(); await Sync.push(); pintar(); render(true); toast('Sincronizado'); }; $('#sy_out').onclick = () => { if (confirm('¿Cerrar sesión en este dispositivo?')) Sync.signOut(); }; }
   Sync.pushActive().then(a => { const el = $('#pu_st'); if (el) el.textContent = a ? '✅ activadas' : 'no activadas'; });

@@ -1,0 +1,12 @@
+{
+  "name": "cristalauto",
+  "private": true,
+  "description": "CristalAuto Parabrisas: la app es estática; esto solo instala lo que usa la función de factura electrónica (netlify/functions).",
+  "dependencies": {
+    "facturacionelectronicapy-qrgen": "1.0.9",
+    "facturacionelectronicapy-setapi": "1.0.38",
+    "facturacionelectronicapy-xmlgen": "1.0.283",
+    "facturacionelectronicapy-xmlsign": "1.0.28",
+    "qrcode": "1.5.4"
+  }
+}
