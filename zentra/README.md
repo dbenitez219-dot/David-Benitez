@@ -26,3 +26,6 @@ Docs en `docs/`.
 
 ## Fase 3 — Integración Meta (hecha, pendiente de credenciales)
 Ver `docs/04-META-ADS.md`: OAuth, sincronización, manejo de tokens/límites, deauthorize y eliminación de datos. Probado con respuestas simuladas de la Graph API; requiere crear la app en Meta para usarse con cuentas reales.
+
+## Fase 4 — Inteligencia (hecha)
+Criterios de análisis por cliente, clasificación con motivos, recomendaciones con evidencia y asistente ZENTRA AI (IA o reglas). Ver `docs/05-INTELIGENCIA-Y-ASISTENTE.md`.

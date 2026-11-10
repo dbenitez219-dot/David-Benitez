@@ -1,14 +1,15 @@
 import type { AdClassification } from "@prisma/client";
 import { db } from "@/lib/db";
 import type { Filters } from "@/lib/filters";
-import { benchmarks, classify, type ClassifyInput } from "./classify";
+import { benchmarks, classifyDetailed, type ClassifyInput, type RefKind } from "./classify";
+import { getAnalysisConfig } from "./settings";
 import { addRow, delta, derive, emptyTotals, trendOf, type Derived, type Objective, type Totals, type Trend } from "./metrics";
 
 export type AdRow = {
   id: string; name: string; status: string; startTime: Date | null; creativeUrl: string | null;
   campaignId: string; campaignName: string; adSetName: string; objective: Objective; isDemo: boolean;
   totals: Totals; derived: Derived; activeDays: number;
-  classification: AdClassification; trend: Trend; series: { date: string; spend: number; results: number }[];
+  classification: AdClassification; reason: string; reference: number | null; refKind: RefKind; trend: Trend; series: { date: string; spend: number; results: number }[];
 };
 
 export type DayPoint = { date: string; spend: number; results: number; revenue: number };
@@ -65,7 +66,8 @@ export async function loadSummary(organizationId: string, f: Filters) {
 
 /** Anuncios con métricas, clasificación y tendencia para el período. */
 export async function loadAds(organizationId: string, f: Filters): Promise<AdRow[]> {
-  const [ads, rows] = await Promise.all([
+  const [cfg, ads, rows] = await Promise.all([
+    getAnalysisConfig(organizationId),
     db.ad.findMany({
       where: adWhere(organizationId, f),
       select: {
@@ -85,15 +87,18 @@ export async function loadAds(organizationId: string, f: Filters): Promise<AdRow
     const series = rs.map((r) => ({ date: iso(r.date), spend: Number(r.spend), results: objOf(r) === "MESSAGES" ? r.messages : objOf(r) === "LEADS" ? r.leads : r.conversions }));
     return { a, objective, totals, series, activeDays: rs.filter((r) => Number(r.spend) > 0).length };
   });
-  const bench = benchmarks(partial.map<ClassifyInput>((p) => ({ objective: p.objective, totals: p.totals, activeDays: p.activeDays })));
-  return partial.map((p) => ({
+  const bench = benchmarks(partial.map<ClassifyInput>((p) => ({ objective: p.objective, totals: p.totals, activeDays: p.activeDays })), cfg);
+  return partial.map((p) => {
+    const v = classifyDetailed({ objective: p.objective, totals: p.totals, activeDays: p.activeDays }, bench, cfg);
+    return {
     id: p.a.id, name: p.a.name, status: p.a.status, startTime: p.a.startTime, creativeUrl: p.a.creativeUrl,
     campaignId: p.a.adSet.campaign.id, campaignName: p.a.adSet.campaign.name, adSetName: p.a.adSet.name,
     objective: p.objective, isDemo: p.a.adSet.campaign.adAccount.isDemo,
     totals: p.totals, derived: derive(p.totals), activeDays: p.activeDays,
-    classification: classify({ objective: p.objective, totals: p.totals, activeDays: p.activeDays }, bench),
+    classification: v.classification, reason: v.reason, reference: v.reference, refKind: v.refKind,
     trend: trendOf(p.series), series: p.series,
-  }));
+  };
+  });
 }
 
 /** Opciones para los filtros (cuentas, campañas, conjuntos, anuncios) de la organización. */

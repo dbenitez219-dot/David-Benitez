@@ -117,6 +117,8 @@ model Organization {
   memberships        Membership[]
   adAccounts         AdAccount[]
   automationSettings AutomationSettings?
+  analysisSettings   AnalysisSettings?
+  assistantLogs      AssistantLog[]
   rules              AutomationRule[]
   actions            AutomationAction[]
   notifications      Notification[]
@@ -448,4 +450,35 @@ model DataDeletionRequest {
   createdAt  DateTime @default(now())
 
   @@index([metaUserId])
+}
+
+// Criterios de análisis configurables por cliente (no hay un único criterio para todos los negocios).
+model AnalysisSettings {
+  organizationId   String   @id
+  minSpend         Decimal  @db.Decimal(14, 2) // gasto mínimo para juzgar un anuncio
+  minDays          Int      @default(3)
+  minImpressions   Int      @default(1000)
+  targetCprMessages Decimal? @db.Decimal(14, 2) // costo objetivo por resultado (opcional); si falta se usa la mediana
+  targetCprLeads   Decimal?  @db.Decimal(14, 2)
+  targetCprSales   Decimal?  @db.Decimal(14, 2)
+  maxFrequency     Float    @default(3)
+  anomalyFactor    Float    @default(2)
+  updatedAt        DateTime @updatedAt
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// Registro verificable de cada pregunta al asistente: respuesta y datos consultados.
+model AssistantLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  question       String
+  answer         String
+  mode           String // ai | rules
+  model          String?
+  toolCalls      Json // [{name, input, output}] datos con los que se respondió
+  createdAt      DateTime @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
 }
