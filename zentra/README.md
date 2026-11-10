@@ -15,3 +15,11 @@ npm run dev                 # http://localhost:3000
 npm test                    # requiere la BD "zentra_test" (ver tests/setup.ts)
 ```
 Docs en `docs/`.
+
+## Fase 2 — Experiencia (hecha)
+- **Panel** (`/dashboard`): inversión, resultados, ingresos, ROAS y costo por resultado con variación frente al período anterior; contadores de anuncios; gráfico interactivo; filtros por fecha, cuenta, campaña, conjunto y anuncio.
+- **Biblioteca** (`/ads`): tarjetas con métricas, clasificación, tendencia; búsqueda, filtros, orden y comparación (`/ads/compare`, hasta 4).
+- **Datos de demostración**: botón en el Panel (solo ADMIN/OWNER). Se guardan en una cuenta `isDemo` y la interfaz muestra siempre un aviso "DATOS DE DEMOSTRACIÓN". Se pueden eliminar.
+- **Reglas de honestidad**: sin datos no se inventan métricas (se muestra "—"); ROAS solo con ingresos informados; "resultado" depende del objetivo de la campaña (un mensaje no es una venta).
+- **Clasificación básica** (`src/server/analytics/classify.ts`): costo por resultado relativo a la mediana de su objetivo; no juzga con datos insuficientes. El motor configurable por cliente llega en las Fases 4–5.
+- Agregaciones hechas en memoria: suficiente para la demo; con datos reales de Meta (Fase 3) se pasarán a SQL/vistas materializadas.

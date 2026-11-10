@@ -7,7 +7,7 @@ import { Logo } from "./Logo";
 // "soon" = módulo planificado: se muestra como próximamente, sin simular funcionalidad.
 const NAV = [
   { href: "/dashboard", label: "Panel", phase: 0 },
-  { href: "#", label: "Anuncios", phase: 2 },
+  { href: "/ads", label: "Anuncios", phase: 0 },
   { href: "#", label: "Conexiones", phase: 3 },
   { href: "#", label: "ZENTRA AI", phase: 4 },
   { href: "#", label: "Automatizaciones", phase: 5 },
@@ -30,7 +30,7 @@ export function Sidebar({ orgName, userName, logout }: { orgName: string; userNa
         <p className="mb-4 truncate text-xs uppercase tracking-wider text-muted">{orgName}</p>
         <nav className="space-y-1">
           {NAV.map((n) => {
-            const active = n.phase === 0 && path === n.href;
+            const active = n.phase === 0 && (path === n.href || path.startsWith(n.href + "/"));
             const base = "flex items-center justify-between rounded-lg px-3 py-2 text-sm";
             return n.phase === 0 ? (
               <Link key={n.label} href={n.href} onClick={() => setOpen(false)} className={`${base} ${active ? "bg-zred/15 text-white" : "text-muted hover:text-white"}`}>{n.label}</Link>
