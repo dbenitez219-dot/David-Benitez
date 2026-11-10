@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Identidad ZENTRA: negro principal, rojo de acento, blanco para texto. */
+@theme {
+  --color-ink: #0a0a0a;
+  --color-panel: #111113;
+  --color-line: #232327;
+  --color-muted: #8b8b94;
+  --color-zred: #e5202e;
+  --color-zred-dark: #b91622;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html { color-scheme: dark; }
+body { background: var(--color-ink); color: #fff; font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.animate-rise { animation: rise .35s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .animate-rise { animation: none; } }
+
+.input { width: 100%; background: var(--color-ink); border: 1px solid var(--color-line); border-radius: .6rem; padding: .7rem .9rem; font-size: 16px; color: #fff; }
+.input:focus { outline: 2px solid var(--color-zred); outline-offset: 1px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; background: var(--color-zred); color: #fff; font-weight: 600; border-radius: .6rem; padding: .7rem 1.1rem; transition: background .15s; }
+.btn:hover { background: var(--color-zred-dark); }
+.btn-ghost { background: transparent; border: 1px solid var(--color-line); }
+.btn-ghost:hover { background: var(--color-panel); }
+.card { background: var(--color-panel); border: 1px solid var(--color-line); border-radius: .9rem; }

@@ -1,0 +1,437 @@
+// ZENTRA — esquema de base de datos (Fase 1: fundamentos).
+// Multi-tenant: TODA tabla de negocio lleva organizationId y se consulta siempre filtrada por él.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  ANALYST
+  VIEWER
+}
+
+enum PlatformRole {
+  USER
+  SUPERADMIN // propietarios de ZENTRA (panel administrador)
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum AdPlatform {
+  META
+  GOOGLE
+  TIKTOK
+}
+
+enum ConnectionStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+  ERROR
+}
+
+enum AutomationMode {
+  MANUAL
+  ASSISTED
+  AUTOMATIC
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum ActionStatus {
+  PROPOSED
+  APPROVED
+  EXECUTED
+  FAILED
+  REJECTED
+  SIMULATED
+}
+
+enum AdClassification {
+  WINNER
+  GOOD
+  WATCH
+  LOW
+  LOSER
+  INSUFFICIENT_DATA
+}
+
+// ───────────── Identidad y organizaciones ─────────────
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique // siempre en minúsculas
+  name          String
+  passwordHash  String // argon2id; nunca se guarda la contraseña ni la de Facebook
+  platformRole  PlatformRole  @default(USER)
+  status        AccountStatus @default(ACTIVE)
+  // Preferencias regionales (el usuario las cambia manualmente; no se deducen solo por IP)
+  countryCode   String? // ISO 3166-1 alpha-2
+  phone         String? // E.164
+  locale        String        @default("es")
+  timezone      String        @default("America/Asuncion")
+  currency      String        @default("PYG")
+  emailVerified DateTime?
+  failedLogins  Int           @default(0)
+  lockedUntil   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  memberships Membership[]
+  sessions    Session[]
+}
+
+model Organization {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  countryCode String?
+  currency    String        @default("PYG")
+  timezone    String        @default("America/Asuncion")
+  status      AccountStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  memberships        Membership[]
+  adAccounts         AdAccount[]
+  automationSettings AutomationSettings?
+  rules              AutomationRule[]
+  actions            AutomationAction[]
+  notifications      Notification[]
+  customers          Customer[]
+  leads              Lead[]
+  sales              Sale[]
+  subscriptions      Subscription[]
+  payments           Payment[]
+  auditLogs          AuditLog[]
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           OrgRole      @default(VIEWER)
+  createdAt      DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+model Session {
+  id             String    @id @default(cuid())
+  userId         String
+  tokenHash      String    @unique // SHA-256 del token; el token en claro solo vive en la cookie
+  activeOrgId    String?
+  userAgent      String?
+  ip             String?
+  expiresAt      DateTime
+  lastSeenAt     DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Limitador de intentos (login/registro) respaldado por la base de datos.
+model RateLimit {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+}
+
+// ───────────── Planes y suscripciones (lógica completa en Fase 6) ─────────────
+
+model Plan {
+  id           String      @id // START | BUSINESS | AGENCY
+  name         String
+  maxAdAccounts Int
+  features     Json
+  active       Boolean     @default(true)
+  prices       PlanPrice[]
+  subscriptions Subscription[]
+}
+
+// Precio independiente por país/moneda (no son conversiones automáticas).
+model PlanPrice {
+  id          String   @id @default(cuid())
+  planId      String
+  countryCode String // "PY", "US"… o "*" para el precio por defecto de una moneda
+  currency    String
+  amountMinor Int // en la unidad mínima de la moneda (PYG no tiene decimales)
+  taxIncluded Boolean  @default(true)
+  active      Boolean  @default(true)
+  plan        Plan     @relation(fields: [planId], references: [id])
+
+  @@unique([planId, countryCode, currency])
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  organizationId     String
+  planId             String
+  status             SubscriptionStatus @default(TRIALING)
+  trialEndsAt        DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean            @default(false)
+  provider           String? // uPay | Bancard | stripe…
+  providerRef        String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan               Plan               @relation(fields: [planId], references: [id])
+
+  @@index([organizationId])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  organizationId String
+  subscriptionId String?
+  amountMinor    Int
+  currency       String
+  status         PaymentStatus @default(PENDING)
+  provider       String
+  providerRef    String?
+  attempt        Int           @default(1)
+  createdAt      DateTime      @default(now())
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+// ───────────── Publicidad (sincronización real en Fase 3) ─────────────
+
+model AdAccount {
+  id             String           @id @default(cuid())
+  organizationId String
+  platform       AdPlatform
+  externalId     String // p. ej. act_123456
+  name           String
+  currency       String?
+  timezone       String?
+  status         ConnectionStatus @default(ACTIVE)
+  // Token OAuth cifrado con AES-256-GCM (ver src/lib/crypto.ts). Nunca en claro.
+  accessTokenEnc String?
+  tokenExpiresAt DateTime?
+  lastSyncAt     DateTime?
+  lastError      String?
+  isDemo         Boolean          @default(false) // datos de demostración claramente marcados
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaigns      Campaign[]
+
+  @@unique([organizationId, platform, externalId])
+  @@index([organizationId])
+}
+
+model Campaign {
+  id             String    @id @default(cuid())
+  organizationId String
+  adAccountId    String
+  externalId     String
+  name           String
+  objective      String?
+  status         String
+  dailyBudget    Decimal?  @db.Decimal(14, 2)
+  startTime      DateTime?
+  adAccount      AdAccount @relation(fields: [adAccountId], references: [id], onDelete: Cascade)
+  adSets         AdSet[]
+
+  @@unique([adAccountId, externalId])
+  @@index([organizationId])
+}
+
+model AdSet {
+  id             String   @id @default(cuid())
+  organizationId String
+  campaignId     String
+  externalId     String
+  name           String
+  status         String
+  dailyBudget    Decimal? @db.Decimal(14, 2)
+  campaign       Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ads            Ad[]
+
+  @@unique([campaignId, externalId])
+  @@index([organizationId])
+}
+
+model Ad {
+  id             String           @id @default(cuid())
+  organizationId String
+  adSetId        String
+  externalId     String
+  name           String
+  status         String
+  creativeUrl    String?
+  startTime      DateTime?
+  classification AdClassification @default(INSUFFICIENT_DATA)
+  adSet          AdSet            @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+  insights       AdInsightDaily[]
+
+  @@unique([adSetId, externalId])
+  @@index([organizationId])
+}
+
+model AdInsightDaily {
+  id             String   @id @default(cuid())
+  organizationId String
+  adId           String
+  date           DateTime @db.Date
+  spend          Decimal  @db.Decimal(14, 2)
+  impressions    Int
+  reach          Int?
+  clicks         Int
+  messages       Int      @default(0)
+  leads          Int      @default(0)
+  conversions    Int      @default(0)
+  revenue        Decimal? @db.Decimal(14, 2) // solo si la plataforma la informa
+  ad             Ad       @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  @@unique([adId, date])
+  @@index([organizationId, date])
+}
+
+// ───────────── Automatización (Fase 5) ─────────────
+
+// Por defecto MANUAL y desactivada: nada real se ejecuta sin autorización explícita.
+model AutomationSettings {
+  organizationId  String         @id
+  mode            AutomationMode @default(MANUAL)
+  enabled         Boolean        @default(false)
+  emergencyStop   Boolean        @default(false)
+  dryRun          Boolean        @default(true) // simular antes de tocar cuentas reales
+  maxActionsPerDay Int           @default(5)
+  updatedAt       DateTime       @updatedAt
+  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model AutomationRule {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  scope          String // ACCOUNT | CAMPAIGN | ADSET | AD
+  scopeId        String?
+  config         Json // costo máximo, gasto mínimo, observación mínima, conversiones mínimas…
+  enabled        Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model AutomationAction {
+  id             String       @id @default(cuid())
+  organizationId String
+  adExternalId   String
+  type           String // PAUSE | RESUME | RECOMMEND_BUDGET
+  status         ActionStatus @default(PROPOSED)
+  reason         String // motivo de la decisión
+  previousState  Json? // estado anterior
+  result         Json? // resultado de la operación
+  idempotencyKey String // evita acciones duplicadas
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, createdAt])
+}
+
+model Notification {
+  id             String       @id @default(cuid())
+  organizationId String
+  type           String
+  title          String
+  body           String // qué pasó
+  recommendation String? // qué se recomienda hacer
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+}
+
+// ───────────── Análisis comercial (Fase 6) ─────────────
+
+model Customer {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  phone          String?
+  email          String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sales          Sale[]
+
+  @@index([organizationId])
+}
+
+model Lead {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String?
+  source         String?
+  campaignExternalId String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model Sale {
+  id             String       @id @default(cuid())
+  organizationId String
+  customerId     String?
+  campaignExternalId String?
+  revenue        Decimal      @db.Decimal(14, 2)
+  cost           Decimal      @default(0) @db.Decimal(14, 2)
+  currency       String
+  soldAt         DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer       Customer?    @relation(fields: [customerId], references: [id])
+
+  @@index([organizationId, soldAt])
+}
+
+// ───────────── Auditoría ─────────────
+
+model AuditLog {
+  id             String        @id @default(cuid())
+  organizationId String?
+  userId         String?
+  action         String // auth.login, auth.register, org.member.add…
+  entity         String?
+  entityId       String?
+  metadata       Json?
+  ip             String?
+  createdAt      DateTime      @default(now())
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([userId])
+}
