@@ -6,8 +6,8 @@ import { getAnalysisConfig } from "./settings";
 import { addRow, delta, derive, emptyTotals, trendOf, type Derived, type Objective, type Totals, type Trend } from "./metrics";
 
 export type AdRow = {
-  id: string; name: string; status: string; startTime: Date | null; creativeUrl: string | null;
-  campaignId: string; campaignName: string; adSetName: string; objective: Objective; isDemo: boolean;
+  id: string; externalId: string; name: string; status: string; startTime: Date | null; creativeUrl: string | null;
+  campaignId: string; adSetId: string; campaignName: string; adSetName: string; objective: Objective; isDemo: boolean;
   totals: Totals; derived: Derived; activeDays: number;
   classification: AdClassification; reason: string; reference: number | null; refKind: RefKind; trend: Trend; series: { date: string; spend: number; results: number }[];
 };
@@ -71,7 +71,7 @@ export async function loadAds(organizationId: string, f: Filters): Promise<AdRow
     db.ad.findMany({
       where: adWhere(organizationId, f),
       select: {
-        id: true, name: true, status: true, startTime: true, creativeUrl: true,
+        id: true, externalId: true, name: true, status: true, startTime: true, creativeUrl: true, adSetId: true,
         adSet: { select: { name: true, campaign: { select: { id: true, name: true, objective: true, adAccount: { select: { isDemo: true } } } } } },
       },
     }),
@@ -91,8 +91,8 @@ export async function loadAds(organizationId: string, f: Filters): Promise<AdRow
   return partial.map((p) => {
     const v = classifyDetailed({ objective: p.objective, totals: p.totals, activeDays: p.activeDays }, bench, cfg);
     return {
-    id: p.a.id, name: p.a.name, status: p.a.status, startTime: p.a.startTime, creativeUrl: p.a.creativeUrl,
-    campaignId: p.a.adSet.campaign.id, campaignName: p.a.adSet.campaign.name, adSetName: p.a.adSet.name,
+    id: p.a.id, externalId: p.a.externalId, name: p.a.name, status: p.a.status, startTime: p.a.startTime, creativeUrl: p.a.creativeUrl,
+    campaignId: p.a.adSet.campaign.id, adSetId: p.a.adSetId, campaignName: p.a.adSet.campaign.name, adSetName: p.a.adSet.name,
     objective: p.objective, isDemo: p.a.adSet.campaign.adAccount.isDemo,
     totals: p.totals, derived: derive(p.totals), activeDays: p.activeDays,
     classification: v.classification, reason: v.reason, reference: v.reference, refKind: v.refKind,

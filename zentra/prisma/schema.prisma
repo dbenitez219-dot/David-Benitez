@@ -63,6 +63,7 @@ enum PaymentStatus {
 enum ActionStatus {
   PROPOSED
   APPROVED
+  EXECUTING
   EXECUTED
   FAILED
   REJECTED
@@ -243,6 +244,7 @@ model AdAccount {
   lastSyncAt     DateTime?
   lastError      String?
   metaUserId     String? // id de usuario de Meta que autorizó (para deauthorize / eliminación de datos)
+  canManage      Boolean          @default(false) // el usuario concedió ads_management (necesario para pausar/reactivar)
   syncEnabled    Boolean          @default(false) // el usuario elige qué cuentas sincronizar (límite por plan)
   syncLockedUntil DateTime? // arrendamiento para evitar sincronizaciones simultáneas
   isDemo         Boolean          @default(false) // datos de demostración claramente marcados
@@ -333,6 +335,9 @@ model AutomationSettings {
   emergencyStop   Boolean        @default(false)
   dryRun          Boolean        @default(true) // simular antes de tocar cuentas reales
   maxActionsPerDay Int           @default(5)
+  activeFromHour  Int            @default(0) // ventana horaria (hora local de la organización) [desde, hasta)
+  activeToHour    Int            @default(24)
+  notifyEmail     Boolean        @default(false)
   updatedAt       DateTime       @updatedAt
   organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
@@ -354,7 +359,13 @@ model AutomationRule {
 model AutomationAction {
   id             String       @id @default(cuid())
   organizationId String
+  adId           String? // id interno del anuncio
   adExternalId   String
+  source         String       @default("RULE") // RULE | USER
+  ruleId         String?
+  decidedBy      String? // usuario que aprobó/rechazó/solicitó
+  executedAt     DateTime?
+  note           String? // p. ej. por qué quedó pendiente (límite diario, sin permiso, fuera de horario)
   type           String // PAUSE | RESUME | RECOMMEND_BUDGET
   status         ActionStatus @default(PROPOSED)
   reason         String // motivo de la decisión
@@ -375,7 +386,9 @@ model Notification {
   title          String
   body           String // qué pasó
   recommendation String? // qué se recomienda hacer
+  severity       String       @default("info") // important | warning | info
   readAt         DateTime?
+  emailedAt      DateTime?
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 

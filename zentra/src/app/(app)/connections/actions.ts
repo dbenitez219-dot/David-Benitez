@@ -38,7 +38,7 @@ export async function syncNowAction(fd: FormData) {
 export async function disconnectAction(fd: FormData) {
   const ctx = await requireOrg("ADMIN");
   const acct = await own(String(fd.get("id")), ctx.organizationId);
-  await db.adAccount.update({ where: { id: acct.id }, data: { accessTokenEnc: null, status: "REVOKED", syncEnabled: false } });
+  await db.adAccount.update({ where: { id: acct.id }, data: { accessTokenEnc: null, status: "REVOKED", syncEnabled: false, canManage: false } });
   await audit({ action: "meta.disconnect", userId: ctx.user.id, organizationId: ctx.organizationId, entity: "AdAccount", entityId: acct.id });
   revalidatePath("/connections");
 }

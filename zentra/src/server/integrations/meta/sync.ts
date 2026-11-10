@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/crypto";
-import { notifyOnce } from "./notify";
+import { notifyOnce } from "@/server/notifications/notify";
 import { MetaApiError } from "./errors";
 import { GraphClient, type GraphOptions } from "./graph";
 import { budgetToMajor, mapInsight, mapStatus, resultObjective, safeHttpsUrl, type GraphInsight } from "./mapping";
@@ -75,15 +75,15 @@ export async function syncAdAccount(accountId: string, opts: GraphOptions & { da
 
     // Aviso preventivo: el token de larga duración no se renueva solo.
     if (acct.tokenExpiresAt && acct.tokenExpiresAt.getTime() - now.getTime() < 7 * DAY)
-      await notifyOnce(orgId, { type: "connection", title: "Tu conexión con Meta vence pronto", body: `El permiso de ${acct.name} vence el ${iso(acct.tokenExpiresAt)}.`, recommendation: "Ve a Conexiones y vuelve a conectar Meta antes de esa fecha para no perder la sincronización." });
+      await notifyOnce(orgId, { type: "connection", severity: "warning", title: "Tu conexión con Meta vence pronto", body: `El permiso de ${acct.name} vence el ${iso(acct.tokenExpiresAt)}.`, recommendation: "Ve a Conexiones y vuelve a conectar Meta antes de esa fecha para no perder la sincronización." });
     return { ok: true, campaigns: nCamp, adSets: nSet, ads: nAd, insights: rows.length, skippedInsights };
   } catch (err) {
     const e = err instanceof MetaApiError ? err : new MetaApiError((err as Error).message, "OTHER", 0);
     const auth = e.kind === "AUTH";
     await db.adAccount.update({ where: { id: acct.id }, data: { lastError: e.message.slice(0, 500), status: auth ? "EXPIRED" : "ERROR", syncLockedUntil: null } });
     await notifyOnce(orgId, auth
-      ? { type: "connection", title: "Hay que volver a conectar Meta", body: `Meta rechazó el permiso de ${acct.name}: ${e.message}`, recommendation: "Ve a Conexiones y pulsa «Conectar Meta» de nuevo. Tus datos anteriores se conservan." }
-      : { type: "sync_error", title: "Error al sincronizar con Meta", body: `No se pudo actualizar ${acct.name}: ${e.message}`, recommendation: e.kind === "RATE_LIMIT" ? "Meta limitó temporalmente las consultas. ZENTRA reintentará automáticamente." : e.kind === "PERMISSION" ? "Revisa que tu usuario de Meta tenga acceso a esta cuenta publicitaria." : "Si el problema persiste, intenta reconectar la cuenta." });
+      ? { type: "connection", severity: "important", title: "Hay que volver a conectar Meta", body: `Meta rechazó el permiso de ${acct.name}: ${e.message}`, recommendation: "Ve a Conexiones y pulsa «Conectar Meta» de nuevo. Tus datos anteriores se conservan." }
+      : { type: "sync_error", severity: "warning", title: "Error al sincronizar con Meta", body: `No se pudo actualizar ${acct.name}: ${e.message}`, recommendation: e.kind === "RATE_LIMIT" ? "Meta limitó temporalmente las consultas. ZENTRA reintentará automáticamente." : e.kind === "PERMISSION" ? "Revisa que tu usuario de Meta tenga acceso a esta cuenta publicitaria." : "Si el problema persiste, intenta reconectar la cuenta." });
     return { ok: false, error: e.message };
   }
 }

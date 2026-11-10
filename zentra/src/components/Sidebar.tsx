@@ -12,13 +12,13 @@ const NAV = [
   { href: "/assistant", label: "ZENTRA AI", phase: 0 },
   { href: "/recommendations", label: "Recomendaciones", phase: 0 },
   { href: "/settings/analysis", label: "Criterios de análisis", phase: 0 },
-  { href: "#", label: "Automatizaciones", phase: 5 },
-  { href: "#", label: "Notificaciones", phase: 5 },
+  { href: "/automations", label: "Automatizaciones", phase: 0 },
+  { href: "/notifications", label: "Notificaciones", phase: 0 },
   { href: "#", label: "Ventas", phase: 6 },
   { href: "#", label: "Plan y pagos", phase: 6 },
 ];
 
-export function Sidebar({ orgName, userName, logout }: { orgName: string; userName: string; logout: () => Promise<void> }) {
+export function Sidebar({ orgName, userName, logout, unread = 0 }: { orgName: string; userName: string; logout: () => Promise<void>; unread?: number }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   return (
@@ -35,7 +35,7 @@ export function Sidebar({ orgName, userName, logout }: { orgName: string; userNa
             const active = n.phase === 0 && (path === n.href || path.startsWith(n.href + "/"));
             const base = "flex items-center justify-between rounded-lg px-3 py-2 text-sm";
             return n.phase === 0 ? (
-              <Link key={n.label} href={n.href} onClick={() => setOpen(false)} className={`${base} ${active ? "bg-zred/15 text-white" : "text-muted hover:text-white"}`}>{n.label}</Link>
+              <Link key={n.label} href={n.href} onClick={() => setOpen(false)} className={`${base} ${active ? "bg-zred/15 text-white" : "text-muted hover:text-white"}`}>{n.label}{n.href === "/notifications" && unread > 0 && <span className="rounded-full bg-zred px-2 text-xs font-semibold text-white">{unread}</span>}</Link>
             ) : (
               <span key={n.label} className={`${base} cursor-not-allowed text-muted/50`}>
                 {n.label}<span className="text-[10px] uppercase">Fase {n.phase}</span>

@@ -4,16 +4,17 @@ import { audit } from "@/server/audit/audit";
 import { metaConfig } from "./config";
 import { GraphClient, type GraphOptions } from "./graph";
 
-// Mínimo privilegio: solo lectura. `ads_management` se pedirá aparte cuando se active la automatización (Fase 5).
+// Mínimo privilegio: solo lectura. `ads_management` (pausar/reactivar) se pide aparte, solo si el usuario lo autoriza (Fase 5).
 export const SCOPES = ["ads_read"];
+export const MANAGE_SCOPES = ["ads_read", "ads_management"];
 
-export function buildAuthUrl(state: string): string {
+export function buildAuthUrl(state: string, opts: { manage?: boolean } = {}): string {
   const c = metaConfig();
   const u = new URL(c.dialogBase);
   u.searchParams.set("client_id", c.appId);
   u.searchParams.set("redirect_uri", c.redirectUri);
   u.searchParams.set("state", state);
-  u.searchParams.set("scope", SCOPES.join(","));
+  u.searchParams.set("scope", (opts.manage ? MANAGE_SCOPES : SCOPES).join(","));
   u.searchParams.set("response_type", "code");
   return u.toString();
 }
@@ -43,15 +44,22 @@ export async function connectMeta(p: { organizationId: string; userId: string; c
   const accounts: GraphAdAccount[] = [];
   for await (const a of g.paginate<GraphAdAccount>("me/adaccounts", { fields: "id,account_id,name,currency,timezone_name", limit: "100" })) accounts.push(a);
 
+  // Permisos realmente concedidos (el usuario puede haber rechazado alguno): no se asume nada.
+  let canManage = false;
+  try {
+    const perms = await g.get<{ data: { permission: string; status: string }[] }>("me/permissions");
+    canManage = perms.data.some((x) => x.permission === "ads_management" && x.status === "granted");
+  } catch { /* sin información: se asume solo lectura */ }
+
   const enc = encryptSecret(token);
   for (const a of accounts) {
     const externalId = a.id.startsWith("act_") ? a.id : `act_${a.account_id}`;
     await db.adAccount.upsert({
       where: { organizationId_platform_externalId: { organizationId: p.organizationId, platform: "META", externalId } },
-      create: { organizationId: p.organizationId, platform: "META", externalId, name: a.name, currency: a.currency, timezone: a.timezone_name, accessTokenEnc: enc, tokenExpiresAt: expiresAt, metaUserId: me.id },
-      update: { name: a.name, currency: a.currency, timezone: a.timezone_name, accessTokenEnc: enc, tokenExpiresAt: expiresAt, metaUserId: me.id, status: "ACTIVE", lastError: null },
+      create: { organizationId: p.organizationId, platform: "META", externalId, name: a.name, currency: a.currency, timezone: a.timezone_name, accessTokenEnc: enc, tokenExpiresAt: expiresAt, metaUserId: me.id, canManage },
+      update: { name: a.name, currency: a.currency, timezone: a.timezone_name, accessTokenEnc: enc, tokenExpiresAt: expiresAt, metaUserId: me.id, canManage, status: "ACTIVE", lastError: null },
     });
   }
-  await audit({ action: "meta.connect", userId: p.userId, organizationId: p.organizationId, metadata: { accounts: accounts.length } });
+  await audit({ action: "meta.connect", userId: p.userId, organizationId: p.organizationId, metadata: { accounts: accounts.length, canManage } });
   return { count: accounts.length };
 }

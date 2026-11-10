@@ -29,3 +29,6 @@ Ver `docs/04-META-ADS.md`: OAuth, sincronización, manejo de tokens/límites, de
 
 ## Fase 4 — Inteligencia (hecha)
 Criterios de análisis por cliente, clasificación con motivos, recomendaciones con evidencia y asistente ZENTRA AI (IA o reglas). Ver `docs/05-INTELIGENCIA-Y-ASISTENTE.md`.
+
+## Fase 5 — Automatización (hecha, pausas reales pendientes de credenciales)
+Reglas, modos manual/asistido/automático, botón de emergencia, notificaciones, correo preparado y registro de decisiones. Ver `docs/06-AUTOMATIZACION.md`.

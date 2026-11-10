@@ -37,11 +37,22 @@ export class GraphClient {
   }
 
   async get<T = any>(path: string, params: Record<string, string> = {}): Promise<T> {
-    const url = this.url(path, params);
+    return this.request<T>("GET", path, params);
+  }
+
+  /** Escritura (p. ej. cambiar el estado de un anuncio). Los parámetros van en el cuerpo del formulario, nunca el token. */
+  async post<T = any>(path: string, params: Record<string, string> = {}): Promise<T> {
+    return this.request<T>("POST", path, {}, params);
+  }
+
+  private async request<T>(method: "GET" | "POST", path: string, query: Record<string, string>, form?: Record<string, string>): Promise<T> {
+    const url = this.url(path, query);
     for (let attempt = 0; ; attempt++) {
       let res: Response;
       try {
-        res = await this.f(url, { headers: this.token ? { Authorization: `Bearer ${this.token}` } : {}, cache: "no-store" });
+        const headers: Record<string, string> = this.token ? { Authorization: `Bearer ${this.token}` } : {};
+        if (form) headers["content-type"] = "application/x-www-form-urlencoded";
+        res = await this.f(url, { method, headers, body: form ? new URLSearchParams(form).toString() : undefined, cache: "no-store" });
       } catch (err) {
         if (attempt >= this.max) throw new MetaApiError(`Error de red: ${(err as Error).message}`, "TRANSIENT", 0);
         await this.sleep(this.base * 2 ** attempt);
