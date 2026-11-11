@@ -5,6 +5,7 @@ process.env.ENCRYPTION_KEY = Buffer.alloc(32, 7).toString("base64");
 process.env.META_APP_ID = "123456";
 process.env.META_APP_SECRET = "test_app_secret";
 process.env.APP_URL = "http://localhost:3000";
+process.env.BILLING_WEBHOOK_SECRET = "whsec_test";
 
 // Aplica las migraciones a la base de pruebas (una vez por proceso).
 execSync("npx prisma migrate deploy", { stdio: "ignore", env: process.env });

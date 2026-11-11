@@ -227,8 +227,12 @@ describe("desautorización y eliminación de datos", () => {
 });
 
 describe("límites", () => {
-  it("sin suscripción aplica el límite del plan Start", async () => {
-    const o = await org("a@x.com");
+  it("el límite de cuentas sincronizables sale del plan; sin suscripción activa es 0", async () => {
+    const o = await org("a@x.com"); // registro => prueba gratuita del plan Business
+    expect(await maxSyncedAccounts(o)).toBe(3);
+    await db.subscription.updateMany({ where: { organizationId: o }, data: { planId: "START" } });
     expect(await maxSyncedAccounts(o)).toBe(1);
+    await db.subscription.deleteMany({ where: { organizationId: o } });
+    expect(await maxSyncedAccounts(o)).toBe(0);
   });
 });

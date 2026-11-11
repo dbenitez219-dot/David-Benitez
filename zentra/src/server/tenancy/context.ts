@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { OrgRole } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getSession } from "@/server/auth/session";
@@ -29,7 +29,8 @@ export async function requireOrg(min: OrgRole = "VIEWER") {
 
 export async function requireSuperAdmin() {
   const session = await getSession();
-  if (!session || session.user.platformRole !== "SUPERADMIN") redirect("/login");
+  if (!session) redirect("/login");
+  if (session.user.platformRole !== "SUPERADMIN") notFound(); // no se revela que el panel existe
   return session.user;
 }
 

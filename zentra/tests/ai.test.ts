@@ -88,7 +88,7 @@ describe("recomendaciones", () => {
 
 describe("herramientas del asistente", () => {
   it("son de solo lectura y no aceptan una organización como parámetro", () => {
-    expect(TOOL_DEFS.map((t) => t.name).sort()).toEqual(["get_account_summary", "get_recommendations", "list_ads", "list_campaigns"]);
+    expect(TOOL_DEFS.map((t) => t.name).sort()).toEqual(["get_account_summary", "get_commercial_summary", "get_recommendations", "list_ads", "list_campaigns"]);
     const params = TOOL_DEFS.flatMap((t) => Object.keys((t.input_schema as any).properties ?? {}));
     expect(params.join(" ")).not.toMatch(/org|tenant|account_id/i);
     expect(TOOL_DEFS.map((t) => t.name).join(" ")).not.toMatch(/pause|update|delete|write|set_|create/i);

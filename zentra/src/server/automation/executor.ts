@@ -4,6 +4,7 @@ import { audit } from "@/server/audit/audit";
 import { MetaApiError } from "@/server/integrations/meta/errors";
 import { GraphClient, type GraphOptions } from "@/server/integrations/meta/graph";
 import { notifyOnce } from "@/server/notifications/notify";
+import { getAccess } from "@/server/billing/access";
 import { inWindow } from "./rules";
 
 export type Trigger = "auto" | "user";
@@ -36,6 +37,7 @@ export async function executeAction(actionId: string, o: { trigger: Trigger; use
     if (!settings) return finish("PROPOSED", { note: "Sin configuración de automatización." });
     if (settings.emergencyStop) return finish("PROPOSED", { note: "Bloqueada: el botón de emergencia está activado." });
 
+    if (!(await getAccess(orgId, now)).premium) return finish("PROPOSED", { note: "Bloqueada: la suscripción no está activa." });
     const org = await db.organization.findUniqueOrThrow({ where: { id: orgId }, select: { timezone: true } });
     if (o.trigger === "auto") {
       if (!settings.enabled || settings.mode !== "AUTOMATIC") return finish("PROPOSED", { note: "Las automatizaciones automáticas no están activas." });

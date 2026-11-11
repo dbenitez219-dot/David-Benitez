@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { allow } from "@/server/auth/rate-limit";
+import { getAccess } from "@/server/billing/access";
 import { answerWithRules, type ToolCall } from "./rules";
 import { makeToolRunner, TOOL_DEFS } from "./tools";
 
@@ -80,8 +81,11 @@ export async function askAssistant(p: { organizationId: string; userId: string; 
   if (!(await allow(`ai:user:${p.userId}`, 20, 3600_000)) || !(await allow(`ai:org:${p.organizationId}`, 150, 86_400_000)))
     return { answer: "Alcanzaste el límite de preguntas por ahora. Inténtalo más tarde.", mode: "rules", model: null, toolCalls: [], limited: true };
 
+  const access = await getAccess(p.organizationId);
+  if (!access.premium) return { answer: "Tu suscripción no está activa. Tus datos están a salvo; activa tu plan en «Plan y pagos» para usar ZENTRA AI.", mode: "rules", model: null, toolCalls: [], limited: true };
   const run = makeToolRunner({ organizationId: p.organizationId, currency: p.currency });
-  const llm = deps.llm === undefined ? defaultLLM() : deps.llm;
+  // La IA conversacional es del plan Business/Agency; el plan Start responde con reglas básicas.
+  const llm = access.entitlements.ai !== "advanced" ? null : deps.llm === undefined ? defaultLLM() : deps.llm;
   let out: { text: string; toolCalls: ToolCall[] }, mode: "ai" | "rules" = "rules", model: string | null = null, notice: string | undefined;
   if (llm) {
     try { out = await runAi(llm, question, run, p.currency); mode = "ai"; model = llm.model; }

@@ -47,6 +47,11 @@ export async function answerWithRules(question: string, run: Run, currency: stri
     return { text: `${OK} — Anuncios a revisar (últimos ${Math.max(days, 14)} días):\n${lines.join("\n")}\n\nZENTRA solo recomienda; tú decides si pausar.`, toolCalls: calls };
   }
   if (/ventas|vende|ingresos|roas|rentab/.test(q)) {
+    const co = await call("get_commercial_summary", { days: days === 7 ? 30 : days });
+    if (co.data.has_registered_sales) {
+      const cs = (co.data.campaigns as any[]).filter((c) => c.sales > 0).sort((a, b) => b.revenue - a.revenue);
+      return { text: `${OK} — Ventas que registraste (${co.period.from} a ${co.period.to}): ${num(co.data.sales)} venta(s), ${m(co.data.revenue)} de ingresos, ${m(co.data.profit_after_ad_spend)} de ganancia tras publicidad.\n${cs.map((c) => `• ${c.name}: ${m(c.revenue)} de ingresos con ${m(c.ad_spend)} de inversión${c.real_roas ? ` (ROAS real ${c.real_roas}x)` : ""}`).join("\n")}`, toolCalls: calls };
+    }
     const o = await call("list_campaigns", { days: days === 7 ? 30 : days });
     const cs = (o.data.campaigns as any[]).filter((c) => c.revenue);
     if (!cs.length) return { text: `No hay ingresos informados por la plataforma en este período, así que no puedo decir qué campaña genera más ventas. Ojo: un mensaje o un lead no es una venta. Cuando registres tus ventas reales (módulo comercial, próxima etapa) podré medirlo con exactitud.`, toolCalls: calls };
@@ -54,6 +59,11 @@ export async function answerWithRules(question: string, run: Run, currency: stri
     return { text: `${OK} — Ingresos de compras informados por la plataforma (${o.period.from} a ${o.period.to}):\n${best.map((c) => `• ${c.name}: ${m(c.revenue)} de ingresos con ${m(c.spend)} de inversión (ROAS ${c.roas ?? "—"}x)`).join("\n")}\n\nNota: son compras que reporta la plataforma, no ventas registradas por ti.`, toolCalls: calls };
   }
   if (/costo por (cliente|resultado|lead|mensaje|venta|adquisicion)|\bcpa\b|\bcpr\b|cuesta (cada|un) (cliente|lead)/.test(q)) {
+    if (/cliente/.test(q)) {
+      const co = await call("get_commercial_summary", { days: days === 7 ? 30 : days });
+      if (co.data.has_registered_sales && co.data.cost_per_customer !== null)
+        return { text: `${OK} — Costo real por cliente (${co.period.from} a ${co.period.to}): ${m(co.data.cost_per_customer)} (${m(co.data.ad_spend)} de inversión y ${num(co.data.customers)} cliente(s) que registraste). Ganancia después de publicidad: ${m(co.data.profit_after_ad_spend)}.`, toolCalls: calls };
+    }
     const o = await call("get_account_summary", { days: days === 7 ? 30 : days });
     const c = o.data.current;
     if (!o.data.has_data || c.cost_per_result === null) return { text: "No hay resultados suficientes en el período para calcular el costo por resultado.", toolCalls: calls };

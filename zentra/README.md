@@ -32,3 +32,6 @@ Criterios de análisis por cliente, clasificación con motivos, recomendaciones 
 
 ## Fase 5 — Automatización (hecha, pausas reales pendientes de credenciales)
 Reglas, modos manual/asistido/automático, botón de emergencia, notificaciones, correo preparado y registro de decisiones. Ver `docs/06-AUTOMATIZACION.md`.
+
+## Fase 6 — Negocio (hecha; falta el proveedor de pago real)
+Planes con límites aplicados, prueba de 7 días, suscripciones con reintentos y cancelación, pagos modulares (solo simulado), análisis comercial y panel administrador. Ver `docs/07-NEGOCIO.md`.

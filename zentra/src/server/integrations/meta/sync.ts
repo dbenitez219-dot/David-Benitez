@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/crypto";
 import { notifyOnce } from "@/server/notifications/notify";
+import { getAccess } from "@/server/billing/access";
 import { MetaApiError } from "./errors";
 import { GraphClient, type GraphOptions } from "./graph";
 import { budgetToMajor, mapInsight, mapStatus, resultObjective, safeHttpsUrl, type GraphInsight } from "./mapping";
@@ -14,6 +15,8 @@ export type SyncResult = { ok: boolean; skipped?: string; campaigns?: number; ad
 /** Sincroniza una cuenta: estructura (campañas/conjuntos/anuncios) y estadísticas diarias. Idempotente. */
 export async function syncAdAccount(accountId: string, opts: GraphOptions & { days?: number } = {}): Promise<SyncResult> {
   const now = new Date();
+  const owner = await db.adAccount.findUnique({ where: { id: accountId }, select: { organizationId: true } });
+  if (owner && !(await getAccess(owner.organizationId, now)).premium) return { ok: false, skipped: "suscripción inactiva" };
   // Arrendamiento atómico: impide dos sincronizaciones simultáneas de la misma cuenta.
   const lease = await db.adAccount.updateMany({
     where: { id: accountId, platform: "META", isDemo: false, syncEnabled: true, OR: [{ syncLockedUntil: null }, { syncLockedUntil: { lt: now } }] },

@@ -16,6 +16,7 @@ export const registerSchema = z.object({
   password: passwordSchema,
   organizationName: z.string().trim().min(2).max(80),
   countryCode: z.string().length(2).toUpperCase().optional(),
+  planId: z.enum(["START", "BUSINESS", "AGENCY"]).optional(),
 });
 
 export const loginSchema = z.object({

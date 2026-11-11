@@ -2,10 +2,12 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { audit } from "@/server/audit/audit";
 import type { GraphOptions } from "@/server/integrations/meta/graph";
+import { getAccess, requirePremium } from "@/server/billing/access";
 import { executeAction, type ExecOutcome } from "./executor";
 import { ruleConfig, SCOPES } from "./rules";
 
-export class ServiceError extends Error {}
+import { ServiceError } from "@/server/errors";
+export { ServiceError };
 
 export const settingsSchema = z.object({
   mode: z.enum(["MANUAL", "ASSISTED", "AUTOMATIC"]),
@@ -18,6 +20,7 @@ export const settingsSchema = z.object({
 export async function saveSettings(p: { organizationId: string; userId: string }, input: z.infer<typeof settingsSchema>) {
   const real = input.enabled && input.mode === "AUTOMATIC" && !input.dryRun;
   if (real && !input.confirmReal) throw new ServiceError("Para activar el modo automático real debes confirmar que entiendes que ZENTRA pausará anuncios reales sin pedirte permiso cada vez.");
+  if (input.enabled) await requirePremium(p.organizationId); // activar automatizaciones es una función premium
   const { confirmReal: _c, ...data } = input;
   await db.automationSettings.upsert({ where: { organizationId: p.organizationId }, update: data, create: { organizationId: p.organizationId, ...data } });
   await audit({ action: "automation.settings", userId: p.userId, organizationId: p.organizationId, metadata: { ...data, real } });
@@ -33,6 +36,9 @@ const ruleInput = z.object({ name: z.string().trim().min(2).max(80), scope: z.en
 
 export async function createRule(p: { organizationId: string; userId: string }, raw: unknown) {
   const r = ruleInput.parse(raw);
+  const access = await requirePremium(p.organizationId);
+  const count = await db.automationRule.count({ where: { organizationId: p.organizationId } });
+  if (count >= access.entitlements.maxRules) throw new ServiceError(`Tu plan permite hasta ${access.entitlements.maxRules} reglas. Cambia de plan para crear más.`);
   if (r.scope !== "ACCOUNT") {
     if (!r.scopeId) throw new ServiceError("Elige a qué aplica la regla.");
     // El objetivo debe pertenecer a la organización (anti-IDOR).

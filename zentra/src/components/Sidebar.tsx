@@ -14,11 +14,11 @@ const NAV = [
   { href: "/settings/analysis", label: "Criterios de análisis", phase: 0 },
   { href: "/automations", label: "Automatizaciones", phase: 0 },
   { href: "/notifications", label: "Notificaciones", phase: 0 },
-  { href: "#", label: "Ventas", phase: 6 },
-  { href: "#", label: "Plan y pagos", phase: 6 },
+  { href: "/sales", label: "Ventas", phase: 0 },
+  { href: "/billing", label: "Plan y pagos", phase: 0 },
 ];
 
-export function Sidebar({ orgName, userName, logout, unread = 0 }: { orgName: string; userName: string; logout: () => Promise<void>; unread?: number }) {
+export function Sidebar({ orgName, userName, logout, unread = 0, isAdmin = false }: { orgName: string; userName: string; logout: () => Promise<void>; unread?: number; isAdmin?: boolean }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   return (
@@ -43,6 +43,7 @@ export function Sidebar({ orgName, userName, logout, unread = 0 }: { orgName: st
             );
           })}
         </nav>
+        {isAdmin && <Link href="/admin" className="mt-4 block rounded-lg border border-zred/40 px-3 py-2 text-sm text-red-300 hover:bg-zred/10">Panel administrador</Link>}
         <div className="mt-8 border-t border-line pt-4 text-sm lg:absolute lg:bottom-4 lg:left-4 lg:right-4">
           <p className="mb-2 truncate text-muted">{userName}</p>
           <form action={logout}><button className="btn btn-ghost w-full">Salir</button></form>

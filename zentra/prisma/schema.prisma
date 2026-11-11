@@ -187,6 +187,7 @@ model PlanPrice {
   currency    String
   amountMinor Int // en la unidad mínima de la moneda (PYG no tiene decimales)
   taxIncluded Boolean  @default(true)
+  taxPercent  Decimal? @db.Decimal(5, 2) // impuesto del mercado (p. ej. IVA); null = sin definir
   active      Boolean  @default(true)
   plan        Plan     @relation(fields: [planId], references: [id])
 
@@ -201,8 +202,22 @@ model Subscription {
   trialEndsAt        DateTime?
   currentPeriodEnd   DateTime?
   cancelAtPeriodEnd  Boolean            @default(false)
+  canceledAt         DateTime?
   provider           String? // uPay | Bancard | stripe…
   providerRef        String?
+  // Precio vigente al activar (los cambios de precio no afectan a quien ya es cliente)
+  priceMinor         Int?
+  currency           String?
+  taxIncluded        Boolean?
+  taxPercent         Decimal?           @db.Decimal(5, 2)
+  // Cobro recurrente: solo con autorización explícita registrada
+  autoRenew          Boolean            @default(false)
+  consentAt          DateTime?
+  paymentMethodEnc   String? // token del medio de pago (cifrado); nunca datos de tarjeta
+  retryCount         Int                @default(0)
+  nextRetryAt        DateTime?
+  trialWarned3       DateTime?
+  trialWarned1       DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -221,10 +236,27 @@ model Payment {
   provider       String
   providerRef    String?
   attempt        Int           @default(1)
+  planId         String?
+  kind           String        @default("INITIAL") // INITIAL | RENEWAL | MANUAL_RENEWAL | CHANGE
+  taxMinor       Int           @default(0)
+  consentRecurring Boolean     @default(false)
+  isSimulated    Boolean       @default(false)
+  failureReason  String?
+  paidAt         DateTime?
   createdAt      DateTime      @default(now())
   organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@unique([provider, providerRef])
   @@index([organizationId])
+}
+
+// Eventos de webhook ya procesados (idempotencia).
+model WebhookEvent {
+  provider  String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  @@id([provider, eventId])
 }
 
 // ───────────── Publicidad (sincronización real en Fase 3) ─────────────
@@ -403,6 +435,7 @@ model Customer {
   name           String
   phone          String?
   email          String?
+  campaignExternalId String? // campaña que lo trajo (primera atribución)
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   sales          Sale[]
@@ -414,6 +447,9 @@ model Lead {
   id             String       @id @default(cuid())
   organizationId String
   name           String?
+  phone          String?
+  email          String?
+  status         String       @default("NEW") // NEW | CONTACTED | WON | LOST
   source         String?
   campaignExternalId String?
   createdAt      DateTime     @default(now())
@@ -426,7 +462,8 @@ model Sale {
   id             String       @id @default(cuid())
   organizationId String
   customerId     String?
-  campaignExternalId String?
+  campaignExternalId String? // campaña a la que se atribuye la venta
+  note           String?
   revenue        Decimal      @db.Decimal(14, 2)
   cost           Decimal      @default(0) @db.Decimal(14, 2)
   currency       String

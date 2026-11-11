@@ -4,6 +4,7 @@ import { parseFilters } from "@/lib/filters";
 import { buildRecommendations } from "@/server/analytics/recommendations";
 import { loadAds, loadSummary, type AdRow } from "@/server/analytics/report";
 import { getAnalysisConfig } from "@/server/analytics/settings";
+import { commercialSummary } from "@/server/commercial/service";
 
 /**
  * Herramientas de SOLO LECTURA que el asistente puede usar. La organización la fija el servidor
@@ -39,6 +40,8 @@ export const TOOL_DEFS: Anthropic.Tool[] = [
   { name: "list_campaigns", description: "Rendimiento agregado por campaña (gasto, resultados, costo por resultado, ingresos, ROAS) en los últimos N días.",
     input_schema: { type: "object", properties: { days: { type: "integer", minimum: 1, maximum: 90 } } } },
   { name: "get_recommendations", description: "Recomendaciones calculadas por ZENTRA (considerar pausar, observar, anomalías de gasto, etc.) con la evidencia de cada una. Solo recomiendan; no ejecutan nada.",
+    input_schema: { type: "object", properties: { days: { type: "integer", minimum: 1, maximum: 90 } } } },
+  { name: "get_commercial_summary", description: "Ventas, ingresos, costos y clientes REGISTRADOS por el usuario en los últimos N días, combinados con la inversión publicitaria: costo real por cliente, ROAS real y ganancia. Si no hay ventas registradas, lo indica.",
     input_schema: { type: "object", properties: { days: { type: "integer", minimum: 1, maximum: 90 } } } },
 ];
 
@@ -94,6 +97,14 @@ export function makeToolRunner(ctx: { organizationId: string; currency: string }
         const f = periodFilters(d); const [ads, cfg] = await Promise.all([loadAds(ctx.organizationId, f), getAnalysisConfig(ctx.organizationId)]);
         const recs = buildRecommendations(ads, cfg, ctx.currency).slice(0, 12);
         return envelope(f, { recommendations: recs.map((x) => ({ severity: x.severity, kind: x.kind, ad: x.adName, campaign: x.campaignName, title: x.title, why: x.explanation, suggested_action: x.suggestedAction, evidence: x.evidence })) });
+      }
+      case "get_commercial_summary": {
+        const { days: d } = daysOnly.parse(input ?? {});
+        const f = periodFilters(d); const c = await commercialSummary(ctx.organizationId, f.from, f.to);
+        return envelope(f, { has_registered_sales: c.sales > 0, sales: c.sales, customers: c.customers, leads: c.leads, ad_spend: r(c.spend, 0), revenue: r(c.revenue, 0), sale_costs: r(c.saleCost, 0),
+          gross_profit: r(c.grossProfit, 0), profit_after_ad_spend: r(c.netProfit, 0), cost_per_customer: r(c.costPerCustomer, 0), real_roas: r(c.roas),
+          note: c.sales === 0 ? "El usuario no registró ventas en este período: no se puede calcular el costo real por cliente ni la rentabilidad." : undefined,
+          campaigns: c.campaigns.map((x) => ({ name: x.name, ad_spend: r(x.spend, 0), customers: x.customers, sales: x.sales, revenue: r(x.revenue, 0), profit_after_ad_spend: r(x.profit, 0), cost_per_customer: r(x.costPerCustomer, 0), real_roas: r(x.roas) })) });
       }
       default:
         throw new Error(`Herramienta desconocida: ${name}`);

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AuthForm, Field } from "@/components/AuthForm";
 import { registerAction } from "../actions";
+import { PLAN_CATALOG, PLAN_IDS } from "@/server/billing/plans";
 
 export const metadata = { title: "Crear cuenta — ZENTRA" };
 
@@ -25,6 +26,16 @@ export default function RegisterPage() {
             {COUNTRIES.map(([c, n]) => <option key={c} value={c === "OTHER" ? "" : c}>{n}</option>)}
           </select>
         </label>
+        <fieldset className="text-sm">
+          <legend className="mb-1 text-muted">Plan para tu prueba gratis de 7 días</legend>
+          <div className="space-y-2">
+            {PLAN_IDS.map((id) => (
+              <label key={id} className="flex items-start gap-2 rounded-lg border border-line p-2.5"><input type="radio" name="planId" value={id} defaultChecked={id === "BUSINESS"} className="mt-1 accent-[#e5202e]" />
+                <span><strong>{PLAN_CATALOG[id].name}</strong> <span className="text-xs text-muted">— {PLAN_CATALOG[id].description}</span></span></label>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-muted">No pedimos tarjeta. No se cobra nada al terminar la prueba.</p>
+        </fieldset>
         <Field label="Correo" name="email" type="email" autoComplete="email" />
         <Field label="Contraseña" name="password" type="password" autoComplete="new-password" hint="Mínimo 10 caracteres, con mayúscula, minúscula y número." />
       </AuthForm>

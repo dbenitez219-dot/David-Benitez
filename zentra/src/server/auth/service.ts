@@ -3,12 +3,13 @@ import { slugify } from "@/lib/validation";
 import { hashPassword, verifyPassword } from "./password";
 import { audit } from "@/server/audit/audit";
 import { allow } from "./rate-limit";
+import { ensurePlans, TRIAL_DAYS, type PlanId } from "@/server/billing/plans";
 
 export type AuthResult<T = { userId: string; organizationId: string | null }> =
   | { ok: true; data: T }
   | { ok: false; error: string };
 
-type RegisterInput = { name: string; email: string; password: string; organizationName: string; countryCode?: string };
+type RegisterInput = { name: string; email: string; password: string; organizationName: string; countryCode?: string; planId?: PlanId };
 
 export async function registerUser(input: RegisterInput, ip?: string | null): Promise<AuthResult> {
   if (ip && !(await allow(`register:${ip}`, 10, 60 * 60 * 1000))) return { ok: false, error: "Demasiados intentos. Prueba más tarde." };
@@ -16,6 +17,7 @@ export async function registerUser(input: RegisterInput, ip?: string | null): Pr
   if (exists) return { ok: false, error: "No se pudo crear la cuenta con esos datos." }; // no revela si el correo existe
 
   const passwordHash = await hashPassword(input.password);
+  await ensurePlans(); // el catálogo se autorrepara si falta
   const base = slugify(input.organizationName);
   const slug = `${base}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -29,6 +31,8 @@ export async function registerUser(input: RegisterInput, ip?: string | null): Pr
         memberships: { create: { userId: user.id, role: "OWNER" } },
         // Automatizaciones reales: desactivadas por defecto.
         automationSettings: { create: {} },
+        // Prueba gratuita de 7 días, sin tarjeta, con el plan elegido (por defecto Business).
+        subscriptions: { create: { planId: input.planId ?? "BUSINESS", status: "TRIALING", trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 86_400_000) } },
       },
     });
     return { userId: user.id, organizationId: org.id };

@@ -6,6 +6,7 @@ import { loadAds, type AdRow } from "@/server/analytics/report";
 import { getAnalysisConfig } from "@/server/analytics/settings";
 import type { GraphOptions } from "@/server/integrations/meta/graph";
 import { notifyOnce } from "@/server/notifications/notify";
+import { getAccess } from "@/server/billing/access";
 import { executeAction } from "./executor";
 import { decidePause, parseRules, ruleFor } from "./rules";
 
@@ -29,6 +30,7 @@ async function ensureSettings(organizationId: string) {
 export async function evaluateOrganization(organizationId: string, o: { now?: Date } & GraphOptions = {}): Promise<EvalSummary> {
   const now = o.now ?? new Date();
   const settings = await ensureSettings(organizationId);
+  if (!(await getAccess(organizationId, now)).premium) return { notifications: 0, proposed: 0, executed: 0, simulated: 0, blocked: 0, expired: 0, mode: settings.mode, active: false, reason: "Suscripción inactiva" };
   const org = await db.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { currency: true } });
   const cur = org.currency;
   const [cfg, ruleRows] = await Promise.all([getAnalysisConfig(organizationId), db.automationRule.findMany({ where: { organizationId } })]);
