@@ -5,7 +5,7 @@
   "description": "ZENTRA — Global AI Advertising Intelligence SaaS",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "node scripts/copy-flags.mjs && prisma generate && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -13,12 +13,17 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "admin:promote": "tsx scripts/make-admin.ts"
+    "admin:promote": "tsx scripts/make-admin.ts",
+    "postinstall": "node scripts/copy-flags.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
     "@node-rs/argon2": "2.2.2",
     "@prisma/client": "6.19.3",
+    "countries-and-timezones": "^3.11.0",
+    "country-flag-icons": "^1.6.20",
+    "country-to-currency": "^3.0.2",
+    "libphonenumber-js": "^1.13.16",
     "next": "16.4.6",
     "react": "19.3.1",
     "react-dom": "19.3.1",

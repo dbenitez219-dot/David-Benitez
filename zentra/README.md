@@ -35,3 +35,6 @@ Reglas, modos manual/asistido/automático, botón de emergencia, notificaciones,
 
 ## Fase 6 — Negocio (hecha; falta el proveedor de pago real)
 Planes con límites aplicados, prueba de 7 días, suscripciones con reintentos y cancelación, pagos modulares (solo simulado), análisis comercial y panel administrador. Ver `docs/07-NEGOCIO.md`.
+
+## Fase 7 — Globalización (hecha)
+Selector de países con banderas, teléfonos validados por país, registro internacional, español/inglés/portugués, formatos y zona horaria regionales. Ver `docs/08-GLOBALIZACION.md` (incluye qué pantallas siguen solo en español).

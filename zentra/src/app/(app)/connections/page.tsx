@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { dateLong } from "@/lib/format";
+import { getFormatter } from "@/lib/locale";
 import { hasRole, requireOrg } from "@/server/tenancy/context";
 import { metaConfig } from "@/server/integrations/meta/config";
 import { maxSyncedAccounts } from "@/server/integrations/meta/limits";
@@ -21,6 +21,7 @@ const MESSAGES: Record<string, string> = {
 
 export default async function Connections({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const ctx = await requireOrg();
+  const { dateLong } = await getFormatter();
   const sp = await searchParams;
   const canAdmin = hasRole(ctx.role, "ADMIN");
   const cfg = metaConfig();

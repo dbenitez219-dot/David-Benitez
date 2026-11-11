@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { parseFilters } from "@/lib/filters";
-import { dateLong, money, num, pct, ratio } from "@/lib/format";
+import { getFormatter } from "@/lib/locale";
 import { getAccess } from "@/server/billing/access";
 import { PLAN_CATALOG } from "@/server/billing/plans";
 import { commercialSummary } from "@/server/commercial/service";
@@ -15,6 +15,7 @@ const LEAD: Record<string, string> = { NEW: "Nuevo", CONTACTED: "Contactado", WO
 
 export default async function Sales({ searchParams }: { searchParams: Promise<{ range?: string; msg?: string }> }) {
   const ctx = await requireOrg();
+  const { dateLong, money, num, pct, ratio } = await getFormatter();
   const sp = await searchParams;
   const access = await getAccess(ctx.organizationId);
   const included = access.planId ? PLAN_CATALOG[access.planId].entitlements.commercial : false;

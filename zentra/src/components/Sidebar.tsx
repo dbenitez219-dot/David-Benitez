@@ -4,49 +4,41 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "./Logo";
 
-// "soon" = módulo planificado: se muestra como próximamente, sin simular funcionalidad.
+export type NavLabels = Record<string, string>;
 const NAV = [
-  { href: "/dashboard", label: "Panel", phase: 0 },
-  { href: "/ads", label: "Anuncios", phase: 0 },
-  { href: "/connections", label: "Conexiones", phase: 0 },
-  { href: "/assistant", label: "ZENTRA AI", phase: 0 },
-  { href: "/recommendations", label: "Recomendaciones", phase: 0 },
-  { href: "/settings/analysis", label: "Criterios de análisis", phase: 0 },
-  { href: "/automations", label: "Automatizaciones", phase: 0 },
-  { href: "/notifications", label: "Notificaciones", phase: 0 },
-  { href: "/sales", label: "Ventas", phase: 0 },
-  { href: "/billing", label: "Plan y pagos", phase: 0 },
-];
+  ["dashboard", "/dashboard"], ["ads", "/ads"], ["connections", "/connections"], ["ai", "/assistant"], ["recommendations", "/recommendations"],
+  ["analysis", "/settings/analysis"], ["automations", "/automations"], ["notifications", "/notifications"], ["sales", "/sales"], ["billing", "/billing"], ["regional", "/settings/regional"],
+] as const;
 
-export function Sidebar({ orgName, userName, logout, unread = 0, isAdmin = false }: { orgName: string; userName: string; logout: () => Promise<void>; unread?: number; isAdmin?: boolean }) {
+export function Sidebar({ orgName, userName, logout, unread = 0, isAdmin = false, labels, footer }: {
+  orgName: string; userName: string; logout: () => Promise<void>; unread?: number; isAdmin?: boolean; labels: NavLabels; footer?: React.ReactNode;
+}) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   return (
     <>
       <div className="flex items-center justify-between border-b border-line px-4 py-3 lg:hidden">
         <Logo width={150} />
-        <button className="btn btn-ghost" aria-expanded={open} aria-label="Menú" onClick={() => setOpen(!open)}>☰</button>
+        <button className="btn btn-ghost" aria-expanded={open} aria-label={labels.menu} onClick={() => setOpen(!open)}>☰</button>
       </div>
-      <aside className={`${open ? "block" : "hidden"} border-b border-line bg-panel p-4 lg:fixed lg:inset-y-0 lg:block lg:w-64 lg:border-b-0 lg:border-r`}>
+      <aside className={`${open ? "block" : "hidden"} overflow-y-auto border-b border-line bg-panel p-4 lg:fixed lg:inset-y-0 lg:block lg:w-64 lg:border-b-0 lg:border-r`}>
         <div className="mb-6 hidden lg:block"><Logo width={200} /></div>
         <p className="mb-4 truncate text-xs uppercase tracking-wider text-muted">{orgName}</p>
         <nav className="space-y-1">
-          {NAV.map((n) => {
-            const active = n.phase === 0 && (path === n.href || path.startsWith(n.href + "/"));
-            const base = "flex items-center justify-between rounded-lg px-3 py-2 text-sm";
-            return n.phase === 0 ? (
-              <Link key={n.label} href={n.href} onClick={() => setOpen(false)} className={`${base} ${active ? "bg-zred/15 text-white" : "text-muted hover:text-white"}`}>{n.label}{n.href === "/notifications" && unread > 0 && <span className="rounded-full bg-zred px-2 text-xs font-semibold text-white">{unread}</span>}</Link>
-            ) : (
-              <span key={n.label} className={`${base} cursor-not-allowed text-muted/50`}>
-                {n.label}<span className="text-[10px] uppercase">Fase {n.phase}</span>
-              </span>
+          {NAV.map(([key, href]) => {
+            const active = path === href || path.startsWith(href + "/");
+            return (
+              <Link key={key} href={href} onClick={() => setOpen(false)} className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${active ? "bg-zred/15 text-white" : "text-muted hover:text-white"}`}>
+                {labels[key]}{key === "notifications" && unread > 0 && <span className="rounded-full bg-zred px-2 text-xs font-semibold text-white">{unread}</span>}
+              </Link>
             );
           })}
         </nav>
-        {isAdmin && <Link href="/admin" className="mt-4 block rounded-lg border border-zred/40 px-3 py-2 text-sm text-red-300 hover:bg-zred/10">Panel administrador</Link>}
-        <div className="mt-8 border-t border-line pt-4 text-sm lg:absolute lg:bottom-4 lg:left-4 lg:right-4">
-          <p className="mb-2 truncate text-muted">{userName}</p>
-          <form action={logout}><button className="btn btn-ghost w-full">Salir</button></form>
+        {isAdmin && <Link href="/admin" className="mt-4 block rounded-lg border border-zred/40 px-3 py-2 text-sm text-red-300 hover:bg-zred/10">{labels.admin}</Link>}
+        <div className="mt-8 space-y-3 border-t border-line pt-4 text-sm">
+          {footer}
+          <p className="truncate text-muted">{userName}</p>
+          <form action={logout}><button className="btn btn-ghost w-full">{labels.logout}</button></form>
         </div>
       </aside>
     </>

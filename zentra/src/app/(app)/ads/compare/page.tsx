@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { OBJECTIVE_LABEL, statusLabel } from "@/lib/classification";
 import { parseFilters } from "@/lib/filters";
-import { dateLong, money, num, pct, ratio } from "@/lib/format";
+import { getFormatter } from "@/lib/locale";
 import { requireOrg } from "@/server/tenancy/context";
 import { loadAds } from "@/server/analytics/report";
 import { ClassBadge, TrendMark } from "@/components/ui/bits";
@@ -10,6 +10,7 @@ export const metadata = { title: "Comparar anuncios — ZENTRA" };
 
 export default async function Compare({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const ctx = await requireOrg();
+  const { dateLong, money, num, pct, ratio } = await getFormatter();
   const sp = await searchParams;
   const f = parseFilters(sp);
   const cur = ctx.organization.currency;

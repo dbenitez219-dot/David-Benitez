@@ -15,8 +15,10 @@ export const MAX_QUESTION = 500;
 const MAX_STEPS = 6;
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n) + "…[recortado]" : s);
 
-export function systemPrompt(currency: string, today = new Date()) {
-  return `Eres ZENTRA AI, el asistente de análisis publicitario de ZENTRA. Hablas con dueños de negocios y personas sin experiencia en publicidad digital: usa español claro y sencillo, sin jerga innecesaria.
+const LANG_NAME = { es: "español", en: "inglés (English)", pt: "portugués (Português)" } as const;
+
+export function systemPrompt(currency: string, today = new Date(), locale: keyof typeof LANG_NAME = "es") {
+  return `Eres ZENTRA AI, el asistente de análisis publicitario de ZENTRA. Hablas con dueños de negocios y personas sin experiencia en publicidad digital: usa un lenguaje claro y sencillo, sin jerga innecesaria. Responde SIEMPRE en ${LANG_NAME[locale]}, aunque estas instrucciones estén en español.
 
 Fecha de hoy: ${today.toISOString().slice(0, 10)}. Moneda de la cuenta: ${currency}.
 
@@ -46,11 +48,11 @@ export function defaultLLM(): LLM | null {
 
 export type AskResult = { answer: string; mode: "ai" | "rules"; model: string | null; toolCalls: ToolCall[]; notice?: string; limited?: boolean };
 
-async function runAi(llm: LLM, question: string, run: (n: string, i: unknown) => Promise<unknown>, currency: string): Promise<{ text: string; toolCalls: ToolCall[] }> {
+async function runAi(llm: LLM, question: string, run: (n: string, i: unknown) => Promise<unknown>, currency: string, locale: keyof typeof LANG_NAME): Promise<{ text: string; toolCalls: ToolCall[] }> {
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: question }];
   const toolCalls: ToolCall[] = [];
   for (let step = 0; step < MAX_STEPS; step++) {
-    const res = await llm.complete({ system: systemPrompt(currency), messages, tools: TOOL_DEFS });
+    const res = await llm.complete({ system: systemPrompt(currency, new Date(), locale), messages, tools: TOOL_DEFS });
     if (res.stop_reason === "refusal") return { text: "No puedo responder esa pregunta. Prueba reformularla sobre el rendimiento de tus anuncios.", toolCalls };
     const text = res.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("\n").trim();
     if (res.stop_reason !== "tool_use") return { text: text || "No pude generar una respuesta. Inténtalo de nuevo.", toolCalls };
@@ -74,7 +76,7 @@ async function runAi(llm: LLM, question: string, run: (n: string, i: unknown) =>
 }
 
 /** Responde una pregunta del usuario sobre los datos REALES de su organización y deja constancia verificable. */
-export async function askAssistant(p: { organizationId: string; userId: string; currency: string; question: string }, deps: { llm?: LLM | null } = {}): Promise<AskResult> {
+export async function askAssistant(p: { organizationId: string; userId: string; currency: string; question: string; locale?: keyof typeof LANG_NAME }, deps: { llm?: LLM | null } = {}): Promise<AskResult> {
   const question = p.question.trim();
   if (!question) return { answer: "Escribe una pregunta.", mode: "rules", model: null, toolCalls: [] };
   if (question.length > MAX_QUESTION) return { answer: `La pregunta es muy larga (máximo ${MAX_QUESTION} caracteres).`, mode: "rules", model: null, toolCalls: [] };
@@ -88,7 +90,7 @@ export async function askAssistant(p: { organizationId: string; userId: string; 
   const llm = access.entitlements.ai !== "advanced" ? null : deps.llm === undefined ? defaultLLM() : deps.llm;
   let out: { text: string; toolCalls: ToolCall[] }, mode: "ai" | "rules" = "rules", model: string | null = null, notice: string | undefined;
   if (llm) {
-    try { out = await runAi(llm, question, run, p.currency); mode = "ai"; model = llm.model; }
+    try { out = await runAi(llm, question, run, p.currency, p.locale ?? "es"); mode = "ai"; model = llm.model; }
     catch (e) {
       console.error("assistant ai error", (e as Error).message);
       notice = "La IA no estuvo disponible; respondí con reglas básicas.";

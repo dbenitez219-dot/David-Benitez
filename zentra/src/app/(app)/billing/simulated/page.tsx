@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { money } from "@/lib/format";
+import { getFormatter } from "@/lib/locale";
 import { simulatedAllowed } from "@/server/billing/providers/simulated";
 import { requireOrg } from "@/server/tenancy/context";
 import { simulatedResultAction } from "../actions";
@@ -9,6 +9,7 @@ export const metadata = { title: "Pago simulado — ZENTRA" };
 
 export default async function Simulated({ searchParams }: { searchParams: Promise<{ ref?: string }> }) {
   const ctx = await requireOrg("ADMIN");
+  const { money } = await getFormatter();
   if (!simulatedAllowed()) notFound();
   const { ref } = await searchParams;
   const pay = ref ? await db.payment.findFirst({ where: { organizationId: ctx.organizationId, provider: "simulated", providerRef: ref, status: "PENDING" } }) : null;

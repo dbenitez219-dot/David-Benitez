@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { money } from "@/lib/format";
+import { getFormatter } from "@/lib/locale";
 import { PLAN_CATALOG, PLAN_IDS, priceFor, taxBreakdown, type PlanId } from "@/server/billing/plans";
 import { providerFor } from "@/server/billing/providers";
 import { requireOrg } from "@/server/tenancy/context";
@@ -10,6 +10,7 @@ export const metadata = { title: "Activar plan — ZENTRA" };
 
 export default async function Checkout({ searchParams }: { searchParams: Promise<{ plan?: string; error?: string }> }) {
   const ctx = await requireOrg("ADMIN");
+  const { money } = await getFormatter();
   const { plan, error } = await searchParams;
   if (!plan || !PLAN_IDS.includes(plan as PlanId)) notFound();
   const id = plan as PlanId, p = PLAN_CATALOG[id];

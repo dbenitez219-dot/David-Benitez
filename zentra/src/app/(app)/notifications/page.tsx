@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getFormatter } from "@/lib/locale";
 import { requireOrg } from "@/server/tenancy/context";
 import { markReadAction } from "./actions";
 
@@ -7,6 +8,7 @@ const SEV: Record<string, [string, string]> = { important: ["Importante", "borde
 
 export default async function Notifications() {
   const ctx = await requireOrg();
+  const { dateTime } = await getFormatter();
   const items = await db.notification.findMany({ where: { organizationId: ctx.organizationId }, orderBy: { createdAt: "desc" }, take: 60 });
   const unread = items.filter((n) => !n.readAt).length;
   return (
@@ -28,7 +30,7 @@ export default async function Notifications() {
             <p className="mt-2 text-sm">{n.body}</p>
             {n.recommendation && <p className="mt-2 text-sm">💡 <span className="text-muted">Qué hacer:</span> {n.recommendation}</p>}
             <div className="mt-3 flex items-center justify-between text-xs text-muted">
-              <span>{n.createdAt.toISOString().slice(0, 16).replace("T", " ")} UTC{n.emailedAt ? " · enviada por correo" : ""}</span>
+              <span>{dateTime(n.createdAt)}{n.emailedAt ? " · enviada por correo" : ""}</span>
               {!n.readAt && <form action={markReadAction}><input type="hidden" name="id" value={n.id} /><button className="underline hover:text-white">Marcar como leída</button></form>}
             </div>
           </article>

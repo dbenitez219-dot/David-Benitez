@@ -1,5 +1,5 @@
 "use client";
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 
 export type FormMsg = { error?: string; ok?: string } | undefined;
 
@@ -7,7 +7,7 @@ export type FormMsg = { error?: string; ok?: string } | undefined;
 export function ActionForm({ action, submit, children, className = "space-y-4" }: { action: (s: FormMsg, f: FormData) => Promise<FormMsg>; submit: string; children: React.ReactNode; className?: string }) {
   const [state, fa, pending] = useActionState(action, undefined);
   return (
-    <form action={fa} className={className}>
+    <form action={fa} onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); startTransition(() => fa(fd)); }} className={className}>
       {children}
       {state?.error && <p role="alert" className="text-sm text-red-300">{state.error}</p>}
       {state?.ok && <p role="status" className="text-sm text-emerald-300">{state.ok}</p>}

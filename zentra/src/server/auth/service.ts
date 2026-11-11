@@ -9,7 +9,7 @@ export type AuthResult<T = { userId: string; organizationId: string | null }> =
   | { ok: true; data: T }
   | { ok: false; error: string };
 
-type RegisterInput = { name: string; email: string; password: string; organizationName: string; countryCode?: string; planId?: PlanId };
+type RegisterInput = { name: string; email: string; password: string; organizationName: string; countryCode?: string; planId?: PlanId; phone?: string; locale?: string; timezone?: string; currency?: string };
 
 export async function registerUser(input: RegisterInput, ip?: string | null): Promise<AuthResult> {
   if (ip && !(await allow(`register:${ip}`, 10, 60 * 60 * 1000))) return { ok: false, error: "Demasiados intentos. Prueba más tarde." };
@@ -22,12 +22,16 @@ export async function registerUser(input: RegisterInput, ip?: string | null): Pr
   const slug = `${base}-${Math.random().toString(36).slice(2, 7)}`;
 
   const result = await db.$transaction(async (tx) => {
-    const user = await tx.user.create({ data: { email: input.email, name: input.name, passwordHash, countryCode: input.countryCode } });
+    const user = await tx.user.create({ data: {
+      email: input.email, name: input.name, passwordHash, countryCode: input.countryCode, phone: input.phone,
+      ...(input.locale ? { locale: input.locale } : {}), ...(input.timezone ? { timezone: input.timezone } : {}), ...(input.currency ? { currency: input.currency } : {}),
+    } });
     const org = await tx.organization.create({
       data: {
         name: input.organizationName,
         slug,
         countryCode: input.countryCode,
+        ...(input.currency ? { currency: input.currency } : {}), ...(input.timezone ? { timezone: input.timezone } : {}), // sugeridos según el país; editables en Ajustes regionales
         memberships: { create: { userId: user.id, role: "OWNER" } },
         // Automatizaciones reales: desactivadas por defecto.
         automationSettings: { create: {} },

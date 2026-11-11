@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 type Pt = { date: string; spend: number; results: number; revenue: number };
 const W = 800, H = 260, M = { l: 8, r: 8, t: 12, b: 24 };
 
-const fmt = (n: number) => new Intl.NumberFormat("es-PY", { maximumFractionDigits: 0 }).format(n);
 
-export function Chart({ series, currency, showRevenue }: { series: Pt[]; currency: string; showRevenue: boolean }) {
+export function Chart({ series, currency, showRevenue, locale, labels }: { series: Pt[]; currency: string; showRevenue: boolean; locale: string; labels: { spend: string; results: string; revenue: string; aria: string } }) {
+  const fmt = (n: number) => new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(n);
   const [on, setOn] = useState({ spend: true, results: true, revenue: showRevenue });
   const [hover, setHover] = useState<number | null>(null);
   const n = series.length;
@@ -28,12 +28,12 @@ export function Chart({ series, currency, showRevenue }: { series: Pt[]; currenc
   return (
     <div>
       <div className="mb-3 flex flex-wrap gap-2">
-        {toggle("spend", "Inversión", "#e5202e")}
-        {toggle("results", "Resultados", "#ffffff")}
-        {toggle("revenue", "Ingresos", "#8b8b94", !showRevenue)}
+        {toggle("spend", labels.spend, "#e5202e")}
+        {toggle("results", labels.results, "#ffffff")}
+        {toggle("revenue", labels.revenue, "#8b8b94", !showRevenue)}
       </div>
       <div className="relative">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full touch-none" role="img" aria-label="Evolución diaria de inversión y resultados"
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full touch-none" role="img" aria-label={labels.aria}
           onPointerMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); const px = ((e.clientX - r.left) / r.width) * W; setHover(Math.max(0, Math.min(n - 1, Math.round(((px - M.l) / (W - M.l - M.r)) * (n - 1))))); }}
           onPointerLeave={() => setHover(null)}>
           {[0.25, 0.5, 0.75].map((g) => <line key={g} x1={M.l} x2={W - M.r} y1={M.t + g * (H - M.t - M.b)} y2={M.t + g * (H - M.t - M.b)} stroke="#232327" strokeDasharray="3 4" />)}
@@ -48,9 +48,9 @@ export function Chart({ series, currency, showRevenue }: { series: Pt[]; currenc
           <div className="pointer-events-none absolute top-2 rounded-lg border border-line bg-ink/95 px-3 py-2 text-xs shadow-lg"
             style={{ left: `${(x(hover!) / W) * 100}%`, transform: `translateX(${hover! > n / 2 ? "-105%" : "5%"})` }}>
             <p className="mb-1 font-semibold">{h.date}</p>
-            <p className="text-zred">Inversión: {fmt(h.spend)} {currency}</p>
-            <p>Resultados: {fmt(h.results)}</p>
-            {showRevenue && <p className="text-muted">Ingresos: {fmt(h.revenue)} {currency}</p>}
+            <p className="text-zred">{labels.spend}: {fmt(h.spend)} {currency}</p>
+            <p>{labels.results}: {fmt(h.results)}</p>
+            {showRevenue && <p className="text-muted">{labels.revenue}: {fmt(h.revenue)} {currency}</p>}
           </div>
         )}
       </div>

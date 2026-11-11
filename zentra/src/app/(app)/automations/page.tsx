@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { dateLong, money } from "@/lib/format";
+import { getFormatter } from "@/lib/locale";
 import { hasRole, requireOrg } from "@/server/tenancy/context";
 import { parseRules } from "@/server/automation/rules";
 import { ActionForm } from "@/components/ActionForm";
@@ -26,6 +26,7 @@ const NumField = ({ name, label, value, hint, step = "any" }: { name: string; la
 
 export default async function Automations({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const ctx = await requireOrg();
+  const { dateLocal: dateLong, money } = await getFormatter();
   const { msg } = await searchParams;
   const admin = hasRole(ctx.role, "ADMIN");
   const cur = ctx.organization.currency, org = ctx.organizationId;
