@@ -1,0 +1,6 @@
+# Proxy inverso con HTTPS automático. DOMAIN viene de .env (p. ej. app.tudominio.com; su DNS debe apuntar a este servidor).
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:3000
+	header -Server
+}

@@ -122,6 +122,8 @@ export type CycleSummary = { trialsExpired: number; trialWarnings: number; renew
 /** Ciclo diario: avisos y vencimiento de pruebas, renovaciones, reintentos y cancelaciones al fin del período. */
 export async function runBillingCycle(now = new Date()): Promise<CycleSummary> {
   const out: CycleSummary = { trialsExpired: 0, trialWarnings: 0, renewed: 0, retriesFailed: 0, expired: 0, canceled: 0 };
+  // Interruptor GLOBAL (BILLING_KILL_SWITCH=true): congela cobros, reintentos y vencimientos de suscripciones ante un incidente de pagos.
+  const frozen = process.env.BILLING_KILL_SWITCH === "true";
 
   for (const s of await db.subscription.findMany({ where: { status: "TRIALING", trialEndsAt: { not: null } } })) {
     const end = s.trialEndsAt!, left = end.getTime() - now.getTime();
@@ -144,6 +146,7 @@ export async function runBillingCycle(now = new Date()): Promise<CycleSummary> {
         await notifyOnce(s.organizationId, { type: "billing", severity: "warning", dedupeHours: 72, title: "Tu plan vence pronto", body: `Tu plan vence el ${end.toISOString().slice(0, 10)} y no tiene cobro automático.`, recommendation: "Renueva desde «Plan y pagos» para no perder las funciones premium." });
       continue;
     }
+    if (frozen) continue; // sin cobrar, sin reintentar y sin vencer
     if (s.cancelAtPeriodEnd) {
       await db.subscription.update({ where: { id: s.id }, data: { status: "CANCELED", autoRenew: false } }); out.canceled++;
       await audit({ action: "billing.canceled_at_period_end", organizationId: s.organizationId, entity: "Subscription", entityId: s.id });
@@ -156,7 +159,7 @@ export async function runBillingCycle(now = new Date()): Promise<CycleSummary> {
       await notifyOnce(s.organizationId, { type: "billing", severity: "important", title: "Tu suscripción venció", body: "Tu plan no tenía cobro automático y llegó la fecha de vencimiento. Tus datos se conservan.", recommendation: "Renueva desde «Plan y pagos» para recuperar las funciones premium." }); }
   }
 
-  for (const s of await db.subscription.findMany({ where: { status: "PAST_DUE", nextRetryAt: { lte: now } } })) {
+  for (const s of frozen ? [] : await db.subscription.findMany({ where: { status: "PAST_DUE", nextRetryAt: { lte: now } } })) {
     const r = await chargeRenewal(s, now);
     if (r === "charged") out.renewed++; else if (r === "failed") out.retriesFailed++; else { await scheduleRetry(s.id, now); out.retriesFailed++; }
   }

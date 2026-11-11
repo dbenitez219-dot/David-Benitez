@@ -7,7 +7,7 @@ import { Logo } from "./Logo";
 export type NavLabels = Record<string, string>;
 const NAV = [
   ["dashboard", "/dashboard"], ["ads", "/ads"], ["connections", "/connections"], ["ai", "/assistant"], ["recommendations", "/recommendations"],
-  ["analysis", "/settings/analysis"], ["automations", "/automations"], ["notifications", "/notifications"], ["sales", "/sales"], ["billing", "/billing"], ["regional", "/settings/regional"],
+  ["analysis", "/settings/analysis"], ["automations", "/automations"], ["notifications", "/notifications"], ["sales", "/sales"], ["billing", "/billing"], ["regional", "/settings/regional"], ["account", "/settings/account"],
 ] as const;
 
 export function Sidebar({ orgName, userName, logout, unread = 0, isAdmin = false, labels, footer }: {

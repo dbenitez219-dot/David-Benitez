@@ -1,0 +1,31 @@
+name: ZENTRA CI
+on:
+  push: { paths: ["zentra/**", ".github/workflows/zentra-ci.yml"] }
+  pull_request: { paths: ["zentra/**", ".github/workflows/zentra-ci.yml"] }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: zentra } }
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: zentra, POSTGRES_PASSWORD: zentra_dev, POSTGRES_DB: zentra_test }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U zentra" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://zentra:zentra_dev@localhost:5432/zentra_test
+      TEST_DATABASE_URL: postgresql://zentra:zentra_dev@localhost:5432/zentra_test
+      ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: zentra/package-lock.json }
+      - run: npm ci
+      - run: npx prisma migrate deploy
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+        env: { APP_URL: "https://ci.example.com", CRON_SECRET: "0123456789abcdef0123456789abcdef0123456789" }
+      - name: Dependencias de producción sin vulnerabilidades críticas
+        run: npm audit --omit=dev --audit-level=critical

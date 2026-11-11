@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone", // servidor autónomo: imagen de Docker pequeña (.next/standalone)
   poweredByHeader: false,
   async headers() {
     return [

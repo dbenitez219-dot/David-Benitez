@@ -14,7 +14,8 @@ export default async function LoginPage() {
         <Field label={t("login.email")} name="email" type="email" autoComplete="email" />
         <Field label={t("login.password")} name="password" type="password" autoComplete="current-password" />
       </AuthForm>
-      <p className="mt-5 text-center text-sm text-muted">{t("login.noAccount")} <Link href="/register" className="text-zred">{t("login.signup")}</Link></p>
+      <p className="mt-4 text-center text-sm"><Link href="/forgot-password" className="text-muted underline">{t("login.forgot")}</Link></p>
+      <p className="mt-3 text-center text-sm text-muted">{t("login.noAccount")} <Link href="/register" className="text-zred">{t("login.signup")}</Link></p>
     </>
   );
 }

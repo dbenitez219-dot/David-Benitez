@@ -7,6 +7,7 @@ const src = join("node_modules", "country-flag-icons", "3x2");
 if (!existsSync(src)) { console.warn("country-flag-icons no está instalado; se omiten las banderas."); process.exit(0); }
 const out = join("public", "flags");
 mkdirSync(out, { recursive: true });
+mkdirSync(join("src", "lib"), { recursive: true });
 const codes = readdirSync(src).filter((f) => /^[A-Z]{2}\.svg$/.test(f)).map((f) => f.slice(0, 2));
 for (const c of codes) copyFileSync(join(src, `${c}.svg`), join(out, `${c.toLowerCase()}.svg`));
 writeFileSync(join("src", "lib", "flag-codes.json"), JSON.stringify(codes.sort()) + "\n");

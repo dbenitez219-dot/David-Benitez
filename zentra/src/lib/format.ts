@@ -44,5 +44,5 @@ export function makeFormatter(o: { formatLocale: string; timeZone?: string }) {
 
 // Valores por defecto (español de Paraguay) para código que no depende del usuario: panel admin, textos del asistente, etc.
 const base = makeFormatter({ formatLocale: FALLBACK });
-export const { money, num, pct, ratio, dateShort, dateLong } = base;
+export const { money, num, pct, ratio, dateShort, dateLong, dateTime } = base;
 export { DEFAULT_LOCALE };

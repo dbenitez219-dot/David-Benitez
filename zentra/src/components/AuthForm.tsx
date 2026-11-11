@@ -8,6 +8,7 @@ export function AuthForm({ action, submit, pending: pendingLabel = "…", childr
     // onSubmit evita que React 19 vacíe los campos tras un error (la persona no pierde lo que escribió); sin JS sigue funcionando por `action`.
     <form action={formAction} onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); startTransition(() => formAction(fd)); }} className="space-y-4">
       {children}
+      {state?.ok && <p role="status" className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">{state.ok}</p>}
       {state?.error && <p role="alert" className="rounded-lg border border-zred/40 bg-zred/10 px-3 py-2 text-sm text-zred">{state.error}</p>}
       <button className="btn w-full" disabled={pending}>{pending ? pendingLabel : submit}</button>
     </form>

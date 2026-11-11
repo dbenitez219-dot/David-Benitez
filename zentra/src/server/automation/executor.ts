@@ -35,6 +35,8 @@ export async function executeAction(actionId: string, o: { trigger: Trigger; use
   try {
     const settings = await db.automationSettings.findUnique({ where: { organizationId: orgId } });
     if (!settings) return finish("PROPOSED", { note: "Sin configuración de automatización." });
+    // Interruptor GLOBAL de la plataforma (AUTOMATION_KILL_SWITCH=true): detiene toda escritura en Meta de todos los clientes ante un incidente.
+    if (process.env.AUTOMATION_KILL_SWITCH === "true") return finish("PROPOSED", { note: "Bloqueada: las acciones automáticas están detenidas temporalmente en toda la plataforma." });
     if (settings.emergencyStop) return finish("PROPOSED", { note: "Bloqueada: el botón de emergencia está activado." });
 
     if (!(await getAccess(orgId, now)).premium) return finish("PROPOSED", { note: "Bloqueada: la suscripción no está activa." });

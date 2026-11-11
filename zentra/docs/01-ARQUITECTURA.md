@@ -26,7 +26,7 @@
 - Contraseñas argon2id; bloqueo tras 5 fallos; limitador de intentos; respuestas genéricas (no revela si un correo existe).
 - Cookies httpOnly, SameSite=Lax, Secure en producción; cabeceras de seguridad (HSTS, X-Frame-Options, etc.).
 - Auditoría de registro/login. Automatizaciones: `MANUAL`, desactivadas y en simulación por defecto.
-- Pendiente: verificación de correo, 2FA, recuperación de contraseña (Fase 8 / antes de lanzar), CSP estricta.
+- Resuelto en la Fase 8: recuperación de contraseña, verificación de correo, CSP estricta con nonce, 2FA obligatoria para propietarios, exportar/eliminar datos. Pendiente: 2FA opcional para usuarios normales (ver `SECURITY.md` y `docs/10-PENDIENTES.md`).
 
 ## Decisiones de producto
 - Prueba de 7 días sin tarjeta; el cobro solo con autorización explícita (Fase 6).

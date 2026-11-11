@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import type { OrgRole } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getSession } from "@/server/auth/session";
+import { isMfaFresh } from "@/server/auth/totp";
 
 const RANK: Record<OrgRole, number> = { VIEWER: 0, ANALYST: 1, ADMIN: 2, OWNER: 3 };
 
@@ -31,6 +32,9 @@ export async function requireSuperAdmin() {
   const session = await getSession();
   if (!session) redirect("/login");
   if (session.user.platformRole !== "SUPERADMIN") notFound(); // no se revela que el panel existe
+  // Los propietarios SIEMPRE usan verificación en dos pasos (TOTP): configurarla y volver a verificarla cada 12 h.
+  if (!session.user.totpEnabledAt) redirect("/mfa/setup");
+  if (!isMfaFresh(session.mfaVerifiedAt)) redirect("/mfa/verify");
   return session.user;
 }
 

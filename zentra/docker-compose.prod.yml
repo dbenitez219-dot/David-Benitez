@@ -1,0 +1,61 @@
+# ZENTRA en un servidor propio: base de datos + migraciones + app + HTTPS automático + tareas programadas + copias diarias.
+#   cp .env.production.example .env.production   (completa TODO)  →   docker compose -f docker-compose.prod.yml up -d --build
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zentra
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD}
+      POSTGRES_DB: zentra
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U zentra -d zentra"], interval: 5s, timeout: 3s, retries: 20 }
+
+  migrate:                      # aplica las migraciones y termina
+    build: { context: ., target: migrate }
+    environment: { DATABASE_URL: "postgresql://zentra:${POSTGRES_PASSWORD}@db:5432/zentra?schema=public" }
+    depends_on: { db: { condition: service_healthy } }
+    restart: "no"
+
+  app:
+    build: { context: ., target: runner }
+    restart: unless-stopped
+    env_file: .env.production
+    environment: { DATABASE_URL: "postgresql://zentra:${POSTGRES_PASSWORD}@db:5432/zentra?schema=public" }
+    depends_on: { migrate: { condition: service_completed_successfully } }
+    expose: ["3000"]
+
+  caddy:                        # HTTPS automático (Let's Encrypt) delante de la app
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment: { DOMAIN: "${DOMAIN:?define DOMAIN}" }
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro", caddy_data:/data, caddy_config:/config]
+    depends_on: [app]
+
+  scheduler:                    # tareas programadas: sincronización, reglas y facturación
+    image: alpine:3.20
+    restart: unless-stopped
+    environment: { CRON_SECRET: "${CRON_SECRET:?define CRON_SECRET}" }
+    depends_on: [app]
+    command:
+      - sh
+      - -c
+      - |
+        apk add --no-cache curl >/dev/null
+        cat > /etc/crontabs/root <<CRON
+        5 */3 * * * curl -fsS -m 280 -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/sync >/dev/null 2>&1
+        35 */3 * * * curl -fsS -m 280 -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/automation >/dev/null 2>&1
+        15 6 * * * curl -fsS -m 280 -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/billing >/dev/null 2>&1
+        CRON
+        exec crond -f -l 8
+
+  backup:                       # copia diaria de la base de datos (copia el directorio ./backups FUERA del servidor)
+    image: postgres:16
+    restart: unless-stopped
+    environment: { DATABASE_URL: "postgresql://zentra:${POSTGRES_PASSWORD}@db:5432/zentra", BACKUP_DIR: /backups, BACKUP_KEEP_DAYS: "14" }
+    volumes: ["./scripts/backup.sh:/backup.sh:ro", "./backups:/backups"]
+    depends_on: { db: { condition: service_healthy } }
+    command: ["bash", "-c", "while true; do bash /backup.sh || true; sleep 86400; done"]
+
+volumes: { pgdata: {}, caddy_data: {}, caddy_config: {} }
