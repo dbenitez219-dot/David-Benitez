@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "VITARA",
+    "slug": "vitara",
+    "scheme": "vitara",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": { "image": "./assets/splash-icon.png", "resizeMode": "contain", "backgroundColor": "#F5F3EE" },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.vitara.wellness",
+      "infoPlist": {
+        "NSCameraUsageDescription": "VITARA usa la cámara para que fotografíes tus comidas y tu progreso. Las fotos son privadas.",
+        "NSPhotoLibraryUsageDescription": "VITARA accede a tus fotos solo cuando eliges una para registrar una comida o tu progreso."
+      }
+    },
+    "android": {
+      "package": "app.vitara.wellness",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5F3EE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": { "favicon": "./assets/favicon.png", "bundler": "metro", "output": "single" },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      ["expo-image-picker", {
+        "photosPermission": "VITARA accede a tus fotos solo cuando eliges una.",
+        "cameraPermission": "VITARA usa la cámara para tus fotos de comida y progreso."
+      }]
+    ],
+    "experiments": { "typedRoutes": true }
+  }
+}
