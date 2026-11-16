@@ -58,6 +58,8 @@ export default function ProfileScreen() {
         ))}
       </Card>
       <Button title={t.profile.edit} onPress={() => router.push('/onboarding')} />
+      <Button title={t.supp.title} variant="ghost" onPress={() => router.push('/suplementos')} />
+      <Button title={t.rem.title} variant="ghost" onPress={() => router.push('/recordatorios')} />
       <Button title={t.profile.export} variant="ghost" onPress={exportData} loading={busy} />
       <Link href="/privacidad" style={{ textAlign: 'center', color: c.accent, fontFamily: font.medium, marginVertical: 16 }}>{t.profile.privacy}</Link>
       <ErrorText>{error}</ErrorText>

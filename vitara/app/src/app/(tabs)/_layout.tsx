@@ -15,6 +15,8 @@ export default function TabsLayout() {
       tabBarLabelStyle: { fontFamily: font.medium, fontSize: 11 },
     }}>
       <Tabs.Screen name="index" options={{ title: t.tabs.today, tabBarIcon: ({ color, size }) => <Ionicons name="sunny-outline" color={String(color)} size={size} /> }} />
+      <Tabs.Screen name="entreno" options={{ title: t.tabs2.train, tabBarIcon: ({ color, size }) => <Ionicons name="barbell-outline" color={String(color)} size={size} /> }} />
+      <Tabs.Screen name="comidas" options={{ title: t.tabs2.meals, tabBarIcon: ({ color, size }) => <Ionicons name="restaurant-outline" color={String(color)} size={size} /> }} />
       <Tabs.Screen name="pareja" options={{ title: t.tabs.couple, tabBarIcon: ({ color, size }) => <Ionicons name="heart-outline" color={String(color)} size={size} /> }} />
       <Tabs.Screen name="perfil" options={{ title: t.tabs.profile, tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" color={String(color)} size={size} /> }} />
     </Tabs>

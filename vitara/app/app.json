@@ -30,6 +30,7 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      ["expo-notifications", { "color": "#3F6B58" }],
       "expo-font",
       ["expo-image-picker", {
         "photosPermission": "VITARA accede a tus fotos solo cuando eliges una.",

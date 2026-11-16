@@ -1,3 +1,4 @@
+import { stage2 } from './stage2';
 // Diccionario en español. Para otro idioma: crear en.ts con las mismas claves y registrarlo en index.ts.
 export const es = {
   appName: 'VITARA',
@@ -42,6 +43,7 @@ export const es = {
     soon: 'Próximamente', trainer: 'Entrenamiento', trainerSoon: 'Tu entrenador inteligente se activa en la siguiente etapa.',
     meals: 'Alimentación', mealsSoon: 'Registro de comidas con foto: siguiente etapa.', supps: 'Suplementos', sleep: 'Sueño', streak: 'Racha',
     disclaimer: 'VITARA no reemplaza a un profesional de la salud.',
+    dailyGoals: 'objetivos del día', trainerNoPlan: 'Todavía no tenés plan de entrenamiento.', goTrain: 'Ver entrenamiento', nextMeal: 'Próxima comida', allMeals: 'Registraste todas las comidas de hoy.', pending: 'pendientes',
   },
   couple: {
     title: 'Pareja', intro: 'Vinculá tu cuenta con la de tu pareja con un código privado. Cada uno conserva sus datos; solo se comparte lo que autorices.',
@@ -70,5 +72,6 @@ export const es = {
       'Borrador: este texto debe revisarse legalmente antes de publicar la app.',
     ],
   },
+  ...stage2,
 } as const;
 export type Dict = typeof es;

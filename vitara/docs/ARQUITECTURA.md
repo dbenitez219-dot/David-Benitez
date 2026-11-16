@@ -43,7 +43,7 @@ Principios:
 | i18n | Diccionarios por idioma (`src/i18n`), español primero | Preparado para más idiomas |
 | Salud (futuro) | Apple HealthKit / Health Connect (requiere build nativo, `expo-dev-client`) | Etapa 3+ |
 
-Proveedor de IA: se decide en la Etapa 2; la capa `ai-provider` en las Edge Functions aísla el proveedor para poder cambiarlo.
+Proveedor de IA (decidido en la Etapa 2): Claude (Anthropic) mediante `supabase/functions/_shared/ai.ts`, modelo configurable con `ANTHROPIC_MODEL`. La IA propone; el código calcula metas y valida toda salida (`_shared/safety.ts`).
 
 ## 3. Modelo de datos (Etapa 1 implementada; el resto planificado)
 
@@ -95,8 +95,8 @@ Uso privado de 2 personas: **~0–40 USD/mes** según el plan y el modelo de IA.
 
 ## 7. Etapas
 
-**Etapa 1 (en curso)**: arquitectura · identidad visual · registro/login · evaluación inicial y perfiles · vinculación de pareja y consentimientos · dashboard base.
-**Etapa 2**: entrenador IA · nutricionista IA · foto de comida con análisis · suplementos · recordatorios push · agua.
+**Etapa 1 (hecha)**: arquitectura · identidad visual · registro/login · evaluación inicial y perfiles · vinculación de pareja y consentimientos · dashboard base.
+**Etapa 2 (hecha)**: entrenador IA · nutricionista IA · foto de comida con análisis · suplementos · recordatorios push · agua.
 **Etapa 3**: retos y rachas · estadísticas · sueño · asistente de chat · pruebas de seguridad (RLS, penetración básica) · integración de salud.
 
 ## 8. Riesgos

@@ -1,0 +1,3 @@
+# Configuración de funciones. send-reminders la llama pg_cron (sin JWT de usuario) y se protege con CRON_SECRET.
+[functions.send-reminders]
+verify_jwt = false
