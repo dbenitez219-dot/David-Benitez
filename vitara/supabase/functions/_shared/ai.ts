@@ -37,20 +37,25 @@ export async function rateLimit(ctx: Ctx, fn: string, maxPerDay: number) {
   await ctx.admin.from('ai_usage').insert({ user_id: ctx.userId, fn });
 }
 
-const MODEL = Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-opus-5-5';
+// Modelo por tipo de tarea (se pueden cambiar con secrets sin tocar código).
+export const MODELS = {
+  plans: Deno.env.get('MODEL_PLANS') ?? 'claude-opus-5-5',   // pocas veces por semana, salida larga y delicada
+  chat: Deno.env.get('MODEL_CHAT') ?? 'claude-sonnet-5-5',   // uso frecuente, más barato
+  meal: Deno.env.get('MODEL_MEAL') ?? 'claude-sonnet-5-5',   // solo si el usuario pide analizar una foto
+};
 let client: Anthropic | null = null;
 
 export type ContentBlock = { type: 'text'; text: string } | { type: 'image'; source: { type: 'base64'; media_type: 'image/jpeg' | 'image/png' | 'image/webp'; data: string } };
 export type Msg = { role: 'user' | 'assistant'; content: string | ContentBlock[] };
 
-export async function callClaude(opts: { system: string; messages: Msg[]; maxTokens?: number; effort?: 'low' | 'medium' | 'high' }): Promise<string> {
+export async function callClaude(opts: { model: string; system: string; messages: Msg[]; maxTokens?: number; effort?: 'low' | 'medium' | 'high' }): Promise<string> {
   client ??= new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
   const params: Record<string, unknown> = {
-    model: MODEL, max_tokens: opts.maxTokens ?? 8000, system: opts.system, messages: opts.messages,
+    model: opts.model, max_tokens: opts.maxTokens ?? 8000, system: opts.system, messages: opts.messages,
     output_config: { effort: opts.effort ?? 'medium' },
   };
   // Reintento automático en un modelo alternativo si un clasificador de seguridad rechaza la petición.
-  if (MODEL === 'claude-opus-5-5') { params.betas = ['server-side-fallback-2026-07-01']; params.fallbacks = 'default'; }
+  if (opts.model === 'claude-opus-5-5' || opts.model === 'claude-sonnet-5-5') { params.betas = ['server-side-fallback-2026-07-01']; params.fallbacks = 'default'; }
   // deno-lint-ignore no-explicit-any
   const res: any = await (client.beta.messages as any).create(params);
   if (res.stop_reason === 'refusal') throw new HttpError(422, 'ai_refused', 'La IA no pudo responder a esta solicitud.');

@@ -30,6 +30,7 @@ export const stage2 = {
     manualHint: 'Podés cargar o corregir los alimentos y cantidades. Las calorías se ajustan en proporción a los gramos.', save: 'Guardar en mi historial', saving: 'Guardando…',
     incidentTitle: 'Registrar una incidencia', incidentHint: 'Usá esto solo si no pudiste tomar la foto. Queda anotado, pero no cuenta como comida fotografiada.', reason: 'Motivo', incidentSave: 'Guardar incidencia',
     reasons: ['Sin batería / celular', 'Comí fuera de casa', 'Olvidé fotografiarla', 'Otro motivo'], exists: 'Ya registraste esta comida hoy.', replace: 'Reemplazar registro', analyzeFail: 'No pude analizar la foto. Podés reintentar o cargar los alimentos a mano.', retry: 'Reintentar análisis',
+    analyzeAi: 'Analizar con IA (opcional)', aiHint: 'Estima calorías desde la foto. Es opcional y tiene un tope diario.', note: 'Qué comiste (opcional)', photoOnly: 'Se guardará con la foto, sin calorías estimadas.',
     allergen: 'Atención: aparece un alimento que declaraste como alergia', noItems: 'Agregá al menos un alimento.', cameraDenied: 'Sin permiso de cámara no se puede tomar la foto. Podés elegir una de la galería o activar el permiso en Ajustes.', notFood: 'No parece haber comida en la foto.',
   },
   water: { title: 'Agua', goal: 'Objetivo orientativo', add: 'Agregar', custom: 'Otra cantidad (ml)', undo: 'Deshacer último', glass: 'Vaso 250 ml', bottle: 'Botella 500 ml' },

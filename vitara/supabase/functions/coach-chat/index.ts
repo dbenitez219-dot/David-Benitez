@@ -1,4 +1,4 @@
-import { authenticate, callClaude, HttpError, rateLimit, SAFETY_RULES, userContext, wrap, type Msg } from '../_shared/ai.ts';
+import { MODELS, authenticate, callClaude, HttpError, rateLimit, SAFETY_RULES, userContext, wrap, type Msg } from '../_shared/ai.ts';
 
 Deno.serve(wrap(async (req) => {
   const ctx = await authenticate(req);
@@ -22,6 +22,6 @@ ${SAFETY_RULES}
 Perfil: ${age} años, ${profile.weight_kg} kg, objetivos ${(prefs.goals as string[]).join(', ')}, experiencia ${prefs.training_experience}, entrena en ${prefs.training_place}.
 ${consent ? `Lesiones: ${health.injuries ?? 'ninguna'}. Condiciones: ${health.conditions ?? 'ninguna'}.` : ''}${exerciseCtx}
 Si pregunta si debe cambiar un ejercicio por dolor o molestia: recomienda parar y, si persiste, ver a un profesional; sugiere una alternativa suave.`;
-  const reply = await callClaude({ system, messages, maxTokens: 700, effort: 'low' });
+  const reply = await callClaude({ model: MODELS.chat, system, messages, maxTokens: 700, effort: 'low' });
   return { reply };
 }));

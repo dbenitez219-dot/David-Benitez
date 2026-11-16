@@ -10,7 +10,7 @@ Arquitectura, costos, integraciones y riesgos: [`docs/ARQUITECTURA.md`](docs/ARQ
 **Etapa 2 (hecha, ver «Pruebas»):**
 - **Entrenador:** plan semanal generado por IA a partir de tu evaluación, usando solo ejercicios del catálogo (52, con técnica paso a paso) que tu equipamiento permite; sesión con registro de peso/reps por serie, ejercicio completado, sustitución de ejercicios (y «no volver a incluirlo»), calentamiento/vuelta a la calma, sugerencia de progresión de cargas (regla determinista) y chat con el entrenador.
 - **Nutricionista:** metas calculadas por código (piso calórico de seguridad, sin déficit para menores o bajo peso) y menú de 7 días por IA con recetas, lista de compras y sustituciones; se descartan platos con tus alergias.
-- **Comidas con foto:** foto obligatoria (la base de datos rechaza un registro sin foto), análisis por IA con rango de incertidumbre, corrección de alimentos y gramos, incidencia justificada si no se pudo fotografiar. Aprende tus alimentos reales.
+- **Comidas con foto:** foto obligatoria (la base de datos rechaza un registro sin foto). Para ahorrar costo, la IA **no** analiza la foto por defecto: se guarda con una descripción y/o alimentos cargados a mano. El análisis por IA (con rango de incertidumbre) es un botón opcional, con tope de 8 por día. Incidencia justificada si no se pudo fotografiar. Aprende tus alimentos reales.
 - **Agua**, **suplementos** (dosis, horarios, tomas, historial, avisos conservadores según tu medicación/condiciones) y **recordatorios push** configurables (pausar, horarios, categorías).
 **Pendiente (Etapa 3):** retos y rachas, estadísticas, sueño, asistente general, avisos de pareja/logros, pruebas de seguridad, imágenes/videos de ejercicios.
 
@@ -23,10 +23,10 @@ Arquitectura, costos, integraciones y riesgos: [`docs/ARQUITECTURA.md`](docs/ARQ
 6. Crear dos cuentas, y en una generar el código en la pestaña **Pareja** y canjearlo en la otra.
 
 ## Etapa 2: despliegue de la IA y los recordatorios
-1. SQL Editor: ejecutar en orden `0002_stage2.sql` y `0003_seed.sql` (después de `0001`).
+1. SQL Editor: ejecutar en orden `0002_stage2.sql`, `0003_seed.sql` y `0004_meal_note.sql` (después de `0001`).
 2. Instalar el CLI de Supabase y, desde `vitara/`: `supabase link --project-ref TU_REF`.
 3. Secrets (nunca en la app): `supabase secrets set ANTHROPIC_API_KEY=... CRON_SECRET=un-valor-largo-y-aleatorio`
-   (opcional `ANTHROPIC_MODEL`; por defecto `claude-opus-5-5`, con reintento automático en otro modelo si un filtro de seguridad rechaza la petición).
+   (modelos por tarea, opcionales: `MODEL_PLANS` = `claude-opus-5-5` para planes, `MODEL_CHAT` = `claude-sonnet-5-5` para el chat, `MODEL_MEAL` = `claude-sonnet-5-5` para fotos; con reintento automático si un filtro de seguridad rechaza la petición).
 4. `supabase functions deploy generate-training-plan generate-nutrition-plan analyze-meal coach-chat send-reminders`
    (`supabase/config.toml` desactiva la verificación JWT solo en `send-reminders`, que se protege con `CRON_SECRET`).
 5. Recordatorios: en `supabase/cron.sql` reemplazar la URL y el secreto y ejecutarlo en el SQL Editor (activa `pg_cron` y `pg_net`).

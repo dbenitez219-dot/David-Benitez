@@ -1,4 +1,4 @@
-import { authenticate, callClaude, HttpError, rateLimit, SAFETY_RULES, userContext, wrap } from '../_shared/ai.ts';
+import { MODELS, authenticate, callClaude, HttpError, rateLimit, SAFETY_RULES, userContext, wrap } from '../_shared/ai.ts';
 import { computeTargets, extractJson, validateNutritionPlan } from '../_shared/safety.ts';
 
 const GOALS: Record<string, string> = { lose_fat: 'bajar grasa', gain_muscle: 'ganar masa muscular', glutes_legs: 'glúteos y piernas', arms_back: 'brazos y espalda', endurance: 'resistencia', fitness: 'condición física', maintain: 'mantener peso', habits: 'hábitos saludables' };
@@ -34,7 +34,7 @@ Formato:
 
   let lastErrors: string[] = [];
   for (let attempt = 0; attempt < 2; attempt++) {
-    const text = await callClaude({ system, maxTokens: 16000, messages: [{ role: 'user', content: attempt ? `${user}\n\nTu intento anterior tuvo estos errores, corrígelos: ${lastErrors.join(', ')}` : user }] });
+    const text = await callClaude({ model: MODELS.plans, system, maxTokens: 16000, messages: [{ role: 'user', content: attempt ? `${user}\n\nTu intento anterior tuvo estos errores, corrígelos: ${lastErrors.join(', ')}` : user }] });
     let raw: unknown;
     try { raw = extractJson(text); } catch { lastErrors = ['json_invalido']; continue; }
     const { plan, errors } = validateNutritionPlan(raw, targets, allergies);

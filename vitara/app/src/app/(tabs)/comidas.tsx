@@ -66,7 +66,7 @@ export default function Meals() {
             <Card key={ty} index={i}>
               <Row>
                 <H2>{m.names[ty]}{times[ty] ? ` · ${times[ty]}` : ''}</H2>
-                {log ? <Badge tone={log.status === 'logged' ? 'good' : 'warn'} text={log.status === 'logged' ? `${m.logged} · ${Math.round(log.kcal ?? 0)} ${m.kcal}` : m.incident} /> : <Badge text={m.pending} />}
+                {log ? <Badge tone={log.status === 'logged' ? 'good' : 'warn'} text={log.status === 'logged' ? (log.kcal != null ? `${m.logged} · ${Math.round(log.kcal)} ${m.kcal}` : m.logged) : m.incident} /> : <Badge text={m.pending} />}
               </Row>
               {planned ? <Body small muted>{m.planned}: {planned.title || planned.items.map((x) => x.name).join(', ')}</Body> : null}
               {log?.status === 'incident' ? <Body small muted>{log.incident_reason}</Body> : null}

@@ -25,6 +25,7 @@ export default function Meal() {
   const [items, setItems] = useState<Item[]>([]); const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [allergen, setAllergen] = useState<string[]>([]); const [edited, setEdited] = useState(false);
   const [error, setError] = useState<string | null>(null); const [exists, setExists] = useState(false);
+  const [note, setNote] = useState('');
   const [reason, setReason] = useState(''); const [reasonText, setReasonText] = useState('');
   const [nn, setNn] = useState({ name: '', kcal: '', p: '', c: '', f: '' });
   const mealName = (t.meals.names as Record<string, string>)[type ?? ''] ?? '';
@@ -56,8 +57,8 @@ export default function Meal() {
       const up = await supabase.storage.from('meal-photos').upload(p, blob, { contentType: 'image/jpeg' });
       if (up.error) throw up.error;
       setPath(p);
-      await analyze(p);
-    } catch (e: any) { setError(e.message ?? x.analyzeFail); setPhase('review'); }
+      setPhase('review');
+    } catch (e: any) { setError(e.message ?? x.analyzeFail); setPhase('pick'); }
   }
 
   async function analyze(p: string) {
@@ -90,19 +91,19 @@ export default function Meal() {
 
   async function save() {
     if (!session || !path) return setError(x.photoRequired);
-    if (!items.length) return setError(x.noItems);
     setPhase('saving'); setError(null);
     const uid = session.user.id;
     try {
       if (exists) await supabase.from('meal_logs').delete().eq('user_id', uid).eq('log_date', localDate()).eq('meal_type', type);
       const ins = await supabase.from('meal_logs').insert({
         user_id: uid, log_date: localDate(), meal_type: type, status: 'logged', photo_path: path, ai_analysis: analysis,
-        kcal: total('kcal'), protein_g: total('protein_g'), carbs_g: total('carbs_g'), fat_g: total('fat_g'), uncertainty_pct: Math.round(unc), user_corrected: edited,
+        note: note.trim() || null,
+        kcal: items.length ? total('kcal') : null, protein_g: items.length ? total('protein_g') : null, carbs_g: items.length ? total('carbs_g') : null, fat_g: items.length ? total('fat_g') : null,
+        uncertainty_pct: items.length && analysis ? Math.round(unc) : null, user_corrected: edited,
       }).select('id').single();
       if (ins.error) throw ins.error;
       const rows = items.map((i) => ({ meal_log_id: ins.data.id, user_id: uid, name: i.name, grams: i.grams, kcal: i.kcal, protein_g: i.protein_g, carbs_g: i.carbs_g, fat_g: i.fat_g, source: i.source }));
-      const r = await supabase.from('meal_log_items').insert(rows);
-      if (r.error) throw r.error;
+      if (rows.length) { const r = await supabase.from('meal_log_items').insert(rows); if (r.error) throw r.error; }
       router.replace('/(tabs)/comidas');
     } catch (e: any) { setError(e.message ?? t.common.error); setPhase('review'); }
   }
@@ -157,11 +158,15 @@ export default function Meal() {
         {uri ? <Image source={{ uri }} style={{ width: '100%', height: 220, borderRadius: 20, marginBottom: 12 }} accessibilityLabel="Foto de tu comida" /> : null}
         <Link2 title={x.retake} onPress={() => { setUri(null); setPath(null); setItems([]); setAnalysis(null); setPhase('pick'); }} />
         <ErrorText>{error}</ErrorText>
-        {path && !analysis ? <Button title={x.retry} variant="ghost" onPress={() => analyze(path)} /> : null}
+        {path && !analysis ? (<>
+          <Button title={x.analyzeAi} variant="ghost" onPress={() => analyze(path)} />
+          <Body small muted>{x.aiHint}</Body>
+          <Field label={x.note} value={note} onChangeText={setNote} maxLength={300} />
+        </>) : null}
         {allergen.length > 0 && <Notice tone="warn">{x.allergen}: {allergen.join(', ')}</Notice>}
         {analysis?.comment ? <Body muted small style={{ marginVertical: 6 }}>{analysis.comment}</Body> : null}
 
-        <Card>
+        {items.length > 0 || analysis ? <Card>
           <H2>{x.review}</H2>
           <Body small muted>{x.manualHint}</Body>
           {items.map((it, i) => (
@@ -176,7 +181,7 @@ export default function Meal() {
             </View>
           ))}
           {analysis && analysis.unidentified.length > 0 ? <Body small muted>{x.unidentified}: {analysis.unidentified.join(', ')}</Body> : null}
-        </Card>
+        </Card> : null}
 
         <Card>
           <H2>{x.addItem}</H2>
@@ -188,12 +193,12 @@ export default function Meal() {
           <Button title={x.addItem} variant="ghost" onPress={addManual} />
         </Card>
 
-        <Card>
+        {items.length > 0 ? <Card>
           <Label>{x.estimate}</Label>
           <H2>≈ {Math.round(total('kcal'))} kcal ({Math.round(total('kcal') * (1 - unc / 100))}–{Math.round(total('kcal') * (1 + unc / 100))})</H2>
-          <Body small muted>P {total('protein_g')} g · C {total('carbs_g')} g · G {total('fat_g')} g · {x.uncertainty} ±{Math.round(unc)} %{edited ? ` · ${x.corrected}` : ''}</Body>
-        </Card>
-        <Button title={x.save} onPress={save} disabled={!path || !items.length} />
+          <Body small muted>P {total('protein_g')} g · C {total('carbs_g')} g · G {total('fat_g')} g {analysis ? ` · ${x.uncertainty} ±${Math.round(unc)} %` : ''}{edited ? ` · ${x.corrected}` : ''}</Body>
+        </Card> : <Body small muted>{x.photoOnly}</Body>}
+        <Button title={x.save} onPress={save} disabled={!path} />
         <Link2 title={x.noPhoto} onPress={() => setPhase('incident')} />
       </>)}
     </Screen>

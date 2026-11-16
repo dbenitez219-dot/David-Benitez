@@ -1,4 +1,4 @@
-import { authenticate, callClaude, HttpError, rateLimit, SAFETY_RULES, userContext, wrap, type ContentBlock } from '../_shared/ai.ts';
+import { MODELS, authenticate, callClaude, HttpError, rateLimit, SAFETY_RULES, userContext, wrap, type ContentBlock } from '../_shared/ai.ts';
 import { extractJson, validateMealAnalysis } from '../_shared/safety.ts';
 
 const MIME: Record<string, 'image/jpeg' | 'image/png' | 'image/webp'> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
@@ -20,7 +20,7 @@ Deno.serve(wrap(async (req) => {
   if (!['breakfast', 'lunch', 'snack', 'dinner'].includes(mealType)) throw new HttpError(400, 'bad_meal_type');
   const ext = path.split('.').pop()?.toLowerCase() ?? '';
   if (!MIME[ext]) throw new HttpError(400, 'bad_image_type');
-  await rateLimit(ctx, 'analyze_meal', 40);
+  await rateLimit(ctx, 'analyze_meal', 8); // análisis opcional: tope bajo para controlar el gasto
 
   const { data: file, error } = await ctx.admin.storage.from('meal-photos').download(path);
   if (error || !file) throw new HttpError(404, 'photo_not_found');
@@ -46,7 +46,7 @@ Formato: {"identified":true,"items":[{"name":"...","grams":150,"kcal":0,"protein
     { type: 'text', text },
   ];
 
-  const out = await callClaude({ system, maxTokens: 2500, effort: 'low', messages: [{ role: 'user', content }] });
+  const out = await callClaude({ model: MODELS.meal, system, maxTokens: 2500, effort: 'low', messages: [{ role: 'user', content }] });
   let analysis;
   try { analysis = validateMealAnalysis(extractJson(out)); } catch { throw new HttpError(502, 'bad_ai_output', 'No pude interpretar la foto. Reintentá o corregí manualmente.'); }
 
