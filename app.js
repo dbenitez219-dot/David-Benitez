@@ -131,6 +131,15 @@ const paidOf = s => s.pays.reduce((a, p) => a + p.amount, 0);
 const saldoOf = s => s.total - paidOf(s);
 const hoyVencida = s => saldoOf(s) > 0 && s.due && s.due < hoyISO();
 
+/* Ventas que todavía no tienen factura cargada (desde que se empezó a usar la app; no cuenta deudas anteriores) */
+const sinFactura = () => db.sales.filter(s => !s.prev && !(s.inv && s.inv.no));
+function modalSinFactura() {
+  const L = sinFactura().sort((a, b) => b.date.localeCompare(a.date) || b.ts - a.ts).slice(0, 40);
+  modal(`<h2>Ventas sin factura</h2><p class="mut">Tocá una venta para copiar sus datos y facturar.</p><div style="max-height:55vh;overflow:auto">${tabla(['N°', 'Fecha', 'Cliente', 'Total'], L.map(s => `<tr class="click" data-sf="${s.id}"><td>#${s.n}</td><td>${dmy(s.date)}</td><td class="wrap">${esc(s.clientName)}</td><td class="n">${gs(s.total)}</td></tr>`).join(''), [3])}</div>
+    <button class="btn sec block" id="no" style="margin-top:10px">Cerrar</button>`);
+  $('#no').onclick = cerrar; document.querySelectorAll('[data-sf]').forEach(r => r.onclick = () => formDatosFacturar(db.sales.find(x => x.id === r.dataset.sf)));
+}
+
 /* ================= INICIO ================= */
 function vResumen() {
   const hoy = hoyISO(), mes = hoy.slice(0, 7);
@@ -150,6 +159,7 @@ function vResumen() {
   const max = Math.max(1, ...serie.map(x => x.v));
   view.innerHTML = `
   ${!db.products.length ? '<div class="banner">Todavía no cargaste tu inventario. Andá a <b>Ajustes → Importar Excel</b> y subí tu planilla de stock.</div>' : ''}
+  ${sinFactura().length ? `<div class="banner">🧾 Ventas sin factura: <b>${sinFactura().length}</b> (${gs(sinFactura().reduce((a, x) => a + x.total, 0))}) <a href="#" id="go_sf">Ver cuáles</a></div>` : ''}
   ${!cd || cd.closed ? `<div class="banner">${!cd ? '💵 La caja de hoy todavía no está abierta.' : '💵 La caja de hoy ya está cerrada.'} <a href="#" id="go_caja">Ir a Caja</a></div>` : ''}
   <div class="grid">
     <div class="kpi"><b>${gs(ventasHoy.reduce((a, s) => a + s.total, 0))}</b><span>Ventas de hoy (${ventasHoy.length})</span></div>
@@ -174,6 +184,7 @@ function vResumen() {
   <div class="card"><h2>⚠️ Stock para reponer</h2>${bajos.length ? tabla(['Código', 'Descripción', 'Stock'], bajos.slice(0, 15).map(p => `<tr><td>${esc(p.code)}</td><td class="wrap">${esc(p.name)}</td><td class="n">${stockDot(p)}${fmt(p.stock)}</td></tr>`).join(''), [2]) + (bajos.length > 15 ? `<p class="mut">…y ${bajos.length - 15} más en Stock.</p>` : '') : '<p class="mut">Todo con stock suficiente.</p>'}</div>`;
   document.querySelectorAll('#view [data-v]').forEach(r => r.onclick = () => verVenta(r.dataset.v));
   document.querySelectorAll('#view [data-ag]').forEach(r => r.onclick = () => { tab = 'agenda'; ag.date = hoy; render(); });
+  const gsf = $('#go_sf'); if (gsf) gsf.onclick = e => { e.preventDefault(); modalSinFactura(); };
   const gc = $('#go_caja'); if (gc) gc.onclick = e => { e.preventDefault(); tab = 'caja'; cj.date = hoy; render(); };
 }
 
@@ -374,10 +385,10 @@ function verVenta(id) {
       ${boss() && s.cost ? `<div class="mut"><span>Ganancia bruta</span><span>${gs(s.total - s.cost)}</span></div>` : ''}</div>
     ${s.pays.length ? `<h3>Pagos</h3>${s.pays.map(p => `<div class="mut">${dmy(p.date)} · ${esc(p.method)} · ${gs(p.amount)}</div>`).join('')}` : ''}
     <p class="mut">Factura: ${s.inv.type ? (s.inv.type === 'fisica' ? 'Física' : 'Electrónica') + (s.inv.no ? ' N° ' + esc(s.inv.no) : ' (sin número)') : 'aún sin factura'}${s.note ? '<br>Nota: ' + esc(s.note) : ''}</p>
-    <div class="row" style="margin-top:10px">${saldo > 0 ? '<button class="btn ok" id="m_cobrar">Cobrar</button>' : ''}<button class="btn" id="m_fac">Factura</button><button class="btn sec" id="m_print">Imprimir</button>
+    <div class="row" style="margin-top:10px">${saldo > 0 ? '<button class="btn ok" id="m_cobrar">Cobrar</button>' : ''}<button class="btn" id="m_fac">Factura</button><button class="btn sec" id="m_df">📋 Datos para facturar</button><button class="btn sec" id="m_print">Imprimir</button>
       <button class="btn sec" id="m_close">Cerrar</button><button class="btn bad" id="m_del">Anular</button></div>`);
   $('#m_close').onclick = cerrar; $('#m_print').onclick = () => imprimir(s);
-  $('#m_fac').onclick = () => formFactura(s); if (saldo > 0) $('#m_cobrar').onclick = () => formCobro(s);
+  $('#m_fac').onclick = () => formFactura(s); $('#m_df').onclick = () => formDatosFacturar(s); if (saldo > 0) $('#m_cobrar').onclick = () => formCobro(s);
   $('#m_del').onclick = () => needBoss(() => {
     if (!confirm(`¿Anular la venta #${s.n}? Se devuelve el stock y se borran sus cobros y compras a proveedor.`)) return;
     db.moves = db.moves.filter(m => m.ref !== s.id); db.expenses = db.expenses.filter(g => g.saleId !== s.id); db.sales = db.sales.filter(x => x.id !== s.id);
@@ -393,12 +404,31 @@ function formCobro(s) {
   $('#c_ok').onclick = () => { const m = numGs($('#c_m').value); if (m <= 0 || m > saldoOf(s)) return toast('Monto inválido');
     s.pays.push({ id: uid(), date: $('#c_d').value || hoyISO(), amount: m, method: $('#c_f').value }); guardar(); toast('Cobro registrado'); render(); verVenta(s.id); };
 }
+/* Datos de la venta listos para copiar y pegar en e-Kuatia'i (la factura se emite en el sistema de la DNIT) */
+function datosFacturar(s) {
+  const c = cli(s.clientId) || {}, t = saleTotals(s);
+  return [`Cliente: ${s.clientName}`, `RUC / C.I.: ${c.ruc || '(falta cargar)'}`, `Fecha: ${dmy(s.date)}`, `Condición: ${s.pay === 'credito' ? 'Crédito' + (s.due ? ' (vence ' + dmy(s.due) + ')' : '') : 'Contado'}`, '',
+    ...s.items.map(i => `${fmt(i.qty)} x ${i.name} · Gs. ${fmt(i.unit)} c/u · IVA 10%`), s.pct ? `Descuento ${s.pct}%: -Gs. ${fmt(t.d)}` : '', '', `TOTAL: Gs. ${fmt(s.total)}`, `IVA 10% incluido: Gs. ${fmt(Math.round(s.total / 11))}`].filter((x, k, a) => x !== '' || a[k - 1] !== '').join('\n');
+}
+function formDatosFacturar(s) {
+  const c = cli(s.clientId) || {}, txt = datosFacturar(s);
+  modal(`<h2>Datos para facturar · Venta #${s.n}</h2><p class="mut">Copiá estos datos y pegalos en e-Kuatia'i. Después guardá el número de factura en la venta.</p>
+    ${!c.ruc ? '<div class="banner">⚠ Este cliente no tiene RUC / C.I. cargado. Cargalo en Clientes antes de facturar.</div>' : ''}
+    <pre id="df_t" style="white-space:pre-wrap;background:rgba(100,116,139,.1);border-radius:10px;padding:10px;font-size:14px">${esc(txt)}</pre>
+    <div class="row"><button class="btn" id="df_c">📋 Copiar todo</button>${c.ruc ? '<button class="btn sec" id="df_r">Copiar RUC</button>' : ''}<button class="btn sec" id="df_m">Copiar total</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn ok" id="df_f">Ya facturé: cargar número</button><button class="btn sec" id="df_v">Volver</button></div>`);
+  const copiar = async (t, ok) => { try { await navigator.clipboard.writeText(t); toast(ok); } catch (e) { const r = document.createRange(); r.selectNodeContents($('#df_t')); const se = getSelection(); se.removeAllRanges(); se.addRange(r); toast('Seleccionado: tocá Copiar en el menú'); } };
+  $('#df_c').onclick = () => copiar(txt, 'Datos copiados');
+  if ($('#df_r')) $('#df_r').onclick = () => copiar(c.ruc, 'RUC copiado');
+  $('#df_m').onclick = () => copiar(String(s.total), 'Total copiado');
+  $('#df_f').onclick = () => formFactura(s); $('#df_v').onclick = () => verVenta(s.id);
+}
 function formFactura(s) {
   modal(`<h2>Factura · Venta #${s.n}</h2>
     <label>Tipo</label><select id="i_t"><option value="">Sin factura</option><option value="fisica" ${s.inv.type === 'fisica' ? 'selected' : ''}>Física (talonario)</option><option value="electronica" ${s.inv.type === 'electronica' ? 'selected' : ''}>Electrónica</option></select>
     <label>Número de factura</label><input id="i_n" value="${esc(s.inv.no)}" placeholder="001-001-0000000">
     <label>CDC (solo factura electrónica)</label><input id="i_c" value="${esc(s.inv.cdc)}">
-    <div class="banner" style="margin-top:12px">La app <b>todavía no envía facturas a la DNIT (SIFEN)</b>. Podés registrar el número y el CDC emitidos, e imprimir el comprobante. Para emitir desde acá hace falta habilitarse como facturador electrónico y conectar un facturador autorizado.</div>
+    <div class="banner" style="margin-top:12px">La app <b>todavía no envía facturas a la DNIT (SIFEN)</b>. Emití la factura en e-Kuatia'i y registrá acá el número (y el CDC) para llevar el control.</div>
     <div class="row"><button class="btn" id="i_ok">Guardar</button><button class="btn sec" id="i_json">Descargar datos (JSON)</button><button class="btn sec" id="i_no">Volver</button></div>`);
   $('#i_no').onclick = () => verVenta(s.id);
   $('#i_ok').onclick = () => { s.inv = { type: $('#i_t').value, no: $('#i_n').value.trim(), cdc: $('#i_c').value.trim() }; guardar(); toast('Factura guardada'); verVenta(s.id); };
