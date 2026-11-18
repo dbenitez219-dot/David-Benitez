@@ -15,13 +15,19 @@ Contribuyente: CRISTALAUTO E.A.S. UNIPERSONAL · RUC 80139512-7 · solicitud de 
 `facturacionelectronicapy-xmlgen` (Manual Técnico **v150**, valida datos y calcula CDC), `-xmlsign`, `-qrgen`, `-setapi` (envío; `env = "test" | "prod"`, recibe ruta del certificado y clave), `-kude`.
 Corren en Node. **Riesgo abierto:** que `setapi` (conexión con certificado cliente) funcione dentro de una Edge Function de Supabase (Deno). Plan B: mover solo esa pieza a otro servidor Node pequeño.
 
+## Pruebas locales ya hechas (sin enviar nada a la DNIT)
+- Armado del XML de una factura de ejemplo con la librería (Manual v150): **OK**, calcula el CDC de 44 dígitos.
+- La librería valida los códigos geográficos. **San Lorenzo: departamento CENTRAL = 12** (11 es Alto Paraná), distrito **164**, ciudad **6040**.
+- Firma XMLDSig (rsa-sha256) con un certificado de prueba autofirmado: **OK solo con el modo JavaScript** (`signXML(xml, p12, clave, true)`). El modo por defecto usa **Java** y **no sirve** en Supabase.
+- **Pendiente de probar:** el envío. `setapi` usa `https.Agent` con el `.p12` (TLS con certificado cliente) contra `sifen-test.set.gov.py`. Primera prueba barata: una función que haga una **consulta de RUC** en TEST con el certificado real; si la conexión falla desde Supabase, pasar esa pieza a un servidor Node pequeño (plan B).
+
 ## Reglas que más rechazos causan (a vigilar)
 - Las **Notas Técnicas (NT 001–027)** pisan al Manual v150: no alcanza con el manual. Revisar las vigentes para la fecha y ambiente.
 - **Código 0160 = XML mal formado.** Puede venir de un campo con valor inválido aunque el XSD pase (teléfono del emisor `dTelEmi`, caracteres no permitidos, patrones numéricos). Registrar siempre código y mensaje completo.
 - Identificación del receptor: las NT bajaron el umbral por encima del cual el cliente debe estar identificado (la base de conocimiento NetseWin/sifen-kb cita 7.000.000 Gs. en la NT 24). **Verificar** en el PDF oficial. En la app: pedir RUC o C.I. del cliente en las ventas grandes.
 - Los documentos de prueba deben llevar la leyenda "sin valor comercial ni fiscal" (según un proyecto de terceros sobre la Guía de Pruebas). **Verificar.**
 - Datos del emisor: teléfono, dirección, actividad económica y códigos de departamento/distrito/ciudad **iguales a los del timbrado/RUC**.
-- Ciudad del local: San Lorenzo (MUNICIPIO) = código **6040**, distrito **164** según la tabla de la librería. Departamento Central: confirmar el código con la librería.
+- Ciudad del local: San Lorenzo (MUNICIPIO) = código **6040**, distrito **164** según la tabla de la librería. Departamento Central = 12 (confirmado con la librería).
 
 ## Documentos oficiales que hay que leer (DNIT → e-Kuatia → Documentación técnica)
 Manual Técnico v150 · Guía de Pruebas · Notas Técnicas 001–027 · Guía de mejores prácticas para la gestión del envío de DE.
