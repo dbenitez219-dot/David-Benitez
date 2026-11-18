@@ -35,7 +35,7 @@ const METODOS = ['Efectivo', 'Transferencia', 'Tarjeta', 'Cheque'];
 const VIAS = ['Efectivo', 'Itaú'];
 const PLATAFORMAS = ['Meta (Facebook/Instagram)', 'TikTok', 'Google', 'Otro'];
 const CFG0 = () => ({ empresa: { nombre: 'CristalAuto Parabrisas', ruc: '', direccion: '', tel: '', email: '', timbrado: '', vigencia: '' },
-  staff: ['Jefe', 'Colocador 2', 'Colocador 3', 'Colocador 4'], pin: '', fijos: [], minDefault: 50, capMin: 4, capMax: 12, cotizDias: 3, vendedor: '', condiciones: '', seeded: false });
+  staff: ['Jefe', 'Colocador 2', 'Colocador 3', 'Colocador 4'], pin: '', fe: { timbrado: '', desde: '', establecimiento: '001', punto: '001', actividad: '', ambiente: 'test' }, fijos: [], minDefault: 50, capMin: 4, capMax: 12, cotizDias: 3, vendedor: '', condiciones: '', seeded: false });
 const normalizarCfg = c => { const b = CFG0(); return { ...b, ...(c || {}), empresa: { ...b.empresa, ...((c || {}).empresa || {}) } }; };
 
 /* ---------- Datos ---------- */
@@ -721,7 +721,7 @@ function listaLeads() {
 
 /* ================= AJUSTES ================= */
 function vAjustes() {
-  const e = db.cfg.empresa;
+  const e = db.cfg.empresa, fe = db.cfg.fe || {};
   view.innerHTML = `
   <div class="card"><h2>☁️ Cuenta y sincronización</h2><p class="mut">${Sync.enabled ? `Sesión: <b>${esc(Sync.email)}</b> · estado: <b id="sy_st"></b>` : 'Modo sin conexión a la nube.'}</p>
     <div class="row"><button class="btn sec" id="sy_now">Sincronizar ahora</button><button class="btn sec" id="sy_out">Cerrar sesión</button></div></div>
@@ -737,6 +737,13 @@ function vAjustes() {
     <div class="row"><div style="flex:0 0 140px"><label>Validez presupuesto (días)</label><input id="e_cd" inputmode="numeric" value="${db.cfg.cotizDias || 3}"></div></div>
     <label>Condiciones del presupuesto (una por línea)</label><textarea id="e_co" rows="5">${esc(db.cfg.condiciones || COND0)}</textarea>
     <button class="btn block" id="e_ok">Guardar</button></div>
+  <div class="card"><h2>🧾 Factura electrónica (datos de la DNIT)</h2>
+    <p class="mut">Datos de tu habilitación. Todavía la app no emite facturas electrónicas: esto deja todo preparado. <b>Nunca cargues acá el certificado ni su contraseña.</b></p>
+    <div class="row"><div><label>N° de timbrado electrónico</label><input id="fe_t" inputmode="numeric" value="${esc(fe.timbrado)}"></div><div><label>Vigente desde</label><input type="date" id="fe_f" value="${esc(fe.desde)}"></div></div>
+    <div class="row"><div><label>Establecimiento</label><input id="fe_e" inputmode="numeric" value="${esc(fe.establecimiento)}" placeholder="001"></div><div><label>Punto de expedición</label><input id="fe_p" inputmode="numeric" value="${esc(fe.punto)}" placeholder="001"></div></div>
+    <label>Código de actividad económica (como figura en el RUC)</label><input id="fe_a" value="${esc(fe.actividad)}">
+    <label>Ambiente</label><select id="fe_amb">${optsKV([['test', 'Pruebas (sin valor fiscal)'], ['prod', 'Producción (valor fiscal)']], fe.ambiente)}</select>
+    <button class="btn block" id="fe_ok">Guardar datos</button></div>
   <div class="card"><h2>🏭 Proveedores de vidrio</h2>${db.suppliers.length ? db.suppliers.map(s => `<div class="row" style="margin-bottom:6px"><div style="flex:3 1 160px">${esc(s.name)} <span class="mut">${esc(s.phone)}</span></div><div style="flex:0 0 90px"><button class="btn sec sm" data-sp="${s.id}">Editar</button></div></div>`).join('') : '<p class="mut">Sin proveedores todavía.</p>'}
     <button class="btn sec" id="sp_new">+ Agregar proveedor</button></div>
   <div class="card"><h2>✨ Servicios y precios</h2><p class="mut">Editá el precio de cada servicio. En la venta siempre podés cambiarlo.</p>
@@ -766,6 +773,7 @@ function vAjustes() {
     }
     $('#no').onclick = cerrar;
   };
+  $('#fe_ok').onclick = () => { db.cfg.fe = { timbrado: $('#fe_t').value.trim(), desde: $('#fe_f').value, establecimiento: $('#fe_e').value.trim() || '001', punto: $('#fe_p').value.trim() || '001', actividad: $('#fe_a').value.trim(), ambiente: $('#fe_amb').value }; guardar(); toast('Datos guardados'); };
   $('#e_ok').onclick = () => { Object.assign(db.cfg.empresa, { nombre: $('#e_n').value.trim(), ruc: $('#e_r').value.trim(), tel: $('#e_t').value.trim(), direccion: $('#e_d').value.trim(), timbrado: $('#e_ti').value.trim(), vigencia: $('#e_v').value.trim() });
     Object.assign(db.cfg.empresa, { email: $('#e_em').value.trim() }); db.cfg.vendedor = $('#e_ve').value.trim(); db.cfg.cotizDias = Math.max(1, numGs($('#e_cd').value) || 3); db.cfg.condiciones = $('#e_co').value.trim(); db.cfg.staff = $('#e_s').value.split('\n').map(x => x.trim()).filter(Boolean); db.cfg.minDefault = numGs($('#e_m').value) || 50; db.cfg.capMin = numGs($('#e_cmin').value) || 4; db.cfg.capMax = numGs($('#e_cmax').value) || 12; guardar(); toast('Guardado'); };
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => formProveedor(b.dataset.sp)); $('#sp_new').onclick = () => formProveedor();
