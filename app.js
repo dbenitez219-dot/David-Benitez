@@ -743,7 +743,9 @@ function vAjustes() {
     <div class="row"><div><label>Establecimiento</label><input id="fe_e" inputmode="numeric" value="${esc(fe.establecimiento)}" placeholder="001"></div><div><label>Punto de expedición</label><input id="fe_p" inputmode="numeric" value="${esc(fe.punto)}" placeholder="001"></div></div>
     <label>Código de actividad económica (como figura en el RUC)</label><input id="fe_a" value="${esc(fe.actividad)}">
     <label>Ambiente</label><select id="fe_amb">${optsKV([['test', 'Pruebas (sin valor fiscal)'], ['prod', 'Producción (valor fiscal)']], fe.ambiente)}</select>
-    <button class="btn block" id="fe_ok">Guardar datos</button></div>
+    <button class="btn block" id="fe_ok">Guardar datos</button>
+    <h3>Pruebas de conexión con la DNIT</h3>
+    <div class="row"><button class="btn sec" id="fe_dg">1) Probar mi certificado</button><button class="btn sec" id="fe_cn">2) Probar conexión (ambiente de pruebas)</button></div></div>
   <div class="card"><h2>🏭 Proveedores de vidrio</h2>${db.suppliers.length ? db.suppliers.map(s => `<div class="row" style="margin-bottom:6px"><div style="flex:3 1 160px">${esc(s.name)} <span class="mut">${esc(s.phone)}</span></div><div style="flex:0 0 90px"><button class="btn sec sm" data-sp="${s.id}">Editar</button></div></div>`).join('') : '<p class="mut">Sin proveedores todavía.</p>'}
     <button class="btn sec" id="sp_new">+ Agregar proveedor</button></div>
   <div class="card"><h2>✨ Servicios y precios</h2><p class="mut">Editá el precio de cada servicio. En la venta siempre podés cambiarlo.</p>
@@ -773,6 +775,15 @@ function vAjustes() {
     }
     $('#no').onclick = cerrar;
   };
+  const feLlamar = async (action, body) => { const nombres = [...new Set([(window.SB_CONFIG || {}).fnSifen, 'sifen', 'SIFEN'].filter(Boolean))]; let err;
+    for (const n of nombres) { try { return await Sync.call(action, body || {}, n); } catch (e) { err = e; if (!/404|NOT_FOUND|not found/i.test(e.message)) throw e; } } throw err; };
+  const feMostrar = (titulo, html) => { modal(`<h2>${titulo}</h2>${html}<button class="btn block" id="no" style="margin-top:10px">Cerrar</button>`); $('#no').onclick = cerrar; };
+  $('#fe_dg').onclick = async () => { toast('Revisando el certificado…'); try { const r = await feLlamar('diagnostico'), c = r.certificado;
+      feMostrar('Tu certificado', `<p>${c.vigente ? '✅ Vigente' : '❌ Vencido o todavía no vigente'}</p><p><b>${esc(c.titular)}</b><br>${c.serie ? esc(c.serie) + '<br>' : ''}Emitido por: ${esc(c.emisor)}<br>Válido: ${esc(c.valido_desde)} → ${esc(c.valido_hasta)}</p>`); }
+    catch (e) { feMostrar('No se pudo revisar', `<p style="word-break:break-word"><b>${esc(e.message)}</b></p><p class="mut">Copiá este texto y pasáselo a Claude.</p>`); } };
+  $('#fe_cn').onclick = async () => { toast('Conectando con la DNIT (pruebas)…'); try { const r = await feLlamar('consultaRuc', { ruc: '80139512', ambiente: 'test' });
+      feMostrar('Conexión con la DNIT', `<p>${r.http === 200 ? '✅ La DNIT respondió' : '⚠ La DNIT respondió con código ' + r.http}</p><p>Código: <b>${esc(r.codigo || '—')}</b><br>Mensaje: ${esc(r.mensaje || '—')}<br>${r.razonSocial ? 'Razón social: ' + esc(r.razonSocial) + '<br>' : ''}${r.estado ? 'Estado: ' + esc(r.estado) : ''}</p><details><summary class="mut">Detalle técnico</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(r.respuesta)}</pre></details>`); }
+    catch (e) { feMostrar('No se pudo conectar', `<p style="word-break:break-word"><b>${esc(e.message)}</b></p><p class="mut">Copiá este texto y pasáselo a Claude.</p>`); } };
   $('#fe_ok').onclick = () => { db.cfg.fe = { timbrado: $('#fe_t').value.trim(), desde: $('#fe_f').value, establecimiento: $('#fe_e').value.trim() || '001', punto: $('#fe_p').value.trim() || '001', actividad: $('#fe_a').value.trim(), ambiente: $('#fe_amb').value }; guardar(); toast('Datos guardados'); };
   $('#e_ok').onclick = () => { Object.assign(db.cfg.empresa, { nombre: $('#e_n').value.trim(), ruc: $('#e_r').value.trim(), tel: $('#e_t').value.trim(), direccion: $('#e_d').value.trim(), timbrado: $('#e_ti').value.trim(), vigencia: $('#e_v').value.trim() });
     Object.assign(db.cfg.empresa, { email: $('#e_em').value.trim() }); db.cfg.vendedor = $('#e_ve').value.trim(); db.cfg.cotizDias = Math.max(1, numGs($('#e_cd').value) || 3); db.cfg.condiciones = $('#e_co').value.trim(); db.cfg.staff = $('#e_s').value.split('\n').map(x => x.trim()).filter(Boolean); db.cfg.minDefault = numGs($('#e_m').value) || 50; db.cfg.capMin = numGs($('#e_cmin').value) || 4; db.cfg.capMax = numGs($('#e_cmax').value) || 12; guardar(); toast('Guardado'); };
