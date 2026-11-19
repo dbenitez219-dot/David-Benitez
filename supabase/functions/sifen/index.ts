@@ -47,6 +47,7 @@ function infoCertificado(cert) {
   const campo = (n) => (cert.subject.getField(n) || {}).value || "";
   return {
     titular: campo("CN"), serie: campo("serialNumber"), emisor: (cert.issuer.getField("CN") || {}).value || "",
+    atributos_titular: cert.subject.attributes.map((a) => (a.shortName || a.name || a.type) + "=" + a.value).join(" | "),
     valido_desde: cert.validity.notBefore.toISOString().slice(0, 10), valido_hasta: cert.validity.notAfter.toISOString().slice(0, 10),
     vigente: new Date() >= cert.validity.notBefore && new Date() <= cert.validity.notAfter,
   };
@@ -57,7 +58,7 @@ function soap(host, path, body, { keyPem, certPem }) {
   return new Promise((resolve, reject) => {
     const req = https.request({ host, port: 443, path, method: "POST", key: keyPem, cert: certPem, minVersion: "TLSv1.2", timeout: 60000,
       headers: { "Content-Type": "application/xml; charset=utf-8", "User-Agent": "CristalAuto", "Content-Length": Buffer.byteLength(body) } }, (res) => {
-      let data = ""; res.setEncoding("utf8"); res.on("data", (c) => data += c); res.on("end", () => resolve({ status: res.statusCode, body: data }));
+      let data = ""; res.setEncoding("utf8"); res.on("data", (c) => data += c); res.on("end", () => resolve({ status: res.statusCode, location: res.headers.location || "", servidor: res.headers.server || "", body: data }));
     });
     req.on("timeout", () => req.destroy(new Error("Tiempo de espera agotado hablando con SIFEN")));
     req.on("error", reject); req.write(body); req.end();
@@ -73,7 +74,7 @@ async function consultaRuc(body) {
   const cert = abrirCertificado();
   const xml = envelope(`<rEnviConsRUC xmlns="http://ekuatia.set.gov.py/sifen/xsd"><dId>1</dId><dRUCCons>${ruc}</dRUCCons></rEnviConsRUC>`);
   const r = await soap(HOSTS[env], "/de/ws/consultas/consulta-ruc.wsdl", xml, cert);
-  return { ambiente: env, http: r.status, codigo: tag(r.body, "dCodRes"), mensaje: tag(r.body, "dMsgRes"), razonSocial: tag(r.body, "dRazCons"), estado: tag(r.body, "dDesEstCons"), respuesta: r.body.slice(0, 1500) };
+  return { ambiente: env, http: r.status, redireccion: r.location, servidor: r.servidor, codigo: tag(r.body, "dCodRes"), mensaje: tag(r.body, "dMsgRes"), razonSocial: tag(r.body, "dRazCons"), estado: tag(r.body, "dDesEstCons"), respuesta: r.body.slice(0, 1500) || "(sin contenido)" };
 }
 
 Deno.serve(async (req) => {
