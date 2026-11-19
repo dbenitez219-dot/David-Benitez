@@ -45,6 +45,15 @@ Corren en Node. **Riesgo abierto:** que `setapi` (conexión con certificado clie
 - Control agregado `diagnosticoCliente`: envía el certificado a client.badssl.com (servidor público que exige certificado de cliente y responde distinto si no recibe ninguno o si recibe uno que no reconoce) para separar (1) de (2).
 - Consultas a hacer en paralelo: a CODE100, si su "Certificado cualificado tributario" (OU=F1) es el que acepta el SIFEN para una E.A.S. o si hay que pedir el de persona jurídica con RUC; a la DNIT, qué certificado/vinculación exige el portal del ambiente de pruebas.
 
+## Emisión implementada (19/11/2026) · acción `emitir` de la función `sifen`
+Flujo: lee la venta/cliente/ajustes de la base → reserva número correlativo (`fe`, actualización condicional) → arma el XML (xmlgen v150) → lo firma con el .p12 de los Secrets (modo JS; archivo temporal que se borra) → calcula el QR con la librería y lo **inserta como texto** (sin reescribir el documento) → envía a `/de/ws/sync/recibe.wsdl` con certificado de cliente → interpreta `dEstRes/dProtAut/gResProc` → guarda XML y respuesta en `fe_docs` y el resultado en la venta.
+- Ambiente **test**: el resultado va a `venta.inv.test` y NO toca `inv.type/no/cdc` (no marca la venta como facturada). Ambiente **prod**: si es aprobada, `inv = {type:'electronica', no:'001-001-0000001', cdc, estado, protocolo}`.
+- Idempotente: si la venta ya tiene factura aprobada en ese ambiente, no emite otra.
+- Secrets: `SIFEN_P12_B64`, `SIFEN_P12_PASS`, `SIFEN_CSC_ID` (se completa a 4 dígitos: 1 → 0001), `SIFEN_CSC`. Nunca se devuelven ni se registran.
+- **Probado en Deno 2.9.6** (mismo motor que Supabase) contra un servidor simulado de SIFEN que exige certificado de cliente y verifica por su cuenta firma, digest, QR y total: venta contado, venta a crédito con descuento 4% y cliente ocasional, correlatividad, idempotencia, 404 y 401. Sin secretos en los registros.
+- Corregido al probar en Deno: las librerías vienen con la función directo o dentro de `.default` (función `pick`).
+- **No probado contra la DNIT real** (entorno sin acceso). Pendiente: respuesta real al certificado (ver 302), KuDE (PDF con QR), cancelación, consulta de estado, pasar a producción.
+
 ## Reglas que más rechazos causan (a vigilar)
 - Las **Notas Técnicas (NT 001–027)** pisan al Manual v150: no alcanza con el manual. Revisar las vigentes para la fecha y ambiente.
 - **Código 0160 = XML mal formado.** Puede venir de un campo con valor inválido aunque el XSD pase (teléfono del emisor `dTelEmi`, caracteres no permitidos, patrones numéricos). Registrar siempre código y mensaje completo.

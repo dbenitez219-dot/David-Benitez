@@ -375,6 +375,38 @@ function listaVentas() {
     + `<p class="mut">${L.length} ventas · total ${gs(tot)}</p>`;
   document.querySelectorAll('#v_list [data-v]').forEach(r => r.onclick = () => verVenta(r.dataset.v));
 }
+/* Llama a la función sifen del servidor (prueba el nombre configurado y las variantes en mayúsculas/minúsculas) */
+async function sifenLlamar(action, body) {
+  const nombres = [...new Set([(window.SB_CONFIG || {}).fnSifen, 'sifen', 'SIFEN'].filter(Boolean))]; let err;
+  for (const n of nombres) { try { return await Sync.call(action, body || {}, n); } catch (e) { err = e; if (!/404|NOT_FOUND|not found/i.test(e.message)) throw e; } }
+  throw err;
+}
+/* Factura electrónica de una venta: arma, firma y envía a la DNIT desde el servidor */
+function formEmitirFE(s) {
+  const fe = db.cfg.fe || {}, c = cli(s.clientId) || {}, prod = fe.ambiente === 'prod', ya = prod ? (s.inv || {}) : ((s.inv || {}).test || {});
+  if (!fe.timbrado) return toast('Primero cargá los datos de la DNIT en Ajustes → Factura electrónica');
+  const doc = String(c.ruc || '').trim(), grande = s.total > 7000000 && !doc;
+  modal(`<h2>Factura electrónica · Venta #${s.n}</h2>
+    <div class="banner" style="${prod ? 'background:#fee2e2;color:#991b1b' : ''}">${prod ? '⚠ <b>PRODUCCIÓN</b>: esta factura tiene valor fiscal y no se puede deshacer.' : '🧪 <b>PRUEBAS</b>: factura de prueba, sin valor fiscal. No cambia el número de factura de la venta.'}</div>
+    <p><b>${esc(s.clientName)}</b><br><span class="mut">${doc ? 'RUC / C.I.: ' + esc(doc) : 'Sin RUC / C.I. cargado: sale como “Sin Nombre”'}</span></p>
+    ${grande ? '<div class="banner">⚠ La venta es grande y el cliente no tiene RUC / C.I.: la DNIT puede rechazarla. Cargalo en Clientes.</div>' : ''}
+    <p>Total <b>${gs(s.total)}</b> · IVA 10% incluido ${gs(s.total / 11)}</p>
+    ${ya.estado === 'aprobado' ? `<div class="banner">✅ Ya tiene una factura ${prod ? '' : 'de prueba '}aprobada: N° ${esc(ya.no || '')}</div>` : ya.estado ? `<p class="mut">Último intento: ${esc(ya.estado)}${ya.mensaje ? ' · ' + esc(ya.mensaje) : ''}</p>` : ''}
+    <div class="row" style="margin-top:12px"><button class="btn ${prod ? '' : 'ok'}" id="fe_go" ${ya.estado === 'aprobado' ? 'disabled' : ''}>${prod ? 'Emitir factura real' : 'Emitir factura de prueba'}</button><button class="btn sec" id="fe_no">Cancelar</button></div>
+    <div id="fe_res"></div>`);
+  $('#fe_no').onclick = () => verVenta(s.id);
+  $('#fe_go').onclick = async () => {
+    $('#fe_go').disabled = true; $('#fe_res').innerHTML = '<p class="mut">Enviando a la DNIT…</p>';
+    try {
+      await Sync.flush(); const r = await sifenLlamar('emitir', { ventaId: s.id }); await Sync.pull(); recalc();
+      const ok = r.estado === 'aprobado', det = (r.resultados || []).map(x => `${esc(x.codigo)} · ${esc(x.mensaje)}`).join('<br>') || esc(r.mensaje || '');
+      $('#fe_res').innerHTML = `<div class="banner" style="${ok ? 'background:#dcfce7;color:#166534' : 'background:#fee2e2;color:#991b1b'}"><b>${ok ? '✅ Aprobada por la DNIT' : r.estado === 'sin_conexion' ? '⚠ La DNIT no aceptó la conexión' : '❌ ' + esc(r.estado)}</b>
+        ${r.numero ? '<br>N° ' + esc(r.numero) : ''}${r.cdc ? '<br><span style="word-break:break-all;font-size:12px">CDC ' + esc(r.cdc) + '</span>' : ''}${det ? '<br>' + det : ''}${r.advertencia ? '<br>' + esc(r.advertencia) : ''}</div>
+        <p class="mut">Sacale una captura a esto si algo falla y pasásela a Claude.</p><button class="btn sec block" id="fe_v">Volver a la venta</button>`;
+      $('#fe_v').onclick = () => { render(true); verVenta(s.id); };
+    } catch (e) { $('#fe_res').innerHTML = `<div class="banner" style="background:#fee2e2;color:#991b1b"><b>No se pudo emitir</b><br><span style="word-break:break-word">${esc(e.message)}</span></div><p class="mut">Sacale una captura y pasásela a Claude.</p>`; $('#fe_go').disabled = false; }
+  };
+}
 function verVenta(id) {
   const s = db.sales.find(x => x.id === id); if (!s) return; const t = saleTotals(s), saldo = saldoOf(s);
   modal(`<h2>Venta #${s.n} · ${dmy(s.date)}</h2>
@@ -385,10 +417,10 @@ function verVenta(id) {
       ${boss() && s.cost ? `<div class="mut"><span>Ganancia bruta</span><span>${gs(s.total - s.cost)}</span></div>` : ''}</div>
     ${s.pays.length ? `<h3>Pagos</h3>${s.pays.map(p => `<div class="mut">${dmy(p.date)} · ${esc(p.method)} · ${gs(p.amount)}</div>`).join('')}` : ''}
     <p class="mut">Factura: ${s.inv.type ? (s.inv.type === 'fisica' ? 'Física' : 'Electrónica') + (s.inv.no ? ' N° ' + esc(s.inv.no) : ' (sin número)') : 'aún sin factura'}${s.note ? '<br>Nota: ' + esc(s.note) : ''}</p>
-    <div class="row" style="margin-top:10px">${saldo > 0 ? '<button class="btn ok" id="m_cobrar">Cobrar</button>' : ''}<button class="btn" id="m_fac">Factura</button><button class="btn sec" id="m_df">📋 Datos para facturar</button><button class="btn sec" id="m_print">Imprimir</button>
+    <div class="row" style="margin-top:10px">${saldo > 0 ? '<button class="btn ok" id="m_cobrar">Cobrar</button>' : ''}<button class="btn" id="m_fac">Factura</button><button class="btn sec" id="m_df">📋 Datos para facturar</button>${(db.cfg.fe || {}).timbrado ? '<button class="btn" id="m_fe">🧾 Emitir factura electrónica</button>' : ''}<button class="btn sec" id="m_print">Imprimir</button>
       <button class="btn sec" id="m_close">Cerrar</button><button class="btn bad" id="m_del">Anular</button></div>`);
   $('#m_close').onclick = cerrar; $('#m_print').onclick = () => imprimir(s);
-  $('#m_fac').onclick = () => formFactura(s); $('#m_df').onclick = () => formDatosFacturar(s); if (saldo > 0) $('#m_cobrar').onclick = () => formCobro(s);
+  $('#m_fac').onclick = () => formFactura(s); $('#m_df').onclick = () => formDatosFacturar(s); if ($('#m_fe')) $('#m_fe').onclick = () => formEmitirFE(s); if (saldo > 0) $('#m_cobrar').onclick = () => formCobro(s);
   $('#m_del').onclick = () => needBoss(() => {
     if (!confirm(`¿Anular la venta #${s.n}? Se devuelve el stock y se borran sus cobros y compras a proveedor.`)) return;
     db.moves = db.moves.filter(m => m.ref !== s.id); db.expenses = db.expenses.filter(g => g.saleId !== s.id); db.sales = db.sales.filter(x => x.id !== s.id);
@@ -742,6 +774,7 @@ function vAjustes() {
     <div class="row"><div><label>N° de timbrado electrónico</label><input id="fe_t" inputmode="numeric" value="${esc(fe.timbrado)}"></div><div><label>Vigente desde</label><input type="date" id="fe_f" value="${esc(fe.desde)}"></div></div>
     <div class="row"><div><label>Establecimiento</label><input id="fe_e" inputmode="numeric" value="${esc(fe.establecimiento)}" placeholder="001"></div><div><label>Punto de expedición</label><input id="fe_p" inputmode="numeric" value="${esc(fe.punto)}" placeholder="001"></div></div>
     <label>Código de actividad económica (como figura en el RUC)</label><input id="fe_a" value="${esc(fe.actividad)}">
+    <label>Tipo de régimen (como figura en el RUC)</label><select id="fe_reg">${optsKV([['8', 'Régimen Contable'], ['6', 'Régimen del Pequeño Productor'], ['7', 'Régimen del Mediano Productor'], ['2', 'Importador'], ['3', 'Exportador'], ['1', 'Turismo'], ['4', 'Maquila'], ['5', 'Ley 60/90']], String(fe.regimen || '8'))}</select>
     <label>Ambiente</label><select id="fe_amb">${optsKV([['test', 'Pruebas (sin valor fiscal)'], ['prod', 'Producción (valor fiscal)']], fe.ambiente)}</select>
     <button class="btn block" id="fe_ok">Guardar datos</button>
     <h3>Pruebas de conexión con la DNIT</h3>
@@ -776,8 +809,7 @@ function vAjustes() {
     }
     $('#no').onclick = cerrar;
   };
-  const feLlamar = async (action, body) => { const nombres = [...new Set([(window.SB_CONFIG || {}).fnSifen, 'sifen', 'SIFEN'].filter(Boolean))]; let err;
-    for (const n of nombres) { try { return await Sync.call(action, body || {}, n); } catch (e) { err = e; if (!/404|NOT_FOUND|not found/i.test(e.message)) throw e; } } throw err; };
+  const feLlamar = sifenLlamar;
   const feMostrar = (titulo, html) => { modal(`<h2>${titulo}</h2>${html}<button class="btn block" id="no" style="margin-top:10px">Cerrar</button>`); $('#no').onclick = cerrar; };
   $('#fe_dg').onclick = async () => { toast('Revisando el certificado…'); try { const r = await feLlamar('diagnostico'), c = r.certificado;
       feMostrar('Tu certificado', `<p>${c.vigente ? '✅ Vigente' : '❌ Vencido o todavía no vigente'}</p><p><b>${esc(c.titular)}</b><br>${c.serie ? esc(c.serie) + '<br>' : ''}Emitido por: ${esc(c.emisor)}<br>${c.atributos_titular ? '<span class="mut" style="word-break:break-all">' + esc(c.atributos_titular) + '</span><br>' : ''}Válido: ${esc(c.valido_desde)} → ${esc(c.valido_hasta)}</p>`); }
@@ -789,7 +821,7 @@ function vAjustes() {
   $('#fe_cc').onclick = async () => { toast('Haciendo el control…'); try { const r = await feLlamar('diagnosticoCliente');
       feMostrar('Control del certificado', `<p class="mut">Servidor público de pruebas: ${esc(r.servidor)}. Sirve para saber si esta app envía el certificado.</p>${(r.pruebas || []).map(x => `<div style="border-top:1px solid var(--bd);padding:8px 0"><b>${esc(x.prueba)}</b><br>${x.error ? '⚠ ' + esc(x.error) : 'Código <b>' + esc(x.http) + '</b><br><span style="word-break:break-word">' + esc(x.texto) + '</span>'}</div>`).join('')}<p class="mut">Sacale una captura a esta ventana y pasásela a Claude.</p>`); }
     catch (e) { feMostrar('No se pudo hacer el control', `<p style="word-break:break-word"><b>${esc(e.message)}</b></p>`); } };
-  $('#fe_ok').onclick = () => { db.cfg.fe = { timbrado: $('#fe_t').value.trim(), desde: $('#fe_f').value, establecimiento: $('#fe_e').value.trim() || '001', punto: $('#fe_p').value.trim() || '001', actividad: $('#fe_a').value.trim(), ambiente: $('#fe_amb').value }; guardar(); toast('Datos guardados'); };
+  $('#fe_ok').onclick = () => { db.cfg.fe = { timbrado: $('#fe_t').value.trim(), desde: $('#fe_f').value, establecimiento: $('#fe_e').value.trim() || '001', punto: $('#fe_p').value.trim() || '001', actividad: $('#fe_a').value.trim(), regimen: Number($('#fe_reg').value) || 8, ambiente: $('#fe_amb').value }; guardar(); toast('Datos guardados'); };
   $('#e_ok').onclick = () => { Object.assign(db.cfg.empresa, { nombre: $('#e_n').value.trim(), ruc: $('#e_r').value.trim(), tel: $('#e_t').value.trim(), direccion: $('#e_d').value.trim(), timbrado: $('#e_ti').value.trim(), vigencia: $('#e_v').value.trim() });
     Object.assign(db.cfg.empresa, { email: $('#e_em').value.trim() }); db.cfg.vendedor = $('#e_ve').value.trim(); db.cfg.cotizDias = Math.max(1, numGs($('#e_cd').value) || 3); db.cfg.condiciones = $('#e_co').value.trim(); db.cfg.staff = $('#e_s').value.split('\n').map(x => x.trim()).filter(Boolean); db.cfg.minDefault = numGs($('#e_m').value) || 50; db.cfg.capMin = numGs($('#e_cmin').value) || 4; db.cfg.capMax = numGs($('#e_cmax').value) || 12; guardar(); toast('Guardado'); };
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => formProveedor(b.dataset.sp)); $('#sp_new').onclick = () => formProveedor();
