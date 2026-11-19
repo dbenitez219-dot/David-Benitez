@@ -98,6 +98,19 @@ async function diagnostico302(body) {
   return { ambiente: env, url: "https://" + host + ruta, certificados_en_archivo: cert.cantidad, clave_coincide_con_certificado: cert.coincideConClave, pruebas };
 }
 
+/* Control: ¿esta función ENVÍA el certificado de cliente? client.badssl.com es un servidor público de pruebas que exige certificado y
+   contesta distinto si no recibió ninguno o si recibió uno que no reconoce. No tiene relación con la DNIT. */
+async function diagnosticoCliente() {
+  const cert = abrirCertificado();
+  const texto = (b) => b.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
+  const pruebas = [];
+  for (const [nombre, c] of [["Con mi certificado", cert], ["Sin certificado", null]]) {
+    try { const r = await soap("client.badssl.com", "/", "", c, "GET"); pruebas.push({ prueba: nombre, http: r.status, texto: texto(r.body) }); }
+    catch (e) { pruebas.push({ prueba: nombre, error: String((e && e.message) || e) }); }
+  }
+  return { servidor: "client.badssl.com", pruebas };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method === "GET") return json({ ok: true, funcion: "sifen", tiene_certificado: !!Deno.env.get("SIFEN_P12_B64"), tiene_clave_certificado: Deno.env.get("SIFEN_P12_PASS") !== undefined, tiene_clave_de_servicio: !!serviceKey() });
@@ -105,6 +118,7 @@ Deno.serve(async (req) => {
     await requireUser(req);
     const body = await req.json().catch(() => ({}));
     if (body.action === "diagnostico") return json({ ok: true, certificado: infoCertificado(abrirCertificado().cert) });
+    if (body.action === "diagnosticoCliente") return json({ ok: true, ...(await diagnosticoCliente()) });
     if (body.action === "diagnostico302") return json({ ok: true, ...(await diagnostico302(body)) });
     if (body.action === "consultaRuc") return json({ ok: true, ...(await consultaRuc(body)) });
     return json({ error: "Acción desconocida" }, 400);

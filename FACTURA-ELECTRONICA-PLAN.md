@@ -38,6 +38,13 @@ Corren en Node. **Riesgo abierto:** que `setapi` (conexión con certificado clie
 - **Debilidades corregidas en la función `sifen` (probadas localmente):** elige el certificado cuyo par es la clave privada (antes tomaba el primero del archivo) y **envía la cadena completa**; el número de serie del titular (donde las certificadoras suelen poner CI/RUC) **no se mostraba** por un error de lectura (forge lo llama `serialName`): corregido.
 - **Prueba controlada `diagnostico302`:** mismo pedido (1) POST con certificado, (2) POST sin certificado, (3) GET sin certificado; devuelve código, `Location`, servidor y tipo de respuesta. Si (1) difiere de (2): el certificado es el factor. Si son iguales: la causa es el endpoint o el acceso, no el certificado.
 
+## Resultado de las pruebas reales del 19/11/2026 (capturas de la usuaria)
+- Certificado: vigente 2026-11-18 → 2027-11-18, emisor CODE100 S.A., `O=CERTIFICADO CUALIFICADO TRIBUTARIO`, `OU=F1`, `serialNumber=CI…` (cédula del representante). **No trae el RUC de la empresa.** 1 solo certificado en el archivo; la clave le corresponde.
+- Diagnóstico del 302 (`diagnostico302`): los 3 pedidos (POST con certificado, POST sin certificado, GET sin certificado) responden **igual**: HTTP 302, servidor BigIP, `Location: /vdesk/hangup.php3`, cuerpo vacío. `/vdesk/hangup.php3` es la salida de sesión del portal de acceso (F5 BIG-IP APM) → **la DNIT no autentica la conexión con el certificado enviado**.
+- Con o sin certificado da lo mismo, así que o (1) el runtime de Supabase no envía el certificado, o (2) la DNIT lo recibe pero no lo acepta (a nombre del representante sin RUC, o emisor no reconocido). Con Deno 2.9.6 local sí se envía.
+- Control agregado `diagnosticoCliente`: envía el certificado a client.badssl.com (servidor público que exige certificado de cliente y responde distinto si no recibe ninguno o si recibe uno que no reconoce) para separar (1) de (2).
+- Consultas a hacer en paralelo: a CODE100, si su "Certificado cualificado tributario" (OU=F1) es el que acepta el SIFEN para una E.A.S. o si hay que pedir el de persona jurídica con RUC; a la DNIT, qué certificado/vinculación exige el portal del ambiente de pruebas.
+
 ## Reglas que más rechazos causan (a vigilar)
 - Las **Notas Técnicas (NT 001–027)** pisan al Manual v150: no alcanza con el manual. Revisar las vigentes para la fecha y ambiente.
 - **Código 0160 = XML mal formado.** Puede venir de un campo con valor inválido aunque el XSD pase (teléfono del emisor `dTelEmi`, caracteres no permitidos, patrones numéricos). Registrar siempre código y mensaje completo.
