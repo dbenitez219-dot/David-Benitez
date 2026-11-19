@@ -21,6 +21,15 @@ Corren en Node. **Riesgo abierto:** que `setapi` (conexión con certificado clie
 - Firma XMLDSig (rsa-sha256) con un certificado de prueba autofirmado: **OK solo con el modo JavaScript** (`signXML(xml, p12, clave, true)`). El modo por defecto usa **Java** y **no sirve** en Supabase.
 - **Pendiente de probar:** el envío. `setapi` usa `https.Agent` con el `.p12` (TLS con certificado cliente) contra `sifen-test.set.gov.py`. Primera prueba barata: una función que haga una **consulta de RUC** en TEST con el certificado real; si la conexión falla desde Supabase, pasar esa pieza a un servidor Node pequeño (plan B).
 
+## Hallazgos de la verificación del 19/11/2026 (comprobados ejecutando código, sin enviar nada a la DNIT)
+- Armado del XML con datos reales no secretos del emisor: OK. Totales e IVA 10% incluido correctos (1.300.000 → IVA 118.182).
+- Firma XMLDSig (modo JavaScript) y **verificación posterior de la firma**: OK (el digest del bloque `<DE>` coincide).
+- **ERROR de la librería `facturacionelectronicapy-qrgen`:** `generateQR()` vuelve a leer y a escribir todo el XML con xml2js (con sangrías), lo que **cambia el bloque `<DE>` e invalida la firma**. NO usar el XML que devuelve.
+  **Solución comprobada:** usar la librería solo para obtener el valor del QR (`<dCarQR>`) e **insertarlo como texto** antes de `</rDE>` en el XML firmado original: `<gCamFuFD><dCarQR>…</dCarQR></gCamFuFD>`. Verificado: el `<DE>` queda idéntico, el digest coincide y la firma se valida.
+- Tipos de régimen que acepta la librería: 1 Turismo, 2 Importador, 3 Exportador, 4 Maquila, 5 Ley 60/90, 6 Pequeño Productor, 7 Mediano Productor, 8 Régimen Contable. **Falta confirmar cuál figura en el RUC de la empresa** (se asumió 8 solo para las pruebas).
+- La conexión desde Supabase llegó al servidor de pruebas de la DNIT: respondió **HTTP 302**. Pendiente: ver a dónde redirige y si el certificado (a nombre del representante, emitido por CODE100) trae el RUC de la empresa (la función nueva muestra los atributos del certificado y la redirección).
+- Pendiente de comprobar en Deno (Supabase): que las librerías (xmlgen, xmlsign en modo JS, node-forge) y la conexión con certificado cliente funcionen; en Node funcionan.
+
 ## Reglas que más rechazos causan (a vigilar)
 - Las **Notas Técnicas (NT 001–027)** pisan al Manual v150: no alcanza con el manual. Revisar las vigentes para la fecha y ambiente.
 - **Código 0160 = XML mal formado.** Puede venir de un campo con valor inválido aunque el XSD pase (teléfono del emisor `dTelEmi`, caracteres no permitidos, patrones numéricos). Registrar siempre código y mensaje completo.
