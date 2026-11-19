@@ -36,6 +36,13 @@ El entorno de la sesión no podía abrir www.dnit.gov.py; se creó el entorno pe
 ## Datos que faltan del contribuyente (no secretos)
 Número de timbrado electrónico y fecha de inicio · código de establecimiento y punto de expedición (¿001/001?) · actividad económica (código) · teléfono y correo del emisor tal como figuran en el RUC.
 
+## Datos del emisor vistos en Marangatú (19/11/2026, captura de la usuaria)
+- Razón social: CRISTALAUTO E.A.S. UNIPERSONAL · RUC 80139512-7 · persona jurídica (EAS unipersonal) · estado ACTIVO.
+- Domicilio: CENTRAL, SAN LORENZO, BARCEQUILLO · Nicanor Ríos, a cuatro cuadras de la Avda. Pratt Gill.
+- Teléfono/celular: (0984) 102671 · **correo registrado en el RUC: dbenitez219@gmail.com** (usar este en el emisor, tiene que coincidir; el de la empresa en la app es cristalauto95@gmail.com).
+- Actividades económicas: **45303** (principal) comercio de partes, piezas y accesorios para vehículos automotores · 45209 otros tipos de reparaciones de vehículos automotores N.C.P.
+- La pantalla "Administración de establecimientos" pide un **número de timbrado otorgado** (precarga); aún no se sabe cuál es el timbrado electrónico a usar en TEST. No adivinar: confirmar con la Guía de Pruebas / "Generar timbrado facturador electrónico".
+
 ## Secretos (nunca por chat ni en el repositorio)
 Certificado `.p12/.pfx` y su contraseña, y el CSC de producción → Supabase **Secrets** (la persona los carga ella misma; se guía paso a paso).
 
