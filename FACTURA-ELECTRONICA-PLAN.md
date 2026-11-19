@@ -30,6 +30,14 @@ Corren en Node. **Riesgo abierto:** que `setapi` (conexión con certificado clie
 - La conexión desde Supabase llegó al servidor de pruebas de la DNIT: respondió **HTTP 302**. Pendiente: ver a dónde redirige y si el certificado (a nombre del representante, emitido por CODE100) trae el RUC de la empresa (la función nueva muestra los atributos del certificado y la redirección).
 - Pendiente de comprobar en Deno (Supabase): que las librerías (xmlgen, xmlsign en modo JS, node-forge) y la conexión con certificado cliente funcionen; en Node funcionan.
 
+## Investigación del HTTP 302 (19/11/2026)
+- **URL exacta usada:** `https://sifen-test.set.gov.py/de/ws/consultas/consulta-ruc.wsdl` (POST, SOAP 1.2). Es **idéntica** a la que usa la librería `setapi` en producción, y el mensaje SOAP tiene el mismo formato.
+- **Cabecera `Location`:** NO observada. El entorno de la sesión no llega a `sifen-test.set.gov.py` (proxy 403) y la versión desplegada de la función no devolvía las cabeceras.
+- **Cliente verificado con Deno 2.9.6:** `node:https` con `key`/`cert` en PEM **envía el certificado de cliente**, mantiene **POST**, la ruta y el cuerpo, y **no sigue redirecciones**. Un 302 recibido es del servidor, no lo provoca nuestro cliente.
+- **Hipótesis (sin confirmar):** la librería trata una "página de salida de BIG-IP" como el error típico cuando el portal no acepta la sesión/certificado. Causas posibles: (a) el certificado no se acepta o no trae el RUC de la empresa, (b) falta enviar la cadena de la entidad certificadora, (c) otra causa de acceso.
+- **Debilidades corregidas en la función `sifen` (probadas localmente):** elige el certificado cuyo par es la clave privada (antes tomaba el primero del archivo) y **envía la cadena completa**; el número de serie del titular (donde las certificadoras suelen poner CI/RUC) **no se mostraba** por un error de lectura (forge lo llama `serialName`): corregido.
+- **Prueba controlada `diagnostico302`:** mismo pedido (1) POST con certificado, (2) POST sin certificado, (3) GET sin certificado; devuelve código, `Location`, servidor y tipo de respuesta. Si (1) difiere de (2): el certificado es el factor. Si son iguales: la causa es el endpoint o el acceso, no el certificado.
+
 ## Reglas que más rechazos causan (a vigilar)
 - Las **Notas Técnicas (NT 001–027)** pisan al Manual v150: no alcanza con el manual. Revisar las vigentes para la fecha y ambiente.
 - **Código 0160 = XML mal formado.** Puede venir de un campo con valor inválido aunque el XSD pase (teléfono del emisor `dTelEmi`, caracteres no permitidos, patrones numéricos). Registrar siempre código y mensaje completo.

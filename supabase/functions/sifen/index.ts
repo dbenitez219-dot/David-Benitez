@@ -38,15 +38,20 @@ function abrirCertificado() {
   let p12;
   try { p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(forge.util.decode64(b64.replace(/\s+/g, ""))), false, pass); }
   catch (e) { throw new Error("No se pudo abrir el certificado: revisá que la contraseña sea correcta y que el certificado esté completo (" + (e && e.message ? e.message : e) + ")"); }
-  let key = null, cert = null;
-  for (const sc of p12.safeContents) for (const bag of sc.safeBags) { if (bag.key && !key) key = bag.key; if (bag.cert && !cert) cert = bag.cert; }
-  if (!key || !cert) throw new Error("El certificado no trae la clave privada o el certificado");
-  return { keyPem: forge.pki.privateKeyToPem(key), certPem: forge.pki.certificateToPem(cert), cert };
+  let key = null; const certs = [];
+  for (const sc of p12.safeContents) for (const bag of sc.safeBags) { if (bag.key && !key) key = bag.key; if (bag.cert) certs.push(bag.cert); }
+  if (!key || !certs.length) throw new Error("El certificado no trae la clave privada o el certificado");
+  // El certificado propio es el que corresponde a la clave privada (el archivo puede traer también los de la entidad certificadora)
+  const mismoModulo = (c) => c.publicKey && c.publicKey.n && key.n && c.publicKey.n.compareTo(key.n) === 0;
+  const cert = certs.find(mismoModulo) || certs[0];
+  const cadena = certs.filter((c) => c !== cert);
+  // Se envía primero el certificado propio y después los de la cadena (la DNIT puede necesitarlos para validarlo)
+  return { keyPem: forge.pki.privateKeyToPem(key), certPem: [cert, ...cadena].map((c) => forge.pki.certificateToPem(c)).join(""), cert, cantidad: certs.length, coincideConClave: certs.some(mismoModulo) };
 }
 function infoCertificado(cert) {
-  const campo = (n) => (cert.subject.getField(n) || {}).value || "";
+  const campo = (n) => ((cert.subject.attributes.find((x) => x.shortName === n || x.name === n || x.type === n)) || {}).value || "";
   return {
-    titular: campo("CN"), serie: campo("serialNumber"), emisor: (cert.issuer.getField("CN") || {}).value || "",
+    titular: campo("CN"), serie: campo("serialName") || campo("serialNumber") || campo("2.5.4.5"), emisor: (cert.issuer.getField("CN") || {}).value || "",
     atributos_titular: cert.subject.attributes.map((a) => (a.shortName || a.name || a.type) + "=" + a.value).join(" | "),
     valido_desde: cert.validity.notBefore.toISOString().slice(0, 10), valido_hasta: cert.validity.notAfter.toISOString().slice(0, 10),
     vigente: new Date() >= cert.validity.notBefore && new Date() <= cert.validity.notAfter,
@@ -54,14 +59,16 @@ function infoCertificado(cert) {
 }
 
 /* Envía un mensaje SOAP a SIFEN con TLS 1.2 y autenticación mutua (el certificado va en la conexión) */
-function soap(host, path, body, { keyPem, certPem }) {
+function soap(host, path, body, cert, metodo = "POST") {
   return new Promise((resolve, reject) => {
-    const req = https.request({ host, port: 443, path, method: "POST", key: keyPem, cert: certPem, minVersion: "TLSv1.2", timeout: 60000,
-      headers: { "Content-Type": "application/xml; charset=utf-8", "User-Agent": "CristalAuto", "Content-Length": Buffer.byteLength(body) } }, (res) => {
+    const opts = { host, port: 443, path, method: metodo, minVersion: "TLSv1.2", timeout: 60000, headers: { "User-Agent": "CristalAuto" } };
+    if (cert) { opts.key = cert.keyPem; opts.cert = cert.certPem; }
+    if (body) { opts.headers["Content-Type"] = "application/xml; charset=utf-8"; opts.headers["Content-Length"] = Buffer.byteLength(body); }
+    const req = https.request(opts, (res) => {
       let data = ""; res.setEncoding("utf8"); res.on("data", (c) => data += c); res.on("end", () => resolve({ status: res.statusCode, location: res.headers.location || "", servidor: res.headers.server || "", body: data }));
     });
     req.on("timeout", () => req.destroy(new Error("Tiempo de espera agotado hablando con SIFEN")));
-    req.on("error", reject); req.write(body); req.end();
+    req.on("error", reject); if (body) req.write(body); req.end();
   });
 }
 const envelope = (inner) => `<env:Envelope xmlns:env="http://www.w3.org/2003/05/soap-envelope"><env:Header/><env:Body>${inner}</env:Body></env:Envelope>`;
@@ -77,6 +84,20 @@ async function consultaRuc(body) {
   return { ambiente: env, http: r.status, redireccion: r.location, servidor: r.servidor, codigo: tag(r.body, "dCodRes"), mensaje: tag(r.body, "dMsgRes"), razonSocial: tag(r.body, "dRazCons"), estado: tag(r.body, "dDesEstCons"), respuesta: r.body.slice(0, 1500) || "(sin contenido)" };
 }
 
+/* Prueba controlada del redireccionamiento: el mismo pedido con certificado, sin certificado y como consulta simple (GET) */
+async function diagnostico302(body) {
+  const env = body.ambiente === "prod" ? "prod" : "test", host = HOSTS[env], ruta = "/de/ws/consultas/consulta-ruc.wsdl";
+  const ruc = String(body.ruc || "80139512").replace(/\D/g, "").slice(0, 12);
+  const xml = envelope(`<rEnviConsRUC xmlns="http://ekuatia.set.gov.py/sifen/xsd"><dId>1</dId><dRUCCons>${ruc}</dRUCCons></rEnviConsRUC>`);
+  const cert = abrirCertificado();
+  const resumen = (nombre, r) => ({ prueba: nombre, http: r.status, location: r.location, servidor: r.servidor, tipo: (r.body.trim().startsWith("<?xml") || r.body.includes("Envelope")) ? "SOAP/XML" : r.body.toLowerCase().includes("<html") ? "página HTML" : r.body ? "otro" : "vacío", inicio: r.body.replace(/\s+/g, " ").slice(0, 300) });
+  const pruebas = [];
+  for (const [nombre, c, metodo, cuerpo] of [["POST con certificado", cert, "POST", xml], ["POST sin certificado", null, "POST", xml], ["GET sin certificado", null, "GET", ""]]) {
+    try { pruebas.push(resumen(nombre, await soap(host, ruta, cuerpo, c, metodo))); } catch (e) { pruebas.push({ prueba: nombre, error: String((e && e.message) || e) }); }
+  }
+  return { ambiente: env, url: "https://" + host + ruta, certificados_en_archivo: cert.cantidad, clave_coincide_con_certificado: cert.coincideConClave, pruebas };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method === "GET") return json({ ok: true, funcion: "sifen", tiene_certificado: !!Deno.env.get("SIFEN_P12_B64"), tiene_clave_certificado: Deno.env.get("SIFEN_P12_PASS") !== undefined, tiene_clave_de_servicio: !!serviceKey() });
@@ -84,6 +105,7 @@ Deno.serve(async (req) => {
     await requireUser(req);
     const body = await req.json().catch(() => ({}));
     if (body.action === "diagnostico") return json({ ok: true, certificado: infoCertificado(abrirCertificado().cert) });
+    if (body.action === "diagnostico302") return json({ ok: true, ...(await diagnostico302(body)) });
     if (body.action === "consultaRuc") return json({ ok: true, ...(await consultaRuc(body)) });
     return json({ error: "Acción desconocida" }, 400);
   } catch (e) {
