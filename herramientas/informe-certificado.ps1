@@ -9,7 +9,11 @@
 $ErrorActionPreference = 'Stop'
 $rucEmpresa = '80139512'   # RUC de CristalAuto sin el digito verificador (para buscarlo en el certificado)
 
-$ruta = (Read-Host 'Pega la ruta del archivo .pfx').Trim().Trim('"')
+$ruta = ''
+for ($k = 1; $k -le 5 -and -not $ruta; $k++) {
+  $ruta = (Read-Host 'Pega la ruta del archivo .pfx (si se envio vacia, volve a pegarla)').Trim().Trim('"')
+}
+if (-not $ruta) { throw 'No se ingreso ninguna ruta.' }
 if (-not (Test-Path -LiteralPath $ruta -PathType Leaf)) { throw ('No encuentro ningun archivo en esa ruta: [' + $ruta + ']. Copia la ruta de nuevo (clic derecho en el .pfx > Copiar como ruta de acceso).') }
 if (-not (Get-Command Get-PfxData -ErrorAction SilentlyContinue)) { throw 'Esta ventana no tiene la funcion Get-PfxData. Abri "Windows PowerShell" (no PowerShell 7) y repeti.' }
 $pfx = $null
