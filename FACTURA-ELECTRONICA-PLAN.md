@@ -106,3 +106,7 @@ Certificado `.p12/.pfx` y su contraseña, y el CSC de producción → Supabase *
 - `supabase/functions/sifen/index.ts` ahora envía certificado propio + intermedia en el handshake TLS y verifica la cadena hasta la raíz (forge). El diagnóstico informa cuántos certificados envía y si la cadena queda verificada.
 - Prueba local con PKI de prueba y servidor mTLS estricto: solo hoja → rechazado; hoja + intermedia → aceptado. Suite completa en Deno 2.9.6 sin regresiones.
 - NO desplegado todavía. Falta autorización de la usuaria; luego diagnóstico por etapas (WSDL, TLS 1.2, mTLS, SOAP).
+
+## Diagnóstico por etapas (autorizado por la usuaria, 2026-11-20)
+- Acción `diagnosticoSifen` (solo ambiente de PRUEBAS, no emite): 1) WSDL de las 6 URLs oficiales con `?wsdl`, con y sin certificado, sin seguir redirecciones, leyendo soap:address; 2) TLS por defecto y TLS 1.2 forzado + cadena del servidor; 3) control mTLS con certificado descartable; 4) consulta de RUC SOAP 1.2 (application/soap+xml y application/xml) en la ruta oficial y en la soap:address. Devuelve veredicto en palabras simples.
+- Botón "4) Diagnóstico completo por etapas" en Ajustes (SW v8). Probado en Deno contra simulador.

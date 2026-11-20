@@ -3,6 +3,7 @@
 // Conexión con SIFEN (DNIT).
 //   action "diagnostico"        → lee el certificado de los Secrets y muestra de quién es y hasta cuándo vale
 //   action "diagnostico302"     → compara pedidos a la DNIT con y sin certificado
+//   action "diagnosticoSifen"   → diagnóstico por etapas en PRUEBAS: WSDL, TLS, control de certificado de cliente, consulta de RUC
 //   action "diagnosticoCliente" → control: ¿esta función envía el certificado de cliente?
 //   action "consultaRuc"        → consulta un RUC en el ambiente de pruebas (TEST)
 //   action "emitir" {ventaId}   → arma, firma, agrega el QR, envía a la DNIT y guarda el resultado en la venta
@@ -362,6 +363,95 @@ async function diagnosticoCliente() {
   return { servidor: "client.badssl.com", nota: "Se usó un certificado descartable; el certificado de la empresa no se envió.", pruebas };
 }
 
+/* ================= DIAGNÓSTICO POR ETAPAS (solo lee y consulta; no emite facturas) ================= */
+/* Conexión de bajo nivel que además informa el protocolo TLS negociado y el certificado del servidor */
+function sondeo(host, path, metodo, body, cert, extra = {}) {
+  return new Promise((resolve, reject) => {
+    const opts = { host, port: 443, path, method: metodo, minVersion: "TLSv1.2", timeout: 30000, agent: false, headers: { "User-Agent": "CristalAuto" }, ...extra };
+    if (cert) { opts.key = cert.keyPem; opts.cert = cert.certPem; }
+    if (body) { opts.headers["Content-Type"] = extra.contentType || "application/soap+xml; charset=utf-8"; opts.headers["Content-Length"] = Buffer.byteLength(body); }
+    delete opts.contentType;
+    const req = https.request(opts, (res) => {
+      let data = ""; res.setEncoding("utf8"); res.on("data", (c) => { if (data.length < 200000) data += c; });
+      res.on("end", () => {
+        const s = res.socket; let srv = null;
+        try { const c = s.getPeerCertificate(true); if (c && c.subject) { srv = { titular: (c.subject.CN || ""), emisor: (c.issuer && c.issuer.CN) || "", valido_hasta: c.valid_to || "", cadena: [] }; for (let x = c, i = 0; x && i < 6; i++) { srv.cadena.push(((x.subject && x.subject.CN) || "?")); if (!x.issuerCertificate || x.issuerCertificate === x) break; x = x.issuerCertificate; } } } catch (_) {}
+        let proto = "", cifrado = ""; try { proto = s.getProtocol() || ""; cifrado = (s.getCipher() || {}).name || ""; } catch (_) {}
+        resolve({ status: res.statusCode, location: res.headers.location || "", servidor: res.headers.server || "", contentType: res.headers["content-type"] || "", protocolo: proto, cifrado, servidorCert: srv, body: data });
+      });
+    });
+    req.on("timeout", () => req.destroy(new Error("Tiempo de espera agotado")));
+    req.on("error", reject); if (body) req.write(body); req.end();
+  });
+}
+const tipoCuerpo = (b) => (b.includes("Envelope")) ? "SOAP/XML" : (b.includes("definitions") || b.includes("wsdl:")) ? "WSDL" : b.toLowerCase().includes("<html") ? "página HTML" : b ? "otro" : "vacío";
+const texto = (b) => b.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
+const msg = (e) => String((e && e.message) || e);
+
+const SERVICIOS = [
+  ["recibe (síncrono)", "/de/ws/sync/recibe.wsdl"], ["recibe-lote", "/de/ws/async/recibe-lote.wsdl"], ["eventos", "/de/ws/eventos/evento.wsdl"],
+  ["consulta (CDC)", "/de/ws/consultas/consulta.wsdl"], ["consulta-lote", "/de/ws/consultas/consulta-lote.wsdl"], ["consulta-ruc", "/de/ws/consultas/consulta-ruc.wsdl"],
+];
+
+async function diagnosticoSifen(body) {
+  const env = body.ambiente === "prod" ? "prod" : "test";
+  if (env === "prod") throw Object.assign(new Error("El diagnóstico se hace solo en el ambiente de PRUEBAS"), { status: 400 });
+  const host = HOSTS.test, cert = abrirCertificado();
+  const R = { ambiente: "test", host, certificado: { enviados: cert.enviados, cadena_verificada_hasta_la_raiz: cert.cadenaOk, cadena_error: cert.cadenaError, clave_coincide: cert.coincideConClave }, etapas: {} };
+
+  // Etapa 1 — WSDL (lectura, sin enviar datos): con y sin certificado, sin seguir redirecciones
+  const wsdl = [], direcciones = {};
+  for (const [nombre, ruta] of SERVICIOS) {
+    const fila = { servicio: nombre, url: "https://" + host + ruta + "?wsdl" };
+    for (const [k, c] of [["con_certificado", cert], ["sin_certificado", null]]) {
+      try {
+        const r = await sondeo(host, ruta + "?wsdl", "GET", "", c);
+        fila[k] = { http: r.status, location: r.location, tipo: tipoCuerpo(r.body), content_type: r.contentType, servidor: r.servidor };
+        const m = r.body.match(/<(?:\w+:)?address[^>]*location="([^"]+)"/);
+        if (m) { fila[k].soap_address = m[1]; if (k === "con_certificado") direcciones[ruta] = m[1]; }
+      } catch (e) { fila[k] = { error: msg(e) }; }
+    }
+    wsdl.push(fila);
+  }
+  R.etapas["1_wsdl"] = wsdl;
+
+  // Etapa 2 — TLS: protocolo negociado por defecto y forzando TLS 1.2, cadena del servidor
+  const tls = [];
+  for (const [nombre, extra] of [["TLS por defecto (mínimo 1.2)", {}], ["TLS 1.2 forzado", { maxVersion: "TLSv1.2" }]]) {
+    try { const r = await sondeo(host, "/de/ws/consultas/consulta-ruc.wsdl?wsdl", "GET", "", null, extra); tls.push({ prueba: nombre, protocolo: r.protocolo, cifrado: r.cifrado, certificado_servidor: r.servidorCert, http: r.status }); }
+    catch (e) { tls.push({ prueba: nombre, error: msg(e) }); }
+  }
+  R.etapas["2_tls"] = tls;
+
+  // Etapa 3 — Control de autenticación mutua con un certificado DESCARTABLE (el de la empresa no sale)
+  try { R.etapas["3_control_mtls"] = await diagnosticoCliente(); } catch (e) { R.etapas["3_control_mtls"] = { error: msg(e) }; }
+
+  // Etapa 4 — Consulta de RUC SOAP 1.2 con certificado, forzando TLS 1.2; en la dirección que declara el WSDL (si la hay)
+  const ruta = "/de/ws/consultas/consulta-ruc.wsdl", declarada = direcciones[ruta];
+  const destinos = [{ nombre: "ruta oficial sin ?wsdl", host, ruta }];
+  if (declarada) { try { const u = new URL(declarada); destinos.push({ nombre: "dirección del WSDL (soap:address)", host: u.host, ruta: u.pathname }); } catch (_) {} }
+  const ruc = String(body.ruc || "80139512").replace(/\D/g, "").slice(0, 12);
+  const xml = envelope(`<rEnviConsRUC xmlns="http://ekuatia.set.gov.py/sifen/xsd"><dId>1</dId><dRUCCons>${ruc}</dRUCCons></rEnviConsRUC>`);
+  const soapPruebas = [];
+  for (const d of destinos) for (const [tipo, ct] of [["SOAP 1.2 (application/soap+xml)", "application/soap+xml; charset=utf-8"], ["application/xml", "application/xml; charset=utf-8"]]) {
+    try { const r = await sondeo(d.host, d.ruta, "POST", xml, cert, { maxVersion: "TLSv1.2", contentType: ct }); soapPruebas.push({ destino: d.nombre, url: "https://" + d.host + d.ruta, content_type_enviado: tipo, protocolo: r.protocolo, http: r.status, location: r.location, tipo: tipoCuerpo(r.body), codigo: tag(r.body, "dCodRes"), mensaje: tag(r.body, "dMsgRes"), razonSocial: tag(r.body, "dRazCons"), inicio: texto(r.body) }); }
+    catch (e) { soapPruebas.push({ destino: d.nombre, content_type_enviado: tipo, error: msg(e) }); }
+  }
+  R.etapas["4_consulta_ruc"] = soapPruebas;
+
+  // Veredicto en palabras simples
+  const redir = (x) => x && x.http >= 300 && x.http < 400;
+  const w = wsdl.map((f) => f.con_certificado).filter(Boolean);
+  const v = [];
+  v.push(w.every(redir) ? "Los 6 WSDL responden con redirección (302) incluso al leer: el portal no deja pasar esta conexión." : w.some((x) => x.tipo === "WSDL") ? "Al menos un WSDL se pudo leer: la conexión llega al servicio." : "Los WSDL no devolvieron un WSDL; revisar etapa 1.");
+  const c3 = (R.etapas["3_control_mtls"].pruebas || []);
+  if (c3.length === 2) v.push(c3[0].http === 200 && c3[1].http !== 200 ? "Control: esta función SÍ envía certificados de cliente (el problema no es del motor de Supabase)." : "Control: la función NO logró enviar certificado de cliente (conviene un servidor independiente para SIFEN).");
+  const ok4 = soapPruebas.find((x) => x.tipo === "SOAP/XML");
+  v.push(ok4 ? "La consulta de RUC obtuvo respuesta SOAP: " + (ok4.codigo || "") + " " + (ok4.mensaje || "") : "La consulta de RUC no obtuvo respuesta SOAP.");
+  R.veredicto = v;
+  return R;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method === "GET") return json({ ok: true, funcion: "sifen", tiene_certificado: !!Deno.env.get("SIFEN_P12_B64"), tiene_clave_certificado: Deno.env.get("SIFEN_P12_PASS") !== undefined, tiene_clave_de_servicio: !!serviceKey() });
@@ -370,6 +460,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     if (body.action === "diagnostico") return (() => { const c = abrirCertificado(); return json({ ok: true, certificado: infoCertificado(c.cert), certificados_enviados: c.enviados, cadena_verificada_hasta_la_raiz: c.cadenaOk, cadena_error: c.cadenaError }); })();
     if (body.action === "emitir") return json(await emitir(body));
+    if (body.action === "diagnosticoSifen") return json({ ok: true, ...(await diagnosticoSifen(body)) });
     if (body.action === "diagnosticoCliente") return json({ ok: true, ...(await diagnosticoCliente()) });
     if (body.action === "diagnostico302") return json({ ok: true, ...(await diagnostico302(body)) });
     if (body.action === "consultaRuc") return json({ ok: true, ...(await consultaRuc(body)) });

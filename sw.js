@@ -1,4 +1,4 @@
-const CACHE = 'cristalauto-v7';
+const CACHE = 'cristalauto-v8';
 const FILES = ['./', './index.html', './style.css', './config.js', './supabase.min.js', './sync.js', './xlsx.min.js', './app.js', './extra.js', './asistente.js', './presupuesto.js', './inventario.js', './jspdf.min.js', './boot.js', './manifest.webmanifest',
   './icons/logo.png', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
