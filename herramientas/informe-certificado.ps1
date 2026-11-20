@@ -3,6 +3,9 @@
 # - El archivo se lee en esta computadora. Este script no usa Internet.
 # - No se lee, no se muestra y no se exporta la clave privada.
 # Resultado: el archivo certificado-info.txt en el Escritorio.
+# Todo va dentro de "& { ... }" para que PowerShell lo trate como UN solo bloque al pegarlo (si no, las lineas pegadas
+# se cuelan como respuesta a las preguntas Read-Host).
+& {
 $ErrorActionPreference = 'Stop'
 $rucEmpresa = '80139512'   # RUC de CristalAuto sin el digito verificador (para buscarlo en el certificado)
 
@@ -83,3 +86,4 @@ Remove-Variable pfx, propios, cadena, todos, L -ErrorAction SilentlyContinue
 Write-Host ''
 Write-Host "Listo. Informe guardado en: $destino" -ForegroundColor Green
 Write-Host 'Abrilo con el Bloc de notas, revisalo y adjuntalo en el chat.'
+}
