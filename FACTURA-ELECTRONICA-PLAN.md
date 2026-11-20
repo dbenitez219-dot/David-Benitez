@@ -99,3 +99,10 @@ Certificado `.p12/.pfx` y su contraseña, y el CSC de producción → Supabase *
 3. Envío al ambiente TEST con el certificado real; corregir rechazos uno por uno.
 4. KuDE con QR y botón "Emitir factura" en la venta.
 5. Producción: timbrado + CSC reales (Marangatú, requiere estar al día).
+
+## Cadena de certificación (2026-11-20)
+- El .pfx de la empresa trae solo el certificado propio (sin la entidad certificadora). Si el portal de la DNIT exige la cadena, un envío "solo hoja" puede ser rechazado.
+- Archivos públicos descargados de CODE100 y verificados con openssl: intermedia "CODE100 S.A." (su identificador de clave coincide con el "emisor" del certificado de la empresa; firmada por la raíz) y "Autoridad Certificadora Raíz del Paraguay" (autofirmada, vence 2032-08-07).
+- `supabase/functions/sifen/index.ts` ahora envía certificado propio + intermedia en el handshake TLS y verifica la cadena hasta la raíz (forge). El diagnóstico informa cuántos certificados envía y si la cadena queda verificada.
+- Prueba local con PKI de prueba y servidor mTLS estricto: solo hoja → rechazado; hoja + intermedia → aceptado. Suite completa en Deno 2.9.6 sin regresiones.
+- NO desplegado todavía. Falta autorización de la usuaria; luego diagnóstico por etapas (WSDL, TLS 1.2, mTLS, SOAP).

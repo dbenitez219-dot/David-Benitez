@@ -40,6 +40,88 @@ async function requireUser(req) {
   return data.user;
 }
 
+/* Certificados PUBLICOS de la entidad certificadora (no son secretos): CODE100 S.A. (intermedia) y AC Raíz del Paraguay (raíz).
+   Descargados del sitio de CODE100; la intermedia coincide con el identificador de emisor del certificado de la empresa. */
+const CA_INTERMEDIA_PEM = `-----BEGIN CERTIFICATE-----
+MIIHhDCCBWygAwIBAgIQCq+0ar5nFexj0FNZVzUbmTANBgkqhkiG9w0BAQsFADBv
+MQswCQYDVQQGEwJQWTErMCkGA1UECgwiTWluaXN0ZXJpbyBkZSBJbmR1c3RyaWEg
+eSBDb21lcmNpbzEzMDEGA1UEAwwqQXV0b3JpZGFkIENlcnRpZmljYWRvcmEgUmHD
+rXogZGVsIFBhcmFndWF5MB4XDTIzMDEyNDIxNTMyOVoXDTMyMDEyNDIxNTMyOVow
+gYUxCzAJBgNVBAYTAlBZMQ0wCwYDVQQKEwRJQ1BQMTgwNgYDVQQLEy9QcmVzdGFk
+b3IgQ3VhbGlmaWNhZG8gZGUgU2VydmljaW9zIGRlIENvbmZpYW56YTEVMBMGA1UE
+AxMMQ09ERTEwMCBTLkEuMRYwFAYDVQQFEw1SVUM4MDA4MDYxMC03MIICIjANBgkq
+hkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA5VwuLoNPkZN66NxKTeh6mvvmRwWr5D8a
+ZeCNFOKmgaeIc0mE1uRNWxhlrsvYSDNusvyd21kDoC0VAbjJD5HTEnKepymBgjyM
+6Pe+l9W0Vy9ugkuvEvVPp/QJtBB56bgdPtjJFLrOXDM55bM7ZUCaMEbryX/eAUJt
+xm0LDJ2CRR1RMbwpvsWdwPaqMN848QQ5zn69BjA8/eBuOSMiEwlrt1z8uVyM8plh
+GfAHsQB6oG+a216/TCVJTSudCSIJJL6YhG3vxRbasPXhdPaY0JCkUugoe0okFN7U
+i7kjZE57LSEqN1dvDmv8ikAUn8vtDrvykIHbArs/2E7dYZ4X8rf0NHn5GOYo8e6m
+IIUspyeH41ViFk1AxpF2zNuNOYiCCGBPinOOHjAdA2vkQJr1eOJGoOyg1giLzddO
+CPyysBXjUSEqkVXaz6tSTkF3ifBMyg3ePgB3yqEbo5go/ZzcuPhfBsNoNcYRpY7F
+EJ7MSdFHn+u45DHRRlyzJ8fdwyEufNXtOTvdJRawYuytw48RzIZXGUSQ8HT1JvFp
+tROpHdVDLJ9zfSAwEIwTPgh3FdcAq1wB56sxF1SNn07UX6xUvD5Wk/VxUiULRQRc
+GuDgp9FGLy927EvXTQk4SII6KBmVO+HNWzadYSSxxe5ocUzna30FMx/ewjtbyrxg
+h9dRhWVjU10CAwEAAaOCAgMwggH/MBIGA1UdEwEB/wQIMAYBAf8CAQAwDgYDVR0P
+AQH/BAQDAgEGMB0GA1UdDgQWBBS+NVRiaGDnJtMxwV+XseL2ZM4H9TAfBgNVHSME
+GDAWgBTCxBHyKmhEDAAo7EzWKduS+1691jCBigYIKwYBBQUHAQEEfjB8MD8GCCsG
+AQUFBzAChjNodHRwczovL3d3dy5hY3JhaXouZ292LnB5L2NydC9hY19yYWl6X3B5
+X3NoYTI1Ni5jcnQwOQYIKwYBBQUHMAGGLWh0dHA6Ly9vY3NwLmNvZGUxMDAuY29t
+LnB5L29jc3AvY2EtY29kZTEwMC1zYTCBzQYDVR0gBIHFMIHCMIG/BgNVHSAwgbcw
+OQYIKwYBBQUHAgEWLWh0dHBzOi8vd3d3LmFjcmFpei5nb3YucHkvZHBjL0RPQy1J
+Q1BQLTAxLnBkZjB6BggrBgEFBQcCAjBuGmxTdWpldG8gYSBsYXMgY29uZGljaW9u
+ZXMgZGUgdXNvIGV4cHVlc3RhcyBlbiBsYSBEZWNsYXJhY2nzbiBkZSBQcuFjdGlj
+YXMgZGUgQ2VydGlmaWNhY2nzbiBkZSBsYSBBQyBSYe16IC0gUHkwPAYDVR0fBDUw
+MzAxoC+gLYYraHR0cDovL3d3dy5hY3JhaXouZ292LnB5L2FybC9hY19yYWl6X3B5
+LmNybDANBgkqhkiG9w0BAQsFAAOCAgEAZ0O3BeY2y9IDnZiXMy+/Grb5oDw0YiDo
+KkdoHdHDnd24yB2vf99Ei0FltBuwuXRHJkkoqAjWiIqUQy/Uw3rvySa8yCqOuTL2
+uDqiX0v+waNIV2cY2BTLoPqRL5rv4WhqAbOlEY6YhLIA0cfBhnZpx9ufAL0cQiXN
+927vuAJTEVu27Fr/gqDEIFNZPrEG2Ey6GEu3EK3L8AeQYKNjGHmuNJNFJn9YtRne
+R4/dAX4bUvG6//GvAoKL1nqEcgcTtKN4uPdcdpTsuMpf34QAqgL0amhNPGdwgYso
+fr55CEhQF2Q8mUgBj8oEFRrGrW4MokO0xlqjT+Vouyos3BONmrbfDI+uq3zF01o5
+tg8NPzaD+zY50Lht4BKs7ulfhw7JhQA8lYhz8K3TpjjouR6npDAEMjVhQq2tnWTF
+mNCEosrg0txyrSKi8K2COGuMzoA8K0D7IfnAvveYzwoWkyQv9N7p7M1PP8XEPdsq
+PZ4qVnYXgRkUgwrmlweqNOzJ/nBpe1XuguS4JY2tFQP3JSsnk7dk1CmOwMRTxAUs
+uJeA8MKvUbg9VhSuBOXUfc3KjbpVDTrgUymfyGe11bYSpal1dSqVYc+xQQxCYc1O
+MFw32OFzH2XcbVt4KogxbZ3RbzPhUJm8HRfOafz3F0ac5jvmAGBldf1UajbY7muA
+zdQw6EQn2fw=
+-----END CERTIFICATE-----
+`;
+const CA_RAIZ_PEM = `-----BEGIN CERTIFICATE-----
+MIIF+TCCA+GgAwIBAgIQDCG0OEbFG/VQINOr7TNcpTANBgkqhkiG9w0BAQsFADBv
+MQswCQYDVQQGEwJQWTErMCkGA1UECgwiTWluaXN0ZXJpbyBkZSBJbmR1c3RyaWEg
+eSBDb21lcmNpbzEzMDEGA1UEAwwqQXV0b3JpZGFkIENlcnRpZmljYWRvcmEgUmHD
+rXogZGVsIFBhcmFndWF5MB4XDTEyMDgwNzA4MzY1OVoXDTMyMDgwNzA4MzY1OVow
+bzELMAkGA1UEBhMCUFkxKzApBgNVBAoMIk1pbmlzdGVyaW8gZGUgSW5kdXN0cmlh
+IHkgQ29tZXJjaW8xMzAxBgNVBAMMKkF1dG9yaWRhZCBDZXJ0aWZpY2Fkb3JhIFJh
+w616IGRlbCBQYXJhZ3VheTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIB
+AK6HfW/cm6CSmT+jjZqFSsUDVF/dhuVxBS93gNy7t8XCJBugnJ6t+HUiVeziPNNV
+oVn9tOhVFxeJrOlfJxmvl9TTax0QbTwJUmw3AiPNNd1rdJL1gsQCKV0h4f+5djd/
+ZbnOV8B9VYtXpU/E6csQHEkYodpkKUQswcftFPjcyhPDub8DoZfx1oBno0MJ0Rhq
+DB6IxO5PHP5vbIggEDtezYneIyJsJyuC/KqeaJO30275dqN4rDZ8smOIOII/9L/z
+3agbfkiuc9vKgXi9N7UXm0Vcb/tjvBiey9U7cahNA+W5x+mcwC2bnkGLMVVMCrW9
+JbYvFCjyrg306IjoKQcVMoHcuxrYSME7ILqzglWgws26G45/khG2f9IpS6EDTqt5
+uaKU9ogocmmUMtHfGqDRvp1yOKRs9jPuYcju6hJlkD9c8McKxkr9NMBR0q/SswzR
+wNm8KhoPubjzCj0nYx6N2fnLBy6PhCpsmyf+z0LbT36voKNTSDKYYt03Ih2qL2uM
+0PeaSim5bsw+kwDcIPTX1CS/OxIBgLUHlxAs28VIVKA/OE/m9eHcn6N3lYOt3vEW
+kHr/wJqhk2JPw0G5apqj4nM74qX4YIONx/lGQSf47elkliPsGftfp4KsHB+9o1bN
+rRCTfk6EpELx23RPwArCiA1dyjQofa4YW9yqGraAHp5bAgMBAAGjgZAwgY0wDwYD
+VR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYwSwYDVR0gBEQwQjBABgRVHSAA
+MDgwNgYIKwYBBQUHAgEWKmh0dHA6Ly93d3cuYWNyYWl6Lmdvdi5weS9jcHMvcG9s
+aXRpY2FzLnBkZjAdBgNVHQ4EFgQUwsQR8ipoRAwAKOxM1inbkvtevdYwDQYJKoZI
+hvcNAQELBQADggIBAJFz7SmvWakrRTF2RukHs5OMUMDEOyLq2U6qdmmI7G4RPfpw
+BFVvnCgHs9o6R4aNNUk6i6itTNNwnsaExxiYtAUdx1wwQudv62doKEuBKGAplfjw
+YuPN1zCEImEhSi2/e9OvgiJE3Hin++Gd2+j0gzIrKZ1xEO7KdvRPrOj9D7xl63oK
++VFX6d/FvUISJdPvsRjsvwbEm71FYe7Y5bDRLV1Zsti4pSOJMGl1ZgkCKgLEBfTQ
+pnGuOzRlD30ddt4aCQnj/nSSJBsKHJ5MDed5f09ufzS5g6gRudIeoa6kV0vA2KI+
+28Fafz1F/TRuE451nhb3M2vRBmcFj/nEZYt7adecYY98gXefxmwosPwOeKZq2EjG
+L7/Si3l2sOiOazOprbV4XJfeVajBZY7o39U5SoPSMNqrPVeZfELwRqgX/LCUPqFE
+ePTYrHaOdu3A7AoJb7q1rj9SEtB10hfIsg+BKF7ukFcqkoeys9ug5X16A1//LmaN
+uku471ePVUzKw30WGTawFzOgxc1CsKqyVHxeGfmRdoqDwGl37S16NJSSPU9rloIe
+77LqiQR7NZfFW/9cWnsPLHS3pCWJEYNbc4UL8pIOOBKt1edM6wK+Wkd8J+/1EBu+
+LFCdjEgW07kZqe300S6TQYFxgD6KOCSM6ou33kR4rVF20lSWwwhDSf/DLn8e
+-----END CERTIFICATE-----
+`;
+
 /* Abre el certificado .p12 guardado en los Secrets y devuelve la clave y el certificado en formato PEM */
 function abrirCertificado() {
   const b64 = Deno.env.get("SIFEN_P12_B64"), pass = Deno.env.get("SIFEN_P12_PASS");
@@ -55,8 +137,18 @@ function abrirCertificado() {
   const mismoModulo = (c) => c.publicKey && c.publicKey.n && key.n && c.publicKey.n.compareTo(key.n) === 0;
   const cert = certs.find(mismoModulo) || certs[0];
   const cadena = certs.filter((c) => c !== cert);
-  // Se envía primero el certificado propio y después los de la cadena (la DNIT puede necesitarlos para validarlo)
-  return { keyPem: forge.pki.privateKeyToPem(key), certPem: [cert, ...cadena].map((c) => forge.pki.certificateToPem(c)).join(""), cert, cantidad: certs.length, coincideConClave: certs.some(mismoModulo) };
+  // Si el archivo no trae la entidad certificadora, se agrega la intermedia pública (más la raíz sólo para verificar)
+  const inter = forge.pki.certificateFromPem(CA_INTERMEDIA_PEM), raiz = forge.pki.certificateFromPem(CA_RAIZ_PEM);
+  const hash = (c) => forge.md.sha1.create().update(forge.asn1.toDer(forge.pki.certificateToAsn1(c)).getBytes()).digest().toHex();
+  if (!cadena.some((c) => hash(c) === hash(inter))) cadena.push(inter);
+  // Verificación de la cadena: propio -> intermedia -> raíz (no se envía la raíz: el servidor ya la tiene)
+  let cadenaOk = false, cadenaError = "";
+  try {
+    const store = forge.pki.createCaStore([raiz]);
+    cadenaOk = forge.pki.verifyCertificateChain(store, [cert, inter]) === true;
+  } catch (e) { cadenaError = e && e.message ? e.message : String(e); }
+  const enviados = [cert, ...cadena.filter((c) => hash(c) !== hash(raiz))];
+  return { keyPem: forge.pki.privateKeyToPem(key), certPem: enviados.map((c) => forge.pki.certificateToPem(c)).join(""), cert, cantidad: certs.length, enviados: enviados.length, cadenaOk, cadenaError, coincideConClave: certs.some(mismoModulo) };
 }
 function infoCertificado(cert) {
   const campo = (n) => ((cert.subject.attributes.find((x) => x.shortName === n || x.name === n || x.type === n)) || {}).value || "";
@@ -105,7 +197,7 @@ async function diagnostico302(body) {
   for (const [nombre, c, metodo, cuerpo] of [["POST con certificado", cert, "POST", xml], ["POST sin certificado", null, "POST", xml], ["GET sin certificado", null, "GET", ""]]) {
     try { pruebas.push(resumen(nombre, await soap(host, ruta, cuerpo, c, metodo))); } catch (e) { pruebas.push({ prueba: nombre, error: String((e && e.message) || e) }); }
   }
-  return { ambiente: env, url: "https://" + host + ruta, certificados_en_archivo: cert.cantidad, clave_coincide_con_certificado: cert.coincideConClave, pruebas };
+  return { ambiente: env, url: "https://" + host + ruta, certificados_en_archivo: cert.cantidad, certificados_enviados_a_la_DNIT: cert.enviados, cadena_verificada_hasta_la_raiz: cert.cadenaOk, cadena_error: cert.cadenaError, clave_coincide_con_certificado: cert.coincideConClave, pruebas };
 }
 
 /* ================= EMISIÓN ================= */
@@ -276,7 +368,7 @@ Deno.serve(async (req) => {
   try {
     await requireUser(req);
     const body = await req.json().catch(() => ({}));
-    if (body.action === "diagnostico") return json({ ok: true, certificado: infoCertificado(abrirCertificado().cert) });
+    if (body.action === "diagnostico") return (() => { const c = abrirCertificado(); return json({ ok: true, certificado: infoCertificado(c.cert), certificados_enviados: c.enviados, cadena_verificada_hasta_la_raiz: c.cadenaOk, cadena_error: c.cadenaError }); })();
     if (body.action === "emitir") return json(await emitir(body));
     if (body.action === "diagnosticoCliente") return json({ ok: true, ...(await diagnosticoCliente()) });
     if (body.action === "diagnostico302") return json({ ok: true, ...(await diagnostico302(body)) });
