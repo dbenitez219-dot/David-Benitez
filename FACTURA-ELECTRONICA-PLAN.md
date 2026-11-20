@@ -61,6 +61,13 @@ Según la **Guía de Pruebas oficial de la DNIT, p. 5, apartado 4.1** (citado po
 - Verificación sin tocar Supabase: `certutil -dump` local del .pfx (ver conversación) → revisar SAN, EKU, KU, cadena, versión X.509 y algoritmo.
 - **El control `diagnosticoCliente` ya NO usa el certificado de la empresa**: usa un certificado descartable (`CN=DESCARTABLE-SIN-VALOR`) embebido en el código, para comprobar solo si el motor envía certificados de cliente. El certificado real nunca sale hacia servicios de terceros. (Cambio en el repositorio; **no desplegado**.)
 
+## Informe del certificado (20/11/2026, `certificado-info.txt` generado localmente por la usuaria; solo datos públicos)
+- X.509 **v3**, firma **sha256RSA**, clave **RSA 2048**, vigente 2026-11-18 → 2027-11-18. Emisor `CN=CODE100 S.A., OU=Prestador Cualificado de Servicios de Confianza, O=ICPP, C=PY` (RUC80080610-7).
+- **Subject**: `SERIALNUMBER=CI…` (cédula del representante). **SAN**: rfc822 del titular + **directoryName** con `SERIALNUMBER=RUC80139512-7`, `O=CRISTALAUTO E.A.S. UNIPERSONAL`, `T=REPRESENTANTE LEGAL`, `Description=FIRMA ELECTRÓNICA de nivel medio` → **el RUC de la empresa SÍ está en el certificado (en el SAN)**. Hipótesis anterior ("el certificado no trae el RUC") **refutada** al ver el SAN.
+- **Extended Key Usage: clientAuth (1.3.6.1.5.5.7.3.2) y serverAuth**. **Key Usage: digitalSignature, nonRepudiation, keyEncipherment**. Política 1.3.6.1.4.1.55152.1.1.4, "tipo F1".
+- **Cadena: el archivo trae SOLO el certificado propio** (0 de la cadena). Intermedia publicada por CODE100 (AIA): `http://pca1.code100.com.py/certs/ca-code100-sa.cer`; CRL: `http://pca1/pca2.code100.com.py/crls/ca-code100-sa.crl`; OCSP: `http://ocsp.code100.com.py/ocsp/ca-code100-sa`.
+- Conclusión: cumple lo citado de la Guía de Pruebas §4.1 (RUC en el certificado + clientAuth). Causas que quedan: (a) **la función envía solo la hoja y no la intermedia** (un BIG-IP suele necesitar la cadena para validar el certificado de cliente) y (b) que el motor de Supabase no envíe el certificado de cliente. Siguiente paso: obtener la intermedia (y la raíz) públicas y enviarlas junto con la hoja.
+
 ## Reglas que más rechazos causan (a vigilar)
 - Las **Notas Técnicas (NT 001–027)** pisan al Manual v150: no alcanza con el manual. Revisar las vigentes para la fecha y ambiente.
 - **Código 0160 = XML mal formado.** Puede venir de un campo con valor inválido aunque el XSD pase (teléfono del emisor `dTelEmi`, caracteres no permitidos, patrones numéricos). Registrar siempre código y mensaje completo.
