@@ -164,7 +164,7 @@ function infoCertificado(cert) {
 /* Envía un mensaje SOAP a SIFEN con TLS 1.2 y autenticación mutua (el certificado va en la conexión) */
 function soap(host, path, body, cert, metodo = "POST") {
   return new Promise((resolve, reject) => {
-    const opts = { host, port: 443, path, method: metodo, minVersion: "TLSv1.2", timeout: 60000, headers: { "User-Agent": "CristalAuto" } };
+    const opts = { host, port: 443, path, method: metodo, minVersion: "TLSv1.2", timeout: 10000, headers: { "User-Agent": "CristalAuto" } };
     if (cert) { opts.key = cert.keyPem; opts.cert = cert.certPem; }
     if (body) { opts.headers["Content-Type"] = "application/xml; charset=utf-8"; opts.headers["Content-Length"] = Buffer.byteLength(body); }
     const req = https.request(opts, (res) => {
@@ -355,11 +355,10 @@ kd8oIA3aREnkLR2mYpJJ2Gs=
 };
 async function diagnosticoCliente() {
   const texto = (b) => b.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
-  const pruebas = [];
-  for (const [nombre, c] of [["Con un certificado descartable", DESCARTABLE], ["Sin certificado", null]]) {
-    try { const r = await soap("client.badssl.com", "/", "", c, "GET"); pruebas.push({ prueba: nombre, http: r.status, texto: texto(r.body) }); }
-    catch (e) { pruebas.push({ prueba: nombre, error: String((e && e.message) || e) }); }
-  }
+  const pruebas = await Promise.all([["Con un certificado descartable", DESCARTABLE], ["Sin certificado", null]].map(async ([nombre, c]) => {
+    try { const r = await soap("client.badssl.com", "/", "", c, "GET"); return { prueba: nombre, http: r.status, texto: texto(r.body) }; }
+    catch (e) { return { prueba: nombre, error: String((e && e.message) || e) }; }
+  }));
   return { servidor: "client.badssl.com", nota: "Se usó un certificado descartable; el certificado de la empresa no se envió.", pruebas };
 }
 
@@ -367,7 +366,7 @@ async function diagnosticoCliente() {
 /* Conexión de bajo nivel que además informa el protocolo TLS negociado y el certificado del servidor */
 function sondeo(host, path, metodo, body, cert, extra = {}) {
   return new Promise((resolve, reject) => {
-    const opts = { host, port: 443, path, method: metodo, minVersion: "TLSv1.2", timeout: 30000, agent: false, headers: { "User-Agent": "CristalAuto" }, ...extra };
+    const opts = { host, port: 443, path, method: metodo, minVersion: "TLSv1.2", timeout: 8000, agent: false, headers: { "User-Agent": "CristalAuto" }, ...extra };
     if (cert) { opts.key = cert.keyPem; opts.cert = cert.certPem; }
     if (body) { opts.headers["Content-Type"] = extra.contentType || "application/soap+xml; charset=utf-8"; opts.headers["Content-Length"] = Buffer.byteLength(body); }
     delete opts.contentType;
@@ -380,7 +379,7 @@ function sondeo(host, path, metodo, body, cert, extra = {}) {
         resolve({ status: res.statusCode, location: res.headers.location || "", servidor: res.headers.server || "", contentType: res.headers["content-type"] || "", protocolo: proto, cifrado, servidorCert: srv, body: data });
       });
     });
-    req.on("timeout", () => req.destroy(new Error("Tiempo de espera agotado")));
+    req.on("timeout", () => req.destroy(new Error("La DNIT no respondió en 8 segundos (conexión cortada o sin respuesta)")));
     req.on("error", reject); if (body) req.write(body); req.end();
   });
 }
@@ -400,27 +399,26 @@ async function diagnosticoSifen(body) {
   const R = { ambiente: "test", host, certificado: { enviados: cert.enviados, cadena_verificada_hasta_la_raiz: cert.cadenaOk, cadena_error: cert.cadenaError, clave_coincide: cert.coincideConClave }, etapas: {} };
 
   // Etapa 1 — WSDL (lectura, sin enviar datos): con y sin certificado, sin seguir redirecciones
-  const wsdl = [], direcciones = {};
-  for (const [nombre, ruta] of SERVICIOS) {
+  const direcciones = {};
+  const wsdl = await Promise.all(SERVICIOS.map(async ([nombre, ruta]) => {
     const fila = { servicio: nombre, url: "https://" + host + ruta + "?wsdl" };
-    for (const [k, c] of [["con_certificado", cert], ["sin_certificado", null]]) {
+    await Promise.all([["con_certificado", cert], ["sin_certificado", null]].map(async ([k, c]) => {
       try {
         const r = await sondeo(host, ruta + "?wsdl", "GET", "", c);
         fila[k] = { http: r.status, location: r.location, tipo: tipoCuerpo(r.body), content_type: r.contentType, servidor: r.servidor };
         const m = r.body.match(/<(?:\w+:)?address[^>]*location="([^"]+)"/);
         if (m) { fila[k].soap_address = m[1]; if (k === "con_certificado") direcciones[ruta] = m[1]; }
       } catch (e) { fila[k] = { error: msg(e) }; }
-    }
-    wsdl.push(fila);
-  }
+    }));
+    return fila;
+  }));
   R.etapas["1_wsdl"] = wsdl;
 
   // Etapa 2 — TLS: protocolo negociado por defecto y forzando TLS 1.2, cadena del servidor
-  const tls = [];
-  for (const [nombre, extra] of [["TLS por defecto (mínimo 1.2)", {}], ["TLS 1.2 forzado", { maxVersion: "TLSv1.2" }]]) {
-    try { const r = await sondeo(host, "/de/ws/consultas/consulta-ruc.wsdl?wsdl", "GET", "", null, extra); tls.push({ prueba: nombre, protocolo: r.protocolo, cifrado: r.cifrado, certificado_servidor: r.servidorCert, http: r.status }); }
-    catch (e) { tls.push({ prueba: nombre, error: msg(e) }); }
-  }
+  const tls = await Promise.all([["TLS por defecto (mínimo 1.2)", {}], ["TLS 1.2 forzado", { maxVersion: "TLSv1.2" }]].map(async ([nombre, extra]) => {
+    try { const r = await sondeo(host, "/de/ws/consultas/consulta-ruc.wsdl?wsdl", "GET", "", null, extra); return { prueba: nombre, protocolo: r.protocolo, cifrado: r.cifrado, certificado_servidor: r.servidorCert, http: r.status }; }
+    catch (e) { return { prueba: nombre, error: msg(e) }; }
+  }));
   R.etapas["2_tls"] = tls;
 
   // Etapa 3 — Control de autenticación mutua con un certificado DESCARTABLE (el de la empresa no sale)
@@ -432,11 +430,12 @@ async function diagnosticoSifen(body) {
   if (declarada) { try { const u = new URL(declarada); destinos.push({ nombre: "dirección del WSDL (soap:address)", host: u.host, ruta: u.pathname }); } catch (_) {} }
   const ruc = String(body.ruc || "80139512").replace(/\D/g, "").slice(0, 12);
   const xml = envelope(`<rEnviConsRUC xmlns="http://ekuatia.set.gov.py/sifen/xsd"><dId>1</dId><dRUCCons>${ruc}</dRUCCons></rEnviConsRUC>`);
-  const soapPruebas = [];
-  for (const d of destinos) for (const [tipo, ct] of [["SOAP 1.2 (application/soap+xml)", "application/soap+xml; charset=utf-8"], ["application/xml", "application/xml; charset=utf-8"]]) {
-    try { const r = await sondeo(d.host, d.ruta, "POST", xml, cert, { maxVersion: "TLSv1.2", contentType: ct }); soapPruebas.push({ destino: d.nombre, url: "https://" + d.host + d.ruta, content_type_enviado: tipo, protocolo: r.protocolo, http: r.status, location: r.location, tipo: tipoCuerpo(r.body), codigo: tag(r.body, "dCodRes"), mensaje: tag(r.body, "dMsgRes"), razonSocial: tag(r.body, "dRazCons"), inicio: texto(r.body) }); }
-    catch (e) { soapPruebas.push({ destino: d.nombre, content_type_enviado: tipo, error: msg(e) }); }
-  }
+  const combos = [];
+  for (const d of destinos) for (const [tipo, ct] of [["SOAP 1.2 (application/soap+xml)", "application/soap+xml; charset=utf-8"], ["application/xml", "application/xml; charset=utf-8"]]) combos.push([d, tipo, ct]);
+  const soapPruebas = await Promise.all(combos.map(async ([d, tipo, ct]) => {
+    try { const r = await sondeo(d.host, d.ruta, "POST", xml, cert, { maxVersion: "TLSv1.2", contentType: ct }); return { destino: d.nombre, url: "https://" + d.host + d.ruta, content_type_enviado: tipo, protocolo: r.protocolo, http: r.status, location: r.location, tipo: tipoCuerpo(r.body), codigo: tag(r.body, "dCodRes"), mensaje: tag(r.body, "dMsgRes"), razonSocial: tag(r.body, "dRazCons"), inicio: texto(r.body) }; }
+    catch (e) { return { destino: d.nombre, content_type_enviado: tipo, error: msg(e) }; }
+  }));
   R.etapas["4_consulta_ruc"] = soapPruebas;
 
   // Veredicto en palabras simples
