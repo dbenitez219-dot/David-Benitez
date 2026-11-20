@@ -10,10 +10,15 @@ $ErrorActionPreference = 'Stop'
 $rucEmpresa = '80139512'   # RUC de CristalAuto sin el digito verificador (para buscarlo en el certificado)
 
 $ruta = (Read-Host 'Pega la ruta del archivo .pfx').Trim().Trim('"')
-$s = Read-Host 'Contrasena del certificado (no se muestra)' -AsSecureString
-try { $pfx = Get-PfxData -FilePath $ruta -Password $s }
-catch { $s.Dispose(); throw 'No se pudo abrir el certificado: revisa la ruta y la contrasena.' }
-$s.Dispose()
+if (-not (Test-Path -LiteralPath $ruta -PathType Leaf)) { throw ('No encuentro ningun archivo en esa ruta: [' + $ruta + ']. Copia la ruta de nuevo (clic derecho en el .pfx > Copiar como ruta de acceso).') }
+if (-not (Get-Command Get-PfxData -ErrorAction SilentlyContinue)) { throw 'Esta ventana no tiene la funcion Get-PfxData. Abri "Windows PowerShell" (no PowerShell 7) y repeti.' }
+$pfx = $null
+for ($intento = 1; $intento -le 3; $intento++) {
+  $s = Read-Host ('Contrasena del certificado (no se muestra) - intento ' + $intento + ' de 3') -AsSecureString
+  try { $pfx = Get-PfxData -FilePath $ruta -Password $s; $s.Dispose(); break }
+  catch { $s.Dispose(); Write-Host ('No se pudo abrir. Detalle de Windows: ' + $_.Exception.Message) -ForegroundColor Yellow }
+}
+if (-not $pfx) { throw 'No se pudo abrir el certificado despues de 3 intentos (el detalle esta arriba en amarillo).' }
 
 $propios = @($pfx.EndEntityCertificates)
 $cadena = @($pfx.OtherCertificates)
