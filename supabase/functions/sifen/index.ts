@@ -208,17 +208,66 @@ async function emitir(body) {
   return { ok: true, estado, numero: numeroTxt, cdc, protocolo, ambiente, codigo: registro.codigo, mensaje: registro.mensaje, resultados: res, advertencia, http: r.status };
 }
 
-/* Control: ¿esta función ENVÍA el certificado de cliente? client.badssl.com es un servidor público de pruebas que exige certificado y
-   contesta distinto si no recibió ninguno o si recibió uno que no reconoce. No tiene relación con la DNIT. */
+/* Control: ¿el motor de esta función ENVÍA certificados de cliente? Se usa un certificado DESCARTABLE (generado solo para esto, sin relación con
+   ninguna persona ni empresa) contra client.badssl.com, un servidor público que contesta distinto si no recibe certificado o si recibe uno que no
+   reconoce. El certificado real de la empresa NUNCA se usa en este control ni sale de la función. */
+const DESCARTABLE = {
+  certPem: `-----BEGIN CERTIFICATE-----
+MIIDITCCAgmgAwIBAgIUEhblR0vWe9mKO1J7/CegR1wVES4wDQYJKoZIhvcNAQEL
+BQAwIDEeMBwGA1UEAwwVREVTQ0FSVEFCTEUtU0lOLVZBTE9SMB4XDTI2MTEyMDE1
+MjEwMFoXDTM2MTExNzE1MjEwMFowIDEeMBwGA1UEAwwVREVTQ0FSVEFCTEUtU0lO
+LVZBTE9SMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs01USF73KZ3C
+SZmZy2nrkANWvCuNTnZzeJ04v3YnQkHXFmwCsVGRMTsB6px610P9ABSnisyUVqJm
+2L+ybZmhbWNtpV8Z0IVAkv91vJwDDM1zmDzwRUEjxsi019WkLVPowcBrzkpNTcZ3
+Pd/lLdi0FLfJrzHT/sFodmU46vQImo7/+Zh8EqmjIS2wcvG5WLnpjIvgHcFHnzMn
+tO0P4LM1sM5GqfTywXfBJFjPF71whuVpSDsL+vjBiyU1hzBgANvXF4QyWbldnrjH
+uNnhQ6ZotSPPLPfMjWARxpvMbserPa05DcKFKlgXRYMFi83pwiGMOnIPTc1NaGUE
+Z7b9/rTERQIDAQABo1MwUTAdBgNVHQ4EFgQUa2eLvMuqnwCF5hFI0+KliwsaGaQw
+HwYDVR0jBBgwFoAUa2eLvMuqnwCF5hFI0+KliwsaGaQwDwYDVR0TAQH/BAUwAwEB
+/zANBgkqhkiG9w0BAQsFAAOCAQEAKDCr5JhBWox9oE+NJY8ojAjyJmr4MEi6xSJr
+BpPUBlzs/rC2+U7jROkc4nOMLvEw68SrvkHgp1olC/udk35l+KGgWWH7j/MUpGY5
+KZc1CWQ1XnIOKKlvdR+HZgzGUN44H4BGPqf/lnHfKzwUCuG356qW6rcmuvBjfo2L
+Sa131l/TvLzDAHahMKne5tmxhV3U5Xw2S8o5UmOOsUJVCpoGNzxkJ4mxD/jkXWk/
+GN8x8TD9Y/tCI8IeXaYBApO9vCudUCiCWm5aOYZPNJFUguYOtYyAlV6z8meGreGV
+g+Nj0vNnnfz+vwi4+/31pxyqqjTra3M/bOM1DVNU2WZw5Ahc3w==
+-----END CERTIFICATE-----`,
+  keyPem: `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCzTVRIXvcpncJJ
+mZnLaeuQA1a8K41OdnN4nTi/didCQdcWbAKxUZExOwHqnHrXQ/0AFKeKzJRWombY
+v7JtmaFtY22lXxnQhUCS/3W8nAMMzXOYPPBFQSPGyLTX1aQtU+jBwGvOSk1Nxnc9
+3+Ut2LQUt8mvMdP+wWh2ZTjq9Aiajv/5mHwSqaMhLbBy8blYuemMi+AdwUefMye0
+7Q/gszWwzkap9PLBd8EkWM8XvXCG5WlIOwv6+MGLJTWHMGAA29cXhDJZuV2euMe4
+2eFDpmi1I88s98yNYBHGm8xux6s9rTkNwoUqWBdFgwWLzenCIYw6cg9NzU1oZQRn
+tv3+tMRFAgMBAAECggEAGmWExjfG4udRClVU5TO1hIjdTMwLnFTHaKcayuMZ4gD/
+6ZLirZiwy6LghBnf4s+lUEz6Im6+WufDRN8p5UVEFO7Znko7Km3npQx7WJZOQ6T+
+gtfb1pJBslrrdsgCyNKM1nNd26uoKE5S0TbkTkTUNCWfiU2IZH20Q5Pg1oQxPRGX
+w4mZmcZai/mG5tkP6ROMcULm4gq1kNihk0qdAWnsm+qQZ4StikFAikyXHo5HkS55
+mipn2exE3bxb4w+avUoo++4DEXdttWRhf2muek3bMttJ88gWsUkXo/cDbpb7nLjz
+vv2Pk3C5tLH7tfyuHk9hin0XIbvDFIEyctlh8cXbYQKBgQDdTEg0hQlD6Sm1o8Ph
+6BIBUW9UBC2PYNg1pzaOamHCx/mb3dZxBa0+wYqXeoXKQAp1wEpQ6iQqCcDiKGT0
+jBotiat1bUOjyk6FnJ3zPgSy4ZVVtC/R+jR0CynmWTfWRifvD+Atfs9AhnsJ1a1N
+AE6v9qG2HNGMVUXD1lrlKcz6YQKBgQDPay0h6ZQvQ7Aw2QK31B35JqN40X1+xV1h
+zPd1P9+pAHsHdnX45y9mqfbjadabeNzhdUYiZcslGa40VBT+yq4+9fTxZNQMExI0
+KMQuZGZZOeOjYswXl6dQ/xFOlu1gWPgbKylnTgXtH15da89746WjagL/TsvhOdp1
+j2uw1+98ZQKBgQCrSS3iKM7BF6nHA9jL9DprdsK6vvkcrxLqhGB/3uuIPgx/jjc7
+B+/OUTOah6UipGr0NT/QXUpcl2wKIMXzWrWwZYymuUnPbvlUBaNj8K7mXiCeU3do
+CUesQi/OMWQ8n9Ss/xa/YBW+ldiKBi+7F+/P1w/Xy3qOKjpzmGiGU9JqQQKBgBUT
+O8O9WwwuYYGlGyyYhe8h6OxGxOyTmzhrvh0Qv2YJoXaRp80BmIRi8q4Ku/6SGkdi
+Rh0KoMiFQnkYrgVxjKDjFt9MMmuDqI7aMYzRMMESK7oXOMuQ4jRNpnGIzlfC0nrY
+ON3BRMLiNBFj+fIJoHPpOqK8W+TnnvXg+709Q50tAoGAHzCL21PdB2a1DsNo4fez
+WwWE8pdFlWb8tik18lxcct44R912PUBY9Uyg/4cdd49n8UyTYxNai1hT/670oxEo
+cE1rhipmgcM0YbV86x15F06+qmtY9iovnYuNM2327lNPbCfr40Lvk9AfUxyNLoCx
+kd8oIA3aREnkLR2mYpJJ2Gs=
+-----END PRIVATE KEY-----`,
+};
 async function diagnosticoCliente() {
-  const cert = abrirCertificado();
   const texto = (b) => b.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
   const pruebas = [];
-  for (const [nombre, c] of [["Con mi certificado", cert], ["Sin certificado", null]]) {
+  for (const [nombre, c] of [["Con un certificado descartable", DESCARTABLE], ["Sin certificado", null]]) {
     try { const r = await soap("client.badssl.com", "/", "", c, "GET"); pruebas.push({ prueba: nombre, http: r.status, texto: texto(r.body) }); }
     catch (e) { pruebas.push({ prueba: nombre, error: String((e && e.message) || e) }); }
   }
-  return { servidor: "client.badssl.com", pruebas };
+  return { servidor: "client.badssl.com", nota: "Se usó un certificado descartable; el certificado de la empresa no se envió.", pruebas };
 }
 
 Deno.serve(async (req) => {

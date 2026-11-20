@@ -54,6 +54,13 @@ Flujo: lee la venta/cliente/ajustes de la base → reserva número correlativo (
 - Corregido al probar en Deno: las librerías vienen con la función directo o dentro de `.default` (función `pick`).
 - **No probado contra la DNIT real** (entorno sin acceso). Pendiente: respuesta real al certificado (ver 302), KuDE (PDF con QR), cancelación, consulta de estado, pasar a producción.
 
+## Requisito del certificado para la autenticación mutua (aportado por la usuaria, 20/11/2026)
+Según la **Guía de Pruebas oficial de la DNIT, p. 5, apartado 4.1** (citado por la usuaria; no verificado por mí contra el PDF): el certificado usado para la autenticación mutua debe **contener el RUC del contribuyente emisor** y tener **Extended Key Usage con `clientAuth`**. El Manual Técnico v150 (según la usuaria): TLS 1.2, autenticación mutua, SOAP 1.2, XMLDSig enveloped, X.509 v3, RSA y SHA-256.
+- Lo que SÍ se sabe del certificado (capturas): emisor CODE100 S.A.; `O=CERTIFICADO CUALIFICADO TRIBUTARIO`, `OU=F1`, `serialNumber=CI…` (cédula del representante); **sin RUC en el Subject**; **1 solo certificado en el archivo** (sin cadena). **No se conoce** su SAN, su EKU ni su Key Usage (la función no mostraba extensiones).
+- Hipótesis H1 reforzada: un certificado de firma de documentos sin `clientAuth` y sin RUC explicaría que el portal BIG-IP no lo autentique.
+- Verificación sin tocar Supabase: `certutil -dump` local del .pfx (ver conversación) → revisar SAN, EKU, KU, cadena, versión X.509 y algoritmo.
+- **El control `diagnosticoCliente` ya NO usa el certificado de la empresa**: usa un certificado descartable (`CN=DESCARTABLE-SIN-VALOR`) embebido en el código, para comprobar solo si el motor envía certificados de cliente. El certificado real nunca sale hacia servicios de terceros. (Cambio en el repositorio; **no desplegado**.)
+
 ## Reglas que más rechazos causan (a vigilar)
 - Las **Notas Técnicas (NT 001–027)** pisan al Manual v150: no alcanza con el manual. Revisar las vigentes para la fecha y ambiente.
 - **Código 0160 = XML mal formado.** Puede venir de un campo con valor inválido aunque el XSD pase (teléfono del emisor `dTelEmi`, caracteres no permitidos, patrones numéricos). Registrar siempre código y mensaje completo.
